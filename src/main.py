@@ -2,7 +2,7 @@ import sys
 import pandas as pd
 from os.path import exists
 from common.add_col_name import add_colname
-
+from dal.msmarco import msmarco
 
 dataset_name = sys.argv[1:] #msmarco, aol,yandex
 raw_data_location  = f'./Raw/{dataset_name[0]}/'
@@ -22,7 +22,7 @@ add_headers('queries.train.tsv',["qid","query"],dataset_name[0])
 
 for data in dataset_name:
     if(data == 'msmarco'):
-        print('processing msmarco...')
+        msmarco('.'+clean_data_location + 'qrels.train.tsv','.'+ clean_data_location + 'queries.train.tsv')
     elif(data == 'aol'):
         print('processing aol...')
     else:
