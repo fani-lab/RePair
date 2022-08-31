@@ -22,7 +22,7 @@ add_headers('queries.train.tsv',["qid","query"],dataset_name[0])
 
 for data in dataset_name:
     if(data == 'msmarco'):
-        msmarco('.'+clean_data_location + 'qrels.train.tsv','.'+ clean_data_location + 'queries.train.tsv')
+        msmarco('.'+clean_data_location + 'qrels.train.tsv','.'+clean_data_location + 'queries.train.tsv')
     elif(data == 'aol'):
         print('processing aol...')
     else:

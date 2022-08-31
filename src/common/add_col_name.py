@@ -10,9 +10,8 @@ def add_colname(filename,colname_as_list,datasetName):
     store = f'../Raw/{datasetName}/'
     clean_data_location = f'../Data/{datasetName}/'
     file_location = clean_data_location+filename
-    file = pd.read_csv(store+filename,sep='\t')   
-    file.columns = list(colname_as_list)
-    file_location = file.to_csv(file_location, sep="\t", index=False)
+    file = pd.read_csv(store+filename,sep='\t',header=None)
+    file_location = file.to_csv(file_location,header=colname_as_list, sep="\t", index=False)
     print(f' printing dataframe after adding headers:\n {file.head()}')
     return file_location
 
