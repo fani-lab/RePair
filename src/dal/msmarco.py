@@ -15,20 +15,21 @@ def fetchDocument(doc_id,searcher):
     except:
         raise ValueError('the provided value is not found in the passage')
 def msmarco(qrels_file,queries_file):
-    # qrels_source = pd.read_csv(qrels_file, sep='\t', index_col=False)
-    # with open(queries_file) as queries:
-    #     query_source = csv.reader(queries, delimiter='\t')
-    #     next(query_source)
-    #     for line in query_source:
-    #         fetch_qid = qrels_source[qrels_source['qid'] == int(line[0])]
-    #         get_global_document = int(fetch_qid['pid'])
-    #         store_document = fetchDocument(get_global_document, searcher)
+    target_passage_location = '../Data/msmarco/target/qrels.target.tsv'
+    target_query_location = '../Data/msmarco/target/queries.target.tsv'
     queries_source = pd.read_csv(queries_file,sep="\t",index_col=False)
     with open(qrels_file) as qrels:
         qrels_source = csv.reader(qrels,delimiter='\t')
         next(qrels_source)
-        for line in qrels_source:
-            fetch_qid = queries_source[queries_source['qid'] == int(line[0])]
-            print(fetch_qid['query'])
-            store_document = fetchDocument((line[2]),searcher)
-            print(store_document)
+        with open(target_passage_location, 'w') as target_passage_file,open(target_query_location,'w') as target_query_file:
+            target_passage_file.write("pid\tpassage\n")
+            target_query_file.write("qid\tquery\n")
+            for line in qrels_source:
+                fetch_qid = queries_source.loc[queries_source['qid'] == int(line[0])]
+                retrieved_passage = fetchDocument((line[2]),searcher)
+                target_query_file.write(f"{fetch_qid['qid'].squeeze()}\t{fetch_qid['query'].squeeze()}\n")
+                target_passage_file.write(f'{line[2]}\t{retrieved_passage}\n')
+        target_passage_file.close()
+        target_query_file.close()
+    qrels.close()
+    return "finished creating target files"
