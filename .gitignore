@@ -3,3 +3,4 @@ Raw
 Data
 __pycache__
 /.idea
+/lightning_logs
