@@ -1,6 +1,6 @@
 .DS_Store
 Raw
-Data
+Data/*/target
 __pycache__
 /.idea
 /lightning_logs
