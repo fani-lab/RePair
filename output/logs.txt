@@ -1,10 +1,10 @@
-[03:05:51] [Model]: Loading t5-small...                               t5.py:194
+[12:39:42] [Model]: Loading t5-small...                               t5.py:194
                                                                                
-[03:05:54] : Reading data...                                          t5.py:205
+[12:39:45] : Reading data...                                          t5.py:205
                                                                                
-FULL Dataset: (300, 2)
-TRAIN Dataset: (240, 2)
-TEST Dataset: (60, 2)
+FULL Dataset: (4, 2)
+TRAIN Dataset: (3, 2)
+TEST Dataset: (1, 2)
 
            [Initiating Fine Tuning]...                                t5.py:263
                                                                                
@@ -12,94 +12,25 @@ TEST Dataset: (60, 2)
 +-----------------------------------------------------------+
 |Epoch | Steps |                    Loss                    |
 |------+-------+--------------------------------------------|
-|  0   |   0   | tensor(10.3821, grad_fn=<NllLossBackward0>)|
+|  0   |   0   | tensor(11.7915, grad_fn=<NllLossBackward0>)|
 +-----------------------------------------------------------+
                        Training Status                       
 +-----------------------------------------------------------+
 |Epoch | Steps |                    Loss                    |
 |------+-------+--------------------------------------------|
-|  0   |   0   | tensor(10.3821, grad_fn=<NllLossBackward0>)|
-|  0   |  10   | tensor(4.9702, grad_fn=<NllLossBackward0>) |
+|  0   |   0   | tensor(11.7915, grad_fn=<NllLossBackward0>)|
+|  1   |   0   | tensor(8.3795, grad_fn=<NllLossBackward0>) |
 +-----------------------------------------------------------+
                        Training Status                       
 +-----------------------------------------------------------+
 |Epoch | Steps |                    Loss                    |
 |------+-------+--------------------------------------------|
-|  0   |   0   | tensor(10.3821, grad_fn=<NllLossBackward0>)|
-|  0   |  10   | tensor(4.9702, grad_fn=<NllLossBackward0>) |
-|  0   |  20   | tensor(4.5142, grad_fn=<NllLossBackward0>) |
+|  0   |   0   | tensor(11.7915, grad_fn=<NllLossBackward0>)|
+|  1   |   0   | tensor(8.3795, grad_fn=<NllLossBackward0>) |
+|  2   |   0   | tensor(7.4391, grad_fn=<NllLossBackward0>) |
 +-----------------------------------------------------------+
-                       Training Status                       
-+-----------------------------------------------------------+
-|Epoch | Steps |                    Loss                    |
-|------+-------+--------------------------------------------|
-|  0   |   0   | tensor(10.3821, grad_fn=<NllLossBackward0>)|
-|  0   |  10   | tensor(4.9702, grad_fn=<NllLossBackward0>) |
-|  0   |  20   | tensor(4.5142, grad_fn=<NllLossBackward0>) |
-|  1   |   0   | tensor(4.4077, grad_fn=<NllLossBackward0>) |
-+-----------------------------------------------------------+
-                       Training Status                       
-+-----------------------------------------------------------+
-|Epoch | Steps |                    Loss                    |
-|------+-------+--------------------------------------------|
-|  0   |   0   | tensor(10.3821, grad_fn=<NllLossBackward0>)|
-|  0   |  10   | tensor(4.9702, grad_fn=<NllLossBackward0>) |
-|  0   |  20   | tensor(4.5142, grad_fn=<NllLossBackward0>) |
-|  1   |   0   | tensor(4.4077, grad_fn=<NllLossBackward0>) |
-|  1   |  10   | tensor(4.3103, grad_fn=<NllLossBackward0>) |
-+-----------------------------------------------------------+
-                       Training Status                       
-+-----------------------------------------------------------+
-|Epoch | Steps |                    Loss                    |
-|------+-------+--------------------------------------------|
-|  0   |   0   | tensor(10.3821, grad_fn=<NllLossBackward0>)|
-|  0   |  10   | tensor(4.9702, grad_fn=<NllLossBackward0>) |
-|  0   |  20   | tensor(4.5142, grad_fn=<NllLossBackward0>) |
-|  1   |   0   | tensor(4.4077, grad_fn=<NllLossBackward0>) |
-|  1   |  10   | tensor(4.3103, grad_fn=<NllLossBackward0>) |
-|  1   |  20   | tensor(4.3087, grad_fn=<NllLossBackward0>) |
-+-----------------------------------------------------------+
-                       Training Status                       
-+-----------------------------------------------------------+
-|Epoch | Steps |                    Loss                    |
-|------+-------+--------------------------------------------|
-|  0   |   0   | tensor(10.3821, grad_fn=<NllLossBackward0>)|
-|  0   |  10   | tensor(4.9702, grad_fn=<NllLossBackward0>) |
-|  0   |  20   | tensor(4.5142, grad_fn=<NllLossBackward0>) |
-|  1   |   0   | tensor(4.4077, grad_fn=<NllLossBackward0>) |
-|  1   |  10   | tensor(4.3103, grad_fn=<NllLossBackward0>) |
-|  1   |  20   | tensor(4.3087, grad_fn=<NllLossBackward0>) |
-|  2   |   0   | tensor(4.2605, grad_fn=<NllLossBackward0>) |
-+-----------------------------------------------------------+
-                       Training Status                       
-+-----------------------------------------------------------+
-|Epoch | Steps |                    Loss                    |
-|------+-------+--------------------------------------------|
-|  0   |   0   | tensor(10.3821, grad_fn=<NllLossBackward0>)|
-|  0   |  10   | tensor(4.9702, grad_fn=<NllLossBackward0>) |
-|  0   |  20   | tensor(4.5142, grad_fn=<NllLossBackward0>) |
-|  1   |   0   | tensor(4.4077, grad_fn=<NllLossBackward0>) |
-|  1   |  10   | tensor(4.3103, grad_fn=<NllLossBackward0>) |
-|  1   |  20   | tensor(4.3087, grad_fn=<NllLossBackward0>) |
-|  2   |   0   | tensor(4.2605, grad_fn=<NllLossBackward0>) |
-|  2   |  10   | tensor(4.4195, grad_fn=<NllLossBackward0>) |
-+-----------------------------------------------------------+
-                       Training Status                       
-+-----------------------------------------------------------+
-|Epoch | Steps |                    Loss                    |
-|------+-------+--------------------------------------------|
-|  0   |   0   | tensor(10.3821, grad_fn=<NllLossBackward0>)|
-|  0   |  10   | tensor(4.9702, grad_fn=<NllLossBackward0>) |
-|  0   |  20   | tensor(4.5142, grad_fn=<NllLossBackward0>) |
-|  1   |   0   | tensor(4.4077, grad_fn=<NllLossBackward0>) |
-|  1   |  10   | tensor(4.3103, grad_fn=<NllLossBackward0>) |
-|  1   |  20   | tensor(4.3087, grad_fn=<NllLossBackward0>) |
-|  2   |   0   | tensor(4.2605, grad_fn=<NllLossBackward0>) |
-|  2   |  10   | tensor(4.4195, grad_fn=<NllLossBackward0>) |
-|  2   |  20   | tensor(3.8154, grad_fn=<NllLossBackward0>) |
-+-----------------------------------------------------------+
-[03:18:49] [Saving Model]...                                          t5.py:268
+[12:39:56] [Saving Model]...                                          t5.py:268
                                                                                
-[03:18:50] [Initiating Validation]...                                 t5.py:275
+           [Initiating Validation]...                                 t5.py:275
                                                                                
 Completed 0
