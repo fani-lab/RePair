@@ -8,4 +8,6 @@ torch.cuda.manual_seed_all(0)
 
 np.random.seed(0)
 
-settings = {}
+settings = {
+    'cmd': [], # steps of pipeline, ['train', 'test', ]
+}
