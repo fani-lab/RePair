@@ -7,7 +7,7 @@ dependencies:
   - python=3.8 #nmslib in pyserini only works python <= 3.9
   - pip
   - ftfy
-  - faiss-gpu
+  - faiss-gpu #faiss-cpu is also an option
   - rich
   - pip:
       - pyserini
