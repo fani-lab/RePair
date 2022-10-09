@@ -9,5 +9,5 @@ torch.cuda.manual_seed_all(0)
 np.random.seed(0)
 
 settings = {
-    'cmd': [], # steps of pipeline, ['train', 'test', ]
+    'cmd': ['train'], # steps of pipeline, ['train', 'test', ]
 }

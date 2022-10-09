@@ -1,6 +1,6 @@
 .DS_Store
 Raw
-Data/*/target
+Data/msmarco/
 __pycache__
 /.idea
 /lightning_logs

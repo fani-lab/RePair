@@ -25,7 +25,7 @@ def msmarco(input, output):
                 # if it is of type ``int``, it is treated as an internal Lucene``docid``.
                 # stupid!!
                 doc = searcher.doc(str(row.pid))#passage id
-                json_doc = json.loads(doc).raw()
+                json_doc = json.loads(doc.raw())
                 retrieved_passage = fix_text(json_doc['contents'])
             except Exception as e:
                 raise e

@@ -196,8 +196,6 @@ def train(df, output):
         # tokenzier for encoding the text
         tokenizer = T5Tokenizer.from_pretrained(model_params["MODEL"])
 
-        # Defining the model. We are using t5-base model and added a Language model layer on top for generation of Summary.
-        # Further this model is sent to device (GPU/TPU) for using the hardware.
         model = T5ForConditionalGeneration.from_pretrained(model_params["MODEL"])
         model = model.to(device)
 
