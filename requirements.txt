@@ -1,5 +1,5 @@
 #python<=3.9
 ftfy
-faiss-gpu
+faiss-gpu #faiss-cpu is also an option
 rich
 pyserini
