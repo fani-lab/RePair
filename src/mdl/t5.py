@@ -9,7 +9,7 @@ from rich.table import Column, Table
 from rich import box
 from rich.console import Console
 
-def train(df):
+def train(df, output):
     console = Console(record=True)
     print(df.head())
     def display_df(df):
@@ -178,7 +178,7 @@ def train(df):
               actuals.extend(target)
       return predictions, actuals
 
-    def T5Trainer(dataframe, source_text, target_text, model_params, output_dir="./outputs/"):
+    def T5Trainer(dataframe, source_text, target_text, model_params, output_dir="./output/"):
 
         """
         T5 trainer
@@ -307,5 +307,5 @@ def train(df):
         source_text="query",
         target_text="passage",
         model_params=model_params,
-        output_dir="outputs",
+        output_dir=output,
     )

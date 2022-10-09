@@ -19,7 +19,7 @@ def run(data_list, domain_list, output, settings):
             qrels = pd.read_csv(f'{prep_output}/qrels.target.tsv', sep='\t')
             queries = pd.read_csv(f'{prep_output}/queries.target.tsv', sep='\t')
         qrels["query"] = queries["query"]
-        train(qrels)
+        train(qrels, './../output')
 
     if ('aol' in data_list): print('processing aol...')
     if ('yandex' in data_list): print('processing yandex...')
