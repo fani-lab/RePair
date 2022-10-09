@@ -2,7 +2,7 @@ import csv, json
 import pandas as pd
 from ftfy import fix_text
 from pyserini.search.lucene import LuceneSearcher
-
+from tqdm import tqdm
 
 def msmarco(input, output):
 
@@ -18,14 +18,14 @@ def msmarco(input, output):
     with open(f'{output}/qrels.train.tsv', 'w', encoding='utf-8') as pf, open(f'{output}/queries.train.tsv', 'w', encoding='utf-8') as qf:
         pf.write("pid\tpassage\n")
         qf.write("qid\tquery\n")
-        for row in qrels.itertuples():
+        for row in tqdm(qrels.itertuples(), total=qrels.shape[0]):
             fetch_qid = queries.loc[queries['qid'] == row.qid]
             try:
                 # The``docid`` is overloaded: if it is of type ``str``, it is treated as an external collection ``docid``;
                 # if it is of type ``int``, it is treated as an internal Lucene``docid``.
                 # stupid!!
                 doc = searcher.doc(str(row.pid))#passage id
-                json_doc = json.loads(searcher.doc(str(row.pid)).raw())
+                json_doc = json.loads(doc).raw()
                 retrieved_passage = fix_text(json_doc['contents'])
             except Exception as e:
                 raise e
