@@ -18,7 +18,7 @@ def msmarco(input, output):
     with open(f'{output}/qrels.train.tsv', 'w', encoding='utf-8') as pf, open(f'{output}/queries.train.tsv', 'w', encoding='utf-8') as qf:
         pf.write("pid\tpassage\n")
         qf.write("qid\tquery\n")
-        for row in tqdm(qrels.itertuples(), total=qrels.shape[0]):
+        for row in tqdm(qrels.itertuples(), total=qrels.shape[0]):#100%|██████████| 532761/532761 [10:24<00:00, 853.57it/s]
             fetch_qid = queries.loc[queries['qid'] == row.qid]
             try:
                 # The``docid`` is overloaded: if it is of type ``str``, it is treated as an external collection ``docid``;
