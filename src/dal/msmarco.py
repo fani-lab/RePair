@@ -13,14 +13,17 @@ def msmarco(input, output):
         if not searcher: raise ValueError("Lucene searcher cannot find/build msmarco index!")
     queries_source = pd.read_csv(f'{input}/queries.train.tsv', sep="\t", index_col=False, names=['qid', 'query'], header=None)
     qrels = pd.read_csv(f'{input}/qrels.train.tsv', sep="\t", index_col=False, names=['qid', 'did', 'pid', 'relevancy'], header=None)
-    with open(f'{output}/qrels.train.tsv', 'w') as pf, open(f'{output}/queries.train.tsv', 'w') as qf:
+    with open(f'{output}/qrels.train.tsv', 'w', encoding='utf-8') as pf, open(f'{output}/queries.train.tsv', 'w', encoding='utf-8') as qf:
         pf.write("pid\tpassage\n")
         qf.write("qid\tquery\n")
         for row in qrels.itertuples():
-            fetch_qid = queries_source.loc[queries_source['qid'] == int(row.qid)]
+            fetch_qid = queries_source.loc[queries_source['qid'] == row.qid]
             try:
-                doc = searcher.doc(row.pid)#passage id
-                json_doc = json.loads(doc.raw())
+                # The``docid`` is overloaded: if it is of type ``str``, it is treated as an external collection ``docid``;
+                # if it is of type ``int``, it is treated as an internal Lucene``docid``.
+                # stupid!!
+                doc = searcher.doc(str(row.pid))#passage id
+                json_doc = json.loads(searcher.doc(str(row.pid)).raw())
                 retrieved_passage = fix_text(json_doc['contents'])
             except Exception as e:
                 raise e
