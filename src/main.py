@@ -1,43 +1,47 @@
-import sys
-import os
-import pandas as pd
-from os.path import exists
-from common.add_col_name import add_colname
+import argparse
+
+import param
 from dal.msmarco import msmarco
-from src.common.create_toy_dataset import create_toy_dataset
-dataset_name = sys.argv[1:] #msmarco, aol,yandex
-raw_data_location  = f'./Raw/{dataset_name[0]}/'
-clean_data_location = f'./Data/{dataset_name[0]}/'
-def add_headers(filename,colname,datasetname):
+from mdl.t5 import *
 
-    if (exists(clean_data_location+filename)!=True):
-        return add_colname(filename, colname, datasetname)
-    else:
-        print(f'..fetching queries from {clean_data_location + filename}')
-        file_store =  pd.read_csv(clean_data_location + filename,sep='\t', chunksize = 10)
-        print(next(file_store))
+def run(data_list, domain_list, output, settings):
+    # 'qrels.train.tsv' => ,["qid","did","pid","relevancy"]
+    # 'queries.train.tsv' => ["qid","query"]
 
-# convert this code to a loop later
-add_headers('qrels.train.tsv',["qid","did","pid","relevancy"],dataset_name[0])
-add_headers('queries.train.tsv',["qid","query"],dataset_name[0])
+    if('msmarco' in domain_list):
+        datapath = data_list[domain_list.index('msmarco')]
+        prep_output = f'./../data/preprocessed/{os.path.split(datapath)[-1]}'
+        try:
+            qrels = pd.read_csv(f'{prep_output}/qrels.target.tsv', sep='\t')
+            queries = pd.read_csv(f'{prep_output}/queries.target.tsv', sep='\t')
+        except (FileNotFoundError, EOFError) as e:
+            msmarco(datapath, prep_output)
+            qrels = pd.read_csv(f'{prep_output}/qrels.target.tsv', sep='\t')
+            queries = pd.read_csv(f'{prep_output}/queries.target.tsv', sep='\t')
+        qrels["query"] = queries["query"]
+        train(qrels)
 
-for data in dataset_name:
-    if(data == 'msmarco'):
-        if(exists('.'+clean_data_location+'/target/qrels.target.tsv')!= True):
-            msmarco('.'+clean_data_location + 'qrels.train.tsv','.'+clean_data_location + 'queries.train.tsv')
-        else:
-            qrels_file = pd.read_csv('.'+clean_data_location+'target/qrels.target.tsv',sep='\t',chunksize=300)
-            queries_file = pd.read_csv('.'+clean_data_location+'target/queries.target.tsv',sep='\t',chunksize=300)
-            print('file already exists. reading them now.')
-            print('creating toy dataset\n')
-            if (exists(f"../Data/{qrels_file.handles.handle.name.split('/')[-3]}/toy/{qrels_file.handles.handle.name.split('/')[-1]}") != True):
-                create_toy_dataset(qrels_file)
-                print("created toy dataset for qrels target file\n\n")
-                create_toy_dataset(queries_file)
-                print("created toy dataset for query target file\n\n")
-            else:
-                print("toy file exists")
-    elif(data == 'aol'):
-        print('processing aol...')
-    else:
-        print('processing yandex...')
+    if ('aol' in data_list): print('processing aol...')
+    if ('yandex' in data_list): print('processing yandex...')
+
+def addargs(parser):
+    dataset = parser.add_argument_group('dataset')
+    dataset.add_argument('-data', '--data-list', nargs='+', type=str, default=[], required=True, help='a list of dataset paths; required; (eg. -data ./../data/raw/msmarco)')
+    dataset.add_argument('-domain', '--domain-list', nargs='+', type=str, default=[], required=True, help='a list of dataset paths; required; (eg. -domain msmarco)')
+
+    output = parser.add_argument_group('output')
+    output.add_argument('-output', type=str, default='./../output/', help='The output path (default: -output ./../output/)')
+
+# python -u main.py -data ../data/raw/toy.msmarco -domain msmarco
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Personalized Query Refinement')
+    addargs(parser)
+    args = parser.parse_args()
+
+    run(data_list = args.data_list,
+        domain_list = args.domain_list,
+        output = args.output,
+        settings = param.settings)
+
+
