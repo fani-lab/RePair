@@ -1,4 +1,6 @@
 import numpy as np
+import src.param as param
+
 import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader, RandomSampler, SequentialSampler
@@ -13,8 +15,6 @@ def train(df, output):
     console = Console(record=True)
     print(df.head())
     def display_df(df):
-        """display dataframe in ASCII format"""
-
         console = Console()
         table = Table(
             Column("source_text", justify="center"),
@@ -70,8 +70,6 @@ def train(df, output):
             self.source_text = self.data[source_text]
 
         def __len__(self):
-            """returns the length of dataframe"""
-
             return len(self.target_text)
 
         def __getitem__(self, index):
@@ -212,6 +210,7 @@ def train(df, output):
         train_dataset = dataframe.sample(frac=train_size, random_state=model_params["SEED"])
         val_dataset = dataframe.drop(train_dataset.index).reset_index(drop=True)
         train_dataset = train_dataset.reset_index(drop=True)
+        test_dataset = dataframe
 
         console.print(f"FULL Dataset: {dataframe.shape}")
         console.print(f"TRAIN Dataset: {train_dataset.shape}")
@@ -234,6 +233,14 @@ def train(df, output):
             source_text,
             target_text,
         )
+        test_set = custom_dataset(
+            test_dataset,
+            tokenizer,
+            model_params["MAX_SOURCE_TEXT_LENGTH"],
+            model_params["MAX_TARGET_TEXT_LENGTH"],
+            source_text,
+            target_text,
+        )
 
         # Defining the parameters for creation of dataloaders
         train_params = {
@@ -247,11 +254,16 @@ def train(df, output):
             "shuffle": False,
             "num_workers": 0,
         }
+        test_params = {
+            "batch_size": model_params["VALID_BATCH_SIZE"],
+            "shuffle": False,
+            "num_workers": 0,
+        }
 
         # Creation of Dataloaders for testing and validation. This will be used down for training and validation stage for the model.
         training_loader = DataLoader(training_set, **train_params)
         val_loader = DataLoader(val_set, **val_params)
-
+        test_loader = DataLoader(test_set,**test_params)
         # Defining the optimizer that will be used to tune the weights of the network in the training session.
         optimizer = torch.optim.Adam(
             params=model.parameters(), lr=model_params["LEARNING_RATE"]
@@ -276,8 +288,6 @@ def train(df, output):
             final_df = pd.DataFrame({"Generated Text": predictions, "Actual Text": actuals})
             final_df.to_csv(os.path.join(output_dir, "predictions.csv"))
 
-        console.save_text(os.path.join(output_dir, "logs.txt"))
-
         console.log(f"[Validation Completed.]\n")
         console.print(
             f"""[Model] Model saved @ {os.path.join(output_dir, "model_files")}\n"""
@@ -286,20 +296,33 @@ def train(df, output):
             f"""[Validation] Generation on Validation data saved @ {os.path.join(output_dir,'predictions.csv')}\n"""
         )
         console.print(f"""[Logs] Logs saved @ {os.path.join(output_dir,'logs.txt')}\n""")
-
+        if 'test' in param.settings['cmd']:
+            test_counter = 4
+            final_df = pd.DataFrame()
+            console.log('Generating queries from trained model ...')
+            for epoch in range(model_params["TEST_EPOCHS"]):
+                for _ in range(test_counter):
+                    predictions,actuals = validate(epoch,tokenizer,model,device,test_loader)
+                    final_df[f"prediction{_}"] = predictions
+            final_df["actual Text"] = actuals
+            final_df.to_csv(os.path.join(output_dir, "generated_queries.csv"))
+            console.print(
+                f"""[Validation] Generation on Validation data saved @ {os.path.join(output_dir, 'generated_queries.csv')}\n"""
+            )
     model_params = {
-        "MODEL": "t5-small",  # model_type: t5-base/t5-large
-        "TRAIN_BATCH_SIZE": 8,  # training batch size
-        "VALID_BATCH_SIZE": 8,  # validation batch size
-        "TRAIN_EPOCHS": 3,  # number of training epochs
-        "VAL_EPOCHS": 1,  # number of validation epochs
-        "LEARNING_RATE": 1e-4,  # learning rate
-        "MAX_SOURCE_TEXT_LENGTH": 124,  # max length of source text
-        "MAX_TARGET_TEXT_LENGTH": 512,  # max length of target text
-        "SEED": 42,  # set seed for reproducibility
+        "MODEL": "t5-small",
+        "TRAIN_BATCH_SIZE": 8,
+        "VALID_BATCH_SIZE": 8,
+        "TRAIN_EPOCHS": 3,
+        "VAL_EPOCHS": 1,
+        "TEST_EPOCHS":1,
+        "LEARNING_RATE": 1e-4,
+        "MAX_SOURCE_TEXT_LENGTH": 124,
+        "MAX_TARGET_TEXT_LENGTH": 512,
+        "SEED": 42,
     }
-    df["passage"] = "answer: " + df["passage"]
-    df["query"] = "question: " + df["query"]
+    df["passage"] = "context: " + df["passage"]
+    df["query"] = "questions: " + df["query"]
     T5Trainer(
         dataframe=df,
         source_text="query",
