@@ -310,19 +310,19 @@ def train(df, output):
                 f"""[Validation] Generation on Validation data saved @ {os.path.join(output_dir, 'generated_queries.csv')}\n"""
             )
     model_params = {
-        "MODEL": "t5-small",
-        "TRAIN_BATCH_SIZE": 8,
-        "VALID_BATCH_SIZE": 8,
-        "TRAIN_EPOCHS": 3,
+        "MODEL": "t5-base",
+        "TRAIN_BATCH_SIZE": 20,
+        "VALID_BATCH_SIZE": 10,
+        "TRAIN_EPOCHS": 10,
         "VAL_EPOCHS": 1,
         "TEST_EPOCHS":1,
         "LEARNING_RATE": 1e-4,
-        "MAX_SOURCE_TEXT_LENGTH": 124,
+        "MAX_SOURCE_TEXT_LENGTH": 512,
         "MAX_TARGET_TEXT_LENGTH": 512,
         "SEED": 42,
     }
     df["passage"] = "context: " + df["passage"]
-    df["query"] = "questions: " + df["query"]
+    df["query"] = "questions: " + df["query"] + " " + df["passage"]
     T5Trainer(
         dataframe=df,
         source_text="query",
