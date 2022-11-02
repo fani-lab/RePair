@@ -143,8 +143,26 @@ def train(df, output):
             loss.backward()
             optimizer.step()
 
-    def validate(epoch, tokenizer, model, device, loader):
+<<<<<<< Updated upstream
+    def validate(random_seed, tokenizer, model, device, loader):
+        """
+        Function to evaluate model for predictions
+       """
+        model.eval()
+        predictions = []
+        actuals = []
+        with torch.no_grad():
+            for _, data in enumerate(loader, 0):
+                y = data['target_ids'].to(device, dtype = torch.long)
+                ids = data['source_ids'].to(device, dtype = torch.long)
+                mask = data['source_mask'].to(device, dtype = torch.long)
 
+                generated_ids = model.generate(
+=======
+    def validate(seed, tokenizer, model, device, loader):
+      torch.manual_seed(seed)  # pytorch random seed
+      np.random.seed(seed)  # numpy random seed
+      torch.backends.cudnn.deterministic = False
       """
       Function to evaluate model for predictions
 
@@ -159,22 +177,33 @@ def train(df, output):
               mask = data['source_mask'].to(device, dtype = torch.long)
 
               generated_ids = model.generate(
+>>>>>>> Stashed changes
                   input_ids = ids,
                   attention_mask = mask,
                   max_length=150,
-                  num_beams=2,
+                  num_beams=10,
                   repetition_penalty=2.5,
                   length_penalty=1.0,
+<<<<<<< Updated upstream
                   early_stopping=True
+                )
+                preds = [tokenizer.decode(g, skip_special_tokens=True, clean_up_tokenization_spaces=True) for g in generated_ids]
+                target = [tokenizer.decode(t, skip_special_tokens=True, clean_up_tokenization_spaces=True)for t in y]
+                if _%10==0:
+                    console.print(f'Completed {_}')
+=======
+                  early_stopping=True,
+                  num_return_sequences = 5
                   )
               preds = [tokenizer.decode(g, skip_special_tokens=True, clean_up_tokenization_spaces=True) for g in generated_ids]
               target = [tokenizer.decode(t, skip_special_tokens=True, clean_up_tokenization_spaces=True)for t in y]
               if _%10==0:
                   console.print(f'Completed {_}')
+>>>>>>> Stashed changes
 
-              predictions.extend(preds)
-              actuals.extend(target)
-      return predictions, actuals
+                predictions.extend(preds)
+                actuals.extend(target)
+        return predictions, actuals
 
     def T5Trainer(dataframe, source_text, target_text, model_params, output_dir="./output/"):
 
@@ -186,7 +215,6 @@ def train(df, output):
         # Set random seeds and deterministic pytorch for reproducibility
         torch.manual_seed(model_params["SEED"])  # pytorch random seed
         np.random.seed(model_params["SEED"])  # numpy random seed
-        torch.backends.cudnn.deterministic = True
 
         # logging
         console.log(f"""[Model]: Loading {model_params["MODEL"]}...\n""")
@@ -256,7 +284,7 @@ def train(df, output):
         }
         test_params = {
             "batch_size": model_params["VALID_BATCH_SIZE"],
-            "shuffle": False,
+            "shuffle": True,
             "num_workers": 0,
         }
 
@@ -284,7 +312,11 @@ def train(df, output):
         # evaluating test dataset
         console.log(f"[Initiating Validation]...\n")
         for epoch in range(model_params["VAL_EPOCHS"]):
-            predictions, actuals = validate(epoch, tokenizer, model, device, val_loader)
+<<<<<<< Updated upstream
+            predictions, actuals = validate(0,tokenizer, model, device, val_loader)
+=======
+            predictions, actuals = validate(0, tokenizer, model, device, val_loader)
+>>>>>>> Stashed changes
             final_df = pd.DataFrame({"Generated Text": predictions, "Actual Text": actuals})
             final_df.to_csv(os.path.join(output_dir, "predictions.csv"))
 
@@ -302,7 +334,11 @@ def train(df, output):
             console.log('Generating queries from trained model ...')
             for epoch in range(model_params["TEST_EPOCHS"]):
                 for _ in range(test_counter):
-                    predictions,actuals = validate(epoch,tokenizer,model,device,test_loader)
+<<<<<<< Updated upstream
+                    predictions, actuals = validate(_, tokenizer, model, device, test_loader)
+=======
+                    predictions,actuals = validate(_,tokenizer,model,device,test_loader)
+>>>>>>> Stashed changes
                     final_df[f"prediction{_}"] = predictions
             final_df["actual Text"] = actuals
             final_df.to_csv(os.path.join(output_dir, "generated_queries.csv"))
@@ -311,22 +347,26 @@ def train(df, output):
             )
     model_params = {
         "MODEL": "t5-base",
-        "TRAIN_BATCH_SIZE": 20,
+        "TRAIN_BATCH_SIZE": 10,
         "VALID_BATCH_SIZE": 10,
-        "TRAIN_EPOCHS": 10,
+        "TRAIN_EPOCHS": 2,
         "VAL_EPOCHS": 1,
-        "TEST_EPOCHS":1,
+        "TEST_EPOCHS": 1,
         "LEARNING_RATE": 1e-4,
         "MAX_SOURCE_TEXT_LENGTH": 512,
-        "MAX_TARGET_TEXT_LENGTH": 512,
+        "MAX_TARGET_TEXT_LENGTH": 64,
         "SEED": 42,
     }
+<<<<<<< Updated upstream
     df["passage"] = "context: " + df["passage"]
-    df["query"] = "questions: " + df["query"] + " " + df["passage"]
+    df["query"] = "questions: " + df["query"]
+=======
+    df["passage"] = "generate questions: " + df["passage"]
+>>>>>>> Stashed changes
     T5Trainer(
         dataframe=df,
-        source_text="query",
-        target_text="passage",
+        source_text="passage",
+        target_text="query",
         model_params=model_params,
         output_dir=output,
     )

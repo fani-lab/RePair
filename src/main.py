@@ -13,13 +13,13 @@ def run(data_list, domain_list, output, settings):
         prep_output = f'./../data/preprocessed/{os.path.split(datapath)[-1]}'
         try:
             print('Loading (query,passage) file ...')
-            queries = pd.read_csv(f'{prep_output}/queries.train.tsv', sep='\t')
-            qrels = pd.read_csv(f'{prep_output}/qrels.train.tsv', sep='\t')
+            queries = pd.read_csv(f'{prep_output}/queries.train.tsv', sep='\t',error_bad_lines=False)
+            qrels = pd.read_csv(f'{prep_output}/qrels.train.tsv', sep='\t',error_bad_lines=False)
         except (FileNotFoundError, EOFError) as e:
             print('Loading (query,passage) file failed! Pairing queries and relevant passages ...')
             msmarco(datapath, prep_output)
-            qrels = pd.read_csv(f'{prep_output}/qrels.train.tsv', sep='\t')
-            queries = pd.read_csv(f'{prep_output}/queries.train.tsv', sep='\t')
+            qrels = pd.read_csv(f'{prep_output}/qrels.train.tsv', sep='\t',on_bad_lines=False)
+            queries = pd.read_csv(f'{prep_output}/queries.train.tsv', sep='\t',on_bad_lines=False)
         qrels["query"] = queries["query"]
         if 'train' in param.settings['cmd']:
             print('Training t5-small on (query, passage) pairs ...')
