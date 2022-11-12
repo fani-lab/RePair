@@ -13,17 +13,18 @@ def run(data_list, domain_list, output, settings):
         prep_output = f'./../data/preprocessed/{os.path.split(datapath)[-1]}'
         try:
             print('Loading (query,passage) file ...')
-            queries = pd.read_csv(f'{prep_output}/queries.train.tsv', sep='\t',error_bad_lines=False)
-            qrels = pd.read_csv(f'{prep_output}/qrels.train.tsv', sep='\t',error_bad_lines=False)
+            query_doc_pair = pd.read_csv(f'{prep_output}/query-doc.train.tsv', sep='\t',error_bad_lines=False)
         except (FileNotFoundError, EOFError) as e:
             print('Loading (query,passage) file failed! Pairing queries and relevant passages ...')
             msmarco(datapath, prep_output)
-            qrels = pd.read_csv(f'{prep_output}/qrels.train.tsv', sep='\t',on_bad_lines=False)
-            queries = pd.read_csv(f'{prep_output}/queries.train.tsv', sep='\t',on_bad_lines=False)
-        qrels["query"] = queries["query"]
-        if 'train' in param.settings['cmd']:
-            print('Training t5-small on (query, passage) pairs ...')
-            train(qrels, './../output')
+            query_doc_pair = pd.read_csv(f'{prep_output}/query-doc.tsv', sep='\t',on_bad_lines=False)
+            '''
+            This needs to be updated for the new training using T5 tensorflow. 
+            '''
+        # qrels["query"] = queries["query"]
+        # if 'train' in param.settings['cmd']:
+        #     print('Training t5-small on (query, passage) pairs ...')
+        #     train(qrels, './../output')
 
     if ('aol' in data_list): print('processing aol...')
     if ('yandex' in data_list): print('processing yandex...')
