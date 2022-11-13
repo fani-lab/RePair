@@ -12,3 +12,4 @@ dependencies:
   - pip:
       - pyserini
       - t5[gcp]
+      - beautifulsoup4

@@ -4,7 +4,10 @@ import param
 from dal.msmarco import msmarco
 from mdl.t5 import *
 
+
 def run(data_list, domain_list, output, settings):
+
+
     # 'qrels.train.tsv' => ,["qid","did","pid","relevancy"]
     # 'queries.train.tsv' => ["qid","query"]
 
@@ -13,11 +16,11 @@ def run(data_list, domain_list, output, settings):
         prep_output = f'./../data/preprocessed/{os.path.split(datapath)[-1]}'
         try:
             print('Loading (query,passage) file ...')
-            query_doc_pair = pd.read_csv(f'{prep_output}/query-doc.train.tsv', sep='\t',error_bad_lines=False)
+            query_doc_pair = pd.read_csv(f'{prep_output}/query-doc.train.tsv', sep='\t',on_bad_lines='warn')
         except (FileNotFoundError, EOFError) as e:
             print('Loading (query,passage) file failed! Pairing queries and relevant passages ...')
             msmarco(datapath, prep_output)
-            query_doc_pair = pd.read_csv(f'{prep_output}/query-doc.tsv', sep='\t',on_bad_lines=False)
+            query_doc_pair = pd.read_csv(f'{prep_output}/query-doc.tsv', sep='\t',on_bad_lines='warn')
             '''
             This needs to be updated for the new training using T5 tensorflow. 
             '''
