@@ -15,7 +15,7 @@ def msmarco(input, output):
 
     queries = pd.read_csv(f'{input}/queries.train.tsv', sep="\t", index_col=False, names=['qid', 'query'], header=None)
     qrels = pd.read_csv(f'{input}/qrels.train.tsv', sep="\t", index_col=False, names=['qid', 'did', 'pid', 'relevancy'], header=None)
-    with open(f'{output}/query-doc.train.tsv', 'w', encoding='utf-8') as qf:
+    with open(f'{output}/query-doc.train.tsv', 'w', encoding='utf-8') as qf, open(f'{output}/qrels.predict.txt','w',encoding="utf-8") as predict_file:
         for row in tqdm(qrels.itertuples(), total=qrels.shape[0]):#100%|██████████| 532761/532761 [10:24<00:00, 853.57it/s]
             fetch_qid = queries.loc[queries['qid'] == row.qid]
             try:
@@ -28,3 +28,4 @@ def msmarco(input, output):
             except Exception as e:
                 raise e
             qf.write(f"{retrieved_passage}\t{fetch_qid['query'].squeeze()}\n")
+            predict_file.write(f"{retrieved_passage}\n")
