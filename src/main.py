@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import param
 from dal.msmarco import msmarco
-
+from eval.msmarco import getHits
 
 def run(data_list, domain_list, output, settings):
     # 'qrels.train.tsv' => ,["qid","did","pid","relevancy"]
@@ -26,7 +26,7 @@ def run(data_list, domain_list, output, settings):
         # if 'train' in param.settings['cmd']:
         #     print('Training t5-small on (query, passage) pairs ...')
         #     train(qrels, './../output')
-
+        getHits(f'{output}predictions/msmarco', output)
     if ('aol' in data_list): print('processing aol...')
     if ('yandex' in data_list): print('processing yandex...')
 
