@@ -26,6 +26,7 @@ def run(data_list, domain_list, output, settings):
         # if 'train' in param.settings['cmd']:
         #     print('Training t5-small on (query, passage) pairs ...')
         #     train(qrels, './../output')
+        print('computing metrics for alternate queries\n:')
         getHits(f'{output}predictions/msmarco', output)
     if ('aol' in data_list): print('processing aol...')
     if ('yandex' in data_list): print('processing yandex...')
