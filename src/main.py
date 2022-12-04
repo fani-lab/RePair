@@ -23,10 +23,6 @@ def run(data_list, domain_list, output, settings):
             '''
             This needs to be updated for the new training using T5 tensorflow. 
             '''
-        # if 'train' in param.settings['cmd']:
-        #     print('Training t5-small on (query, passage) pairs ...')
-        #     train(qrels, './../output')
-        print('computing metrics for alternate queries:\n')
         getHits(f'{output}predictions/{os.path.split(datapath)[-1]}', output, os.path.split(datapath)[-1])
     if ('aol' in data_list): print('processing aol...')
     if ('yandex' in data_list): print('processing yandex...')
