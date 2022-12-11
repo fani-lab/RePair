@@ -2,6 +2,9 @@
 Raw
 data/*/msmarco/
 output/*/msmarco
+output/runs/toy.msmarco
+output/predictions/toy.msmarco/*.tsv
+
 __pycache__
 /.idea
 /lightning_logs
