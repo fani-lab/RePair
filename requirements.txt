@@ -3,3 +3,4 @@ ftfy
 faiss-gpu #faiss-cpu is also an option
 rich
 pyserini
+t5[gcp]
