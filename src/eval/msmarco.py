@@ -4,13 +4,14 @@ from tqdm import tqdm
 import pytrec_eval
 import time
 import subprocess
+
 def getHits(input, output,dataLocation):
     qrels_file = pd.read_csv(f'./../data/raw/{dataLocation}/qrels.train.tsv', sep='\t', encoding='utf-8', names=['qid', 'did', 'pid', 'relevance'])
     qrels_file = qrels_file.drop(['did', 'relevance'], axis=1)
     #get hits using ranker.
     try:
         predicted_file_list = sorted(os.listdir(input))
-        predicted_file_list = [file for file in predicted_file_list if file.endswith('.tsv')]
+        predicted_file_list = [file for file in predicted_file_list if file.endswith('.txt')]
         for pf in predicted_file_list:
             predicted_queries = pd.read_csv(f'{input}/{pf}', skip_blank_lines=False, sep="/r/r", header=None, engine='python')
             pq_run = f'{output}runs/{dataLocation}/{pf.split(".")[0] if len(predicted_file_list) > 1 else ""}.tsv'
@@ -27,6 +28,7 @@ def getHits(input, output,dataLocation):
                 passage_run_df.to_csv(pq_tsv, sep="\t", index=None, header=None)
                 end = time.time()
                 print(end - start)
+            if not os.path.isfile(pq_run):
                 print(f'retrieving passages using BM25 for alternate queries file:{pq_tsv}\n')
                 start = time.time()
                 subprocess.run(['python', '-m',
