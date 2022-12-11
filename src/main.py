@@ -1,7 +1,5 @@
-import argparse
-import os
-import pandas as pd
-import param
+import argparse, os, pandas as pd, param
+from multiprocessing import freeze_support
 from dal.msmarco import msmarco
 from eval.msmarco import getHits
 
@@ -43,6 +41,7 @@ def addargs(parser):
 # python -u main.py -data ../data/raw/toy.msmarco -domain msmarco
 
 if __name__ == '__main__':
+    freeze_support()
     parser = argparse.ArgumentParser(description='Personalized Query Refinement')
     addargs(parser)
     args = parser.parse_args()
