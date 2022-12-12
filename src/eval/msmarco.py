@@ -8,7 +8,6 @@ from multiprocessing import Pool
 from tqdm import tqdm
 from tqdm.contrib.concurrent import process_map
 
-# creating a global for usage of multiprocessing
 qrels_df = pd.DataFrame()
 passage_run_df = pd.DataFrame()
 
@@ -20,24 +19,29 @@ def create_trec_metric_from_chunk(chunks_df_source, chunks_df_target):
         current_qid = chunks_df_target.loc[chunks_df_target['qid'] == qrel.qid]
         passage_dict[f'{qrel.qid}'] = dict(zip(current_qid['pid'], current_qid['score']))
         return [qrels_dict, passage_dict]
-def getHits(input, output,dataLocation):
-    qrels_file = pd.read_csv(f'./../data/raw/{dataLocation}/qrels.train.tsv', sep='\t', encoding='utf-8', names=['qid', 'did', 'pid', 'relevance'])
-    qrels_file = qrels_file.drop(['did', 'relevance'], axis=1)
-    #get hits using ranker.
+
+
+def getHits(input, output, dataLocation):
+    qrels_df = pd.read_csv(f'./../data/raw/{dataLocation}/qrels.train.tsv', sep='\t', encoding='utf-8',
+                           names=['qid', 'did', 'pid', 'relevance'])
+    qrels_df = qrels_df.drop(['did'], axis=1)
+    # get hits using ranker.
     try:
         predicted_file_list = sorted(os.listdir(input))
         predicted_file_list = [file for file in predicted_file_list if file.endswith('.txt')]
         for pf in predicted_file_list:
-            predicted_queries = pd.read_csv(f'{input}/{pf}', skip_blank_lines=False, sep="/r/r", header=None, engine='python')
+            predicted_queries = pd.read_csv(f'{input}/{pf}', skip_blank_lines=False, sep="/r/r", header=None,
+                                            engine='python')
             pq_run = f'{output}runs/{dataLocation}/{pf.split(".")[0] if len(predicted_file_list) > 1 else ""}.tsv'
             pq_tsv = f'{output}predictions/{dataLocation}/{pf.split(".")[0]}.tsv'
             if not os.path.isfile(pq_tsv):
                 passage_run_dict = {'qid': [], 'query': []}
                 start = time.time()
-                print(f'getting relevant passages for {predicted_queries.shape[0]} queries for {pf.split(".")[0] if len(predicted_file_list) > 1 else pf}')
+                print(
+                    f'getting relevant passages for {predicted_queries.shape[0]} queries for {pf.split(".")[0] if len(predicted_file_list) > 1 else pf}')
                 for index, row in tqdm(predicted_queries.itertuples(), total=predicted_queries.shape[0]):
-                            passage_run_dict['qid'].append(qrels_file["qid"][index])
-                            passage_run_dict['query'].append(row)
+                    passage_run_dict['qid'].append(qrels_file["qid"][index])
+                    passage_run_dict['query'].append(row)
                 passage_run_df = pd.DataFrame().from_dict(passage_run_dict)
                 passage_run_df['query'] = passage_run_df['query'].astype(str)
                 passage_run_df.to_csv(pq_tsv, sep="\t", index=None, header=None)
@@ -47,11 +51,12 @@ def getHits(input, output,dataLocation):
                 print(f'retrieving passages using BM25 for alternate queries file:{pq_tsv}\n')
                 start = time.time()
                 subprocess.run(['python', '-m',
-                                  'pyserini.search.lucene', '--index', 'msmarco-v1-passage',
-                                  '--topics', pq_tsv,
-                                  '--output', pq_run,
-                                 '--output-format', 'msmarco',
-                                  '--hits', '100', '--bm25', '--k1', '0.82', '--b', '0.68', '--batch-size', '64', '--threads', '16'])
+                                'pyserini.search.lucene', '--index', 'msmarco-v1-passage',
+                                '--topics', pq_tsv,
+                                '--output', pq_run,
+                                '--output-format', 'msmarco',
+                                '--hits', '100', '--bm25', '--k1', '0.82', '--b', '0.68', '--batch-size', '64',
+                                '--threads', '16'])
                 end = time.time()
                 print(f'retrieved passages in {end - start}')
             if not os.path.isfile(f'{output}metrics/{dataLocation}/{pf.split(".")[0]}.tsv.metrics'):
@@ -62,20 +67,37 @@ def getHits(input, output,dataLocation):
         raise e
 
 
-def compute_metric(qrels, passage_run, dataLocation):
+def perform_chunk_retrieval(unique_id):
+    global qrels_df
+    return qrels_df[qrels_df.qid == unique_id]
+
+
+def perform_chunk_passage_retrieval(unique_id):
+    global passage_run_df
+    return passage_run_df[passage_run_df.qid == unique_id]
+
+def init_worker(q_f, pr_df):
+    print('initialize worker for global passage')
     global qrels_df
     global passage_run_df
-    cpu = multiprocessing.cpu_count() - 1
+    qrels_df = q_f
+    passage_run_df = pr_df
+
+
+
+def compute_metric(qrels, passage_run, dataLocation):
     print('loading files to evaluate metrics for retrieved passage using pytrec eval:\n')
     start = time.time()
-    qrels_df = pd.read_csv(qrels, sep="\t", index_col=None, header=None, names=['qid', 'did', 'pid', 'relevance'])
+    qrels_df = pd.read_csv(qrels, sep='\t', encoding='utf-8',
+                           names=['qid', 'did', 'pid', 'relevance'])
+    qrels_df = qrels_df.drop(['did'], axis=1)
     passage_run_df = pd.read_csv(passage_run, sep="\t", names=['qid', 'pid', 'score'])
     qrels_df = qrels_df.sort_values(by=['qid'])
     passage_run_df['pid'] = passage_run_df['pid'].astype(str)
-    qrels_df = qrels_df.drop(['did'], axis=1)
     qrels_dict = dict()
     pr_dict = dict()
-    with Pool(cpu) as p:
+    pool = Pool(multiprocessing.cpu_count() - 1, initializer=init_worker, initargs=(qrels_df, passage_run_df,))
+    with pool as p:
         print('creating chunks')
         chunks_qrels_df = process_map(perform_chunk_retrieval, qrels_df.qid.unique(), max_workers=6, chunksize=10)
         chunks_pq_df = process_map(perform_chunk_passage_retrieval, pq_df.qid.unique(), max_workers=6, chunksize=100)
@@ -97,13 +119,3 @@ def compute_metric(qrels, passage_run, dataLocation):
     metrics_df.index.name = 'qid'
     metrics_df.to_csv(f'./../output/metrics/{dataLocation}/{passage_run.split("/")[-1]}.metrics')
     print(f"finished creating metrics for {passage_run} file for {dataLocation}.")
-
-
-def perform_chunk_retrieval(unique_id):
-    global qrels_df
-    return qrels_df[qrels_df.qid == unique_id]
-
-
-def perform_chunk_passage_retrieval(unique_id):
-    global pq_df
-    return pq_df[pq_df.qid == unique_id]
