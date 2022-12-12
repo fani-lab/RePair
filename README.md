@@ -1,8 +1,5 @@
 # Personalized Query Refinement
-
-## About this project
-
-Creating alternative queries, also known as query reformulation, has been shown to improve users' search experience.  Recently, neural seq-to-seq-based models have shown increased effectiveness when applied for learning to reformulate an original query into effective alternate queries. Such methods however forgo incorporating user information. We investigate personalized query reformulation by incorporating user information on the performance of neural query reformulation methods compared to the lack thereof on AOL and Yandex query search logs. Our experiments demonstrate the synergistic effects of taking user information into account for query reformulation.
+Creating alternative queries, also known as query reformulation, has been shown to improve users' search experience.  Recently, neural transformers like `(* * * )` have shown increased effectiveness when applied for learning to reformulate an original query into effective alternate queries. Such methods however forgo incorporating user information. We investigate personalized query reformulation by incorporating user information on the performance of neural query reformulation methods compared to the lack thereof on `aol` and `yandex` query search logs. Our experiments demonstrate the synergistic effects of taking user information into account for query reformulation.
 
 
 ## Installation
@@ -23,71 +20,63 @@ cd personalized_query_refinement
 conda env create -f environment.yml
 conda activate pqr
 ```
+_Note: When installing jdk11, remember to check your env path for the executable in Windows._
 
-### Installation / creating a storage bucket and TPU on Google cloud platform:
+## Model Training and Test
+We use [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to train a model, that when given an input query (origianl query), generates refined (better) versions of the query in terms of retrieving more relevant documents at higher ranking positions. We adopt the [`docTTTTTTQuery`](https://github.com/castorini/docTTTTTquery#learning-a-new-prediction-model-t5-training-with-tensorflow) training methodology to fine-tune `T5` model on `msmarco` (w/o `userid`) and `aol` (w/ and w/o `userid`). For `yandex` dataset, we need to train `T5` from scratch since the tokens are anonymized by random Ids. 
 
-We adopt the [docTTTTTTQuery](https://github.com/castorini/docTTTTTquery#learning-a-new-prediction-model-t5-training-with-tensorflow) training methodology to fine-tune our T5 Model on msmarco, AOL and yandex dataset. 
-\
-\
-Our code creates the Doc-query pairs,  in the __Data__/__preprocessed__/__dataset_name__/ folder for every dataset.
+`check [T5X](https://github.com/google-research/t5x)`
 
-Move to the folder where the doc query pairs are created and push them to the data folder in your cloud storage bucket created in the Google Cloud storage. Follow these commands:
+### Dataset
+We create the dataset based on different pairings of queries and relevant passages in the `./data/preprocessed/{domain name}/` for each domain like [`./data/preprocessed/msmarco/`](./data/preprocessed/msmarco/) for `msmarco`.
 
-### creates a bucket 
+(1) `c:q>p`: context: query -> relevant passages
+
+(2) `c:p>q`: context: relevant passages -> queries like in [docTTTTTTQuery](https://github.com/castorini/docTTTTTquery#learning-a-new-prediction-model-t5-training-with-tensorflow)
+
+where the context will be `userid` (personalized) or `none` (blind). 
+
+For training, we choose [`ratio`](`ratio`) of dataset for training. Since our main purpose is to evaluate the retrieval power of refinements to the queries, we can input either of the following w/ or w/o context and consider whaterver the model generates as a refinement to the query:
+
+(a) `c:q`: query 
+
+(b) `c:p`: relevant passages of a query 
+
+(c) `c:qp`: concatenation of query and its relevant passages
+
+#### Localhost
+
+#### Google Cloud:
+To proceed, we need a google cloud platform account and an active project. We need to push the dataset to cloud storage bucket created in the google cloud storage:
+
 ```sh
-gcloud storage buckets create gs://BUCKET_NAME
+#create a bucket 
+gcloud storage buckets create gs://{bucket_name}
+
+# push the dataset 
+gsutil cp {dataset} gs://{bucket_name}/data/
 ```
 
-### Push the doc-query pair to the Data folder.
+We need to create a TPU virtual machine by downloading the gcloud tool for the terminal and download it using
 
 ```sh
-gsutil cp doc-query.train.tsv  gs://your_bucket/data/
+gcloud compute tpus tpu-vm create tpu-name --zone=us-central1-a --accelerator-type=v3-8 --version=tpu-vm-tf-2.10.0
 ```
 
-This will push the file to the storage bucket folder called data. 
+Alternatively, we can navigate to [`cloud.google.com`](https://www.cloud.google.com) >> search for `create a cloud tpu` from the search bar >> choose the zone as `us-central1-a` (this is where we can get accelerator v3-8) >> choose the TPU VM architecture and TPU type as `v3-8` >> choose TPU software version as `tpu-vm-tf-2.10.0` >> under the management section choose the `preemptibility` option (this will cost you much lower and you will only have the TPU running for 24 hours.) 
 
-
-You need a google cloud platform account and an active project to proceed with this. 
-
-\\
-you can create a TPU by going to downloading the gcloud tool for the terminal and download it using
+Now we can `ssh` to our virtual TPU to install `T5` and train it:
 
 ```sh
-gcloud compute tpus tpu-vm create tpu-name \
---zone=us-central1-a \
---accelerator-type=v3-8 \
---version=tpu-vm-tf-2.10.0
-```
-
-or you can navigate to [cloud.google.com](https://www.cloud.google.com) search for **create a cloud tpu** from the search bar. 
- - Choose the zone as us-central1-a (Note: this is where we can get accelerator v3-8)
- - Choose the TPU VM architecture and TPU type as **v3-8**
- - Choose TPU software version as **tpu-vm-tf-2.10.0**
- - under the management section choose the preemptibility option. This will cost you much lower and you will only have the TPU running for 24 hours. 
-
-
-after we create a TPU virtual machine, we will have to ssh into the cloud TPU to train the model. This can be done by:
-```sh
-gcloud compute tpus tpu-vm ssh tpu-name \
-  --zone us-central1-a
-```
-
-
-once that is done, we can install the **t5[gcp]** package using pip on the tpu vm. 
-
-```sh
+gcloud compute tpus tpu-vm ssh tpu-name --zone us-central1-a
 pip install t5[gcp]
 ```
 
-once the installation is completed successfully, you will have to disconnect the shell session and connect again for the terminal to refresh the path into the bash shell. 
+_Note: Once the installation is done, we need to disconnect the shell and connect again so the terminal refresh the path into the bash shell._
+`not sure I understood this`
 
+To train (fine-tune) the model: 
 
-### Training 
-
-We first train the T5 and infer the results by generating __n__ alternative queries (N=10) using Google Cloud TPU Storage and tensorflow.
-We measure various metrics from the alternative queries and keep only the queries that have a higher metric than the existing query
-
-To train the model, we can follow this command 
 ```sh
 t5_mesh_transformer  \
   --tpu='local' \
@@ -106,22 +95,19 @@ t5_mesh_transformer  \
   --gin_param="utils.tpu_mesh_shape.tpu_topology ='v3-8'"
 ```
 
-
-This will train the model and store its checkpoint in the **/models** folder of our Storage bucket. 
+This will train the model and save its checkpoints in the `gs://your_bucket/models/` folder of our storage bucket. 
 
 ## Results
+To produce the query refinements, we ask the trained T5 to generate `n` outputs (N=10). 
+`where we determine this?`
 
+Then, we calculate the retrieval power of each query refinement on both train and test sets using IR metrics like `map` or `ndcg` compared to the original query and see if the refinements are better.
 
 ### MSMarco
-### AOL
 
+### AOL
 -- With User ID as context
-\
-\
 -- Without UserID 
 
 ### Yandex
-\
-\
-**Note:** when installing jdk11, remember to check your env path for the executable in windows OS.
 
