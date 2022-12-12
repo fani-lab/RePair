@@ -75,14 +75,14 @@ pip install t5[gcp]
 _Note: Once the installation is done, we need to disconnect the shell and connect again so the terminal refresh the path into the bash shell._
 `not sure I understood this`
 
-To train (fine-tune) the model: 
+To train (fine-tuned) the model:
 
 ```sh
 t5_mesh_transformer  \
   --tpu='local' \
-  --gcp_project="your_project_id" \
-  --tpu_zone="your_tpu_zone" \
-  --model_dir="gs://your_bucket/models/" \
+  --gcp_project="{your_project_id}" \
+  --tpu_zone="{your_tpu_zone}" \
+  --model_dir="gs://{your_bucket}/models/" \
   --gin_param="init_checkpoint = 'gs://t5-data/pretrained_models/base/model.ckpt-999900'" \
   --gin_file="dataset.gin" \
   --gin_file="models/bi_v1.gin" \
@@ -94,8 +94,7 @@ t5_mesh_transformer  \
   --gin_param="tokens_per_batch = 131072" \
   --gin_param="utils.tpu_mesh_shape.tpu_topology ='v3-8'"
 ```
-
-This will train the model and save its checkpoints in the `gs://your_bucket/models/` folder of our storage bucket. 
+You should change `your_tpu_zone`, `your_project_id`, and `your_bucket` accordingly. This will train the model and save its checkpoints in the `gs://your_bucket/models/` folder of our storage bucket. 
 
 ## Results
 To produce the query refinements, we ask the trained T5 to generate `n` outputs (N=10). 
