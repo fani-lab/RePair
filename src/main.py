@@ -1,8 +1,6 @@
-import argparse, os, pandas as pd, param
-from multiprocessing import freeze_support
+import argparse, subprocess,os, pandas as pd, param
 from dal.msmarco import msmarco
 from eval.msmarco import getHits
-
 def run(data_list, domain_list, output, settings):
     # 'qrels.train.tsv' => ,["qid","did","pid","relevancy"]
     # 'queries.train.tsv' => ["qid","query"]
@@ -22,6 +20,11 @@ def run(data_list, domain_list, output, settings):
             This needs to be updated for the new training using T5 tensorflow. 
             '''
         getHits(f'{output}predictions/{os.path.split(datapath)[-1]}', output, os.path.split(datapath)[-1])
+        for file in os.listdir(f'{output}runs/{os.path.split(datapath)[-1]}'):
+            subprocess.run(['python', 'eval/calc_metrics.py',
+                            '-qrels', f'./../data/raw/{os.path.split(datapath)[-1]}/qrels.train.tsv',
+                            '-infer', f'./../output/runs/{os.path.split(datapath)[-1]}/{file}'])
+
     if ('aol' in data_list): print('processing aol...')
     if ('yandex' in data_list): print('processing yandex...')
 
@@ -41,7 +44,6 @@ def addargs(parser):
 # python -u main.py -data ../data/raw/toy.msmarco -domain msmarco
 
 if __name__ == '__main__':
-    freeze_support()
     parser = argparse.ArgumentParser(description='Personalized Query Refinement')
     addargs(parser)
     args = parser.parse_args()
