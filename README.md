@@ -28,25 +28,26 @@ We use [`T5`](https://github.com/google-research/text-to-text-transfer-transform
 `check [T5X](https://github.com/google-research/t5x)`
 
 ### Dataset
-We create the dataset based on different pairings of queries and relevant passages in the `./data/preprocessed/{domain name}/` for each domain like [`./data/preprocessed/msmarco/`](./data/preprocessed/msmarco/) for `msmarco`.
+We create training sets based on different pairings of queries and relevant passages in the `./data/preprocessed/{domain name}/` for each domain like [`./data/preprocessed/msmarco/`](./data/preprocessed/msmarco/) for `msmarco`.
 
-(1) `c:q>p`: context: query -> relevant passages
-
-(2) `c:p>q`: context: relevant passages -> queries like in [docTTTTTTQuery](https://github.com/castorini/docTTTTTquery#learning-a-new-prediction-model-t5-training-with-tensorflow)
+1. `ctx.query.doc`: context: query -> relevant passages
+2. `ctx.doc.query`: context: relevant passages -> queries like in [docTTTTTTQuery](https://github.com/castorini/docTTTTTquery#learning-a-new-prediction-model-t5-training-with-tensorflow)
 
 where the context will be `userid` (personalized) or `none` (blind). 
 
-For training, we choose [`ratio`](`ratio`) of dataset for training. Since our main purpose is to evaluate the retrieval power of refinements to the queries, we can input either of the following w/ or w/o context and consider whaterver the model generates as a refinement to the query:
+For training, we choose [`ratio`](`ratio`) of dataset for training and create `{ctx.query.doc, ctx.doc.query}.train.tsv` file(s). 
 
-(a) `c:q`: query 
+Since our main purpose is to evaluate the retrieval power of refinements to the queries, we can input either of the following options w/ or w/o context and consider whaterver the model generates as a refinement to the query:
 
-(b) `c:p`: relevant passages of a query 
+1. `ctx.query`: query
+2. `ctx.doc`: relevant passages of a query 
+3. `ctx.query.doc`: concatenation of query and its relevant passages
 
-(c) `c:qp`: concatenation of query and its relevant passages
+We save the test file(s) as `{ctx.query, ctx.doc, ctx.query.doc}.test.tsv`.
 
-#### Localhost
+#### Localhost (GPU)
 
-#### Google Cloud:
+#### Google Cloud (TPU)
 To proceed, we need a google cloud platform account and an active project. We need to push the dataset to cloud storage bucket created in the google cloud storage:
 
 ```sh
@@ -72,33 +73,51 @@ gcloud compute tpus tpu-vm ssh tpu-name --zone us-central1-a
 pip install t5[gcp]
 ```
 
-_Note: Once the installation is done, we need to disconnect the shell and connect again so the terminal refresh the path into the bash shell._
-`not sure I understood this`
+_Note: We need to disconnect the shell and connect again so the terminal refresh the environment and T5 become available._
 
-To train (fine-tuned) the model:
+**To train (fine-tuned) the model:**
 
 ```sh
 t5_mesh_transformer  \
   --tpu='local' \
-  --gcp_project="{your_project_id}" \
-  --tpu_zone="{your_tpu_zone}" \
-  --model_dir="gs://{your_bucket}/models/" \
+  --gcp_project="{project_id}" \
+  --tpu_zone="us-central1-a" \
+  --model_dir="gs://{bucket_name}/models/" \
   --gin_param="init_checkpoint = 'gs://t5-data/pretrained_models/base/model.ckpt-999900'" \
   --gin_file="dataset.gin" \
   --gin_file="models/bi_v1.gin" \
   --gin_file="gs://t5-data/pretrained_models/base/operative_config.gin" \
   --gin_param="utils.run.train_dataset_fn = @t5.models.mesh_transformer.tsv_dataset_fn" \
-  --gin_param="tsv_dataset_fn.filename = 'gs://your_bucket/data/doc_query_pairs.train.tsv'" \
+  --gin_param="tsv_dataset_fn.filename = 'gs://{bucket_name}/data/{ctx.query.doc, ctx.doc.query}.train.tsv'" \
   --gin_file="learning_rate_schedules/constant_0_001.gin" \
   --gin_param="run.train_steps = 1004000" \
   --gin_param="tokens_per_batch = 131072" \
   --gin_param="utils.tpu_mesh_shape.tpu_topology ='v3-8'"
 ```
-You should change `your_tpu_zone`, `your_project_id`, and `your_bucket` accordingly. This will train the model and save its checkpoints in the `gs://your_bucket/models/` folder of our storage bucket. 
+You should change `project_id`, and `bucket_name` accordingly. This will fine-tune the pretrained `gs://t5-data/pretrained_models/base/model.ckpt-999900` model on `gs://{bucket_name}/data/{ctx.query.doc or ctx.doc.query}.train.tsv` and save its checkpoints in the `gs://{bucket_name}/models/` folder of our storage bucket. 
+
+**To produce the query refinements** (equivalently, to test the model), we ask the trained T5 to generate `n` outputs for each instance in the test file `gs://{bucket_name}/data/{ctx.query, ctx.doc, ctx.query.doc}.test.tsv` and save them in `gs://{bucket_name}/data/{ctx.query, ctx.doc, ctx.query.doc}.test.pred.tsv`:
+```
+t5_mesh_transformer \
+  --tpu="local" \
+  --gcp_project="{project_id}" \
+  --tpu_zone="us-central1-a" \
+  --model_dir="gs://{bucket_name}/models/" \
+  --gin_file="gs://t5-data/pretrained_models/base/operative_config.gin" \
+  --gin_file="infer.gin" \
+  --gin_file="sample_decode.gin" \
+  --gin_param="infer_checkpoint_step = 1004000" \
+  --gin_param="utils.run.sequence_length = {'inputs': 512, 'targets': 64}" \
+  --gin_param="Bitransformer.decode.max_decode_length = 64" \
+  --gin_param="input_filename = 'gs://{bucket_name}/data/{ctx.query, ctx.doc, ctx.query.doc}.test.tsv'" \
+  --gin_param="output_filename = 'gs://{bucket_name}/data/{ctx.query, ctx.doc, ctx.query.doc}.test.pred.tsv'" \
+  --gin_param="tokens_per_batch = 131072" \
+  --gin_param="Bitransformer.decode.temperature = 1.0" \
+  --gin_param="Unitransformer.sample_autoregressive.sampling_keep_top_k = {n}"
+```
 
 ## Results
-To produce the query refinements, we ask the trained T5 to generate `n` outputs (N=10). 
-`where we determine this?`
+
 
 Then, we calculate the retrieval power of each query refinement on both train and test sets using IR metrics like `map` or `ndcg` compared to the original query and see if the refinements are better.
 
