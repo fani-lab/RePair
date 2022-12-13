@@ -46,6 +46,17 @@ Since our main purpose is to evaluate the retrieval power of refinements to the 
 We save the test file(s) as `{ctx.query, ctx.doc, ctx.query.doc}.test.tsv`.
 
 #### Localhost (GPU)
+t5_mesh_transformer  --model_dir="./output/t5/" --gin_file="dataset.gin" --gin_param="utils.run.mesh_shape = 'model:1,batch:1'" --gin_param="utils.run.mesh_devices = ['gpu:0']" --gin_param="run.train_steps = 1000100" --gin_param="utils.run.train_dataset_fn = @t5.models.mesh_transformer.tsv_dataset_fn" --gin_param="tsv_dataset_fn.filename = './data/preprocessed/toy.msmarco/ctx.doc.query.train.tsv'" --gin_file="./output/t5/small/operative_config.gin" 
+
+
+--gin_param="tsv_dataset_fn.vocabulary = SentencePieceVocabulary('./output/t5/vocabs/cc_all.32000/sentencepiece.model')" --gin_param="SentencePieceVocabulary.sentencepiece_model_file = './output/t5/vocabs/cc_all.32000/sentencepiece.model'" 
+
+t5.data.DEFAULT_SPM_PATH
+
+tensorflow.python.framework.errors_impl.UnimplementedError: File system scheme 'gs' not implemented (file: 'gs://t5-data/vocabs/cc_all.32000/sentencepiece.model')
+
+gs is not implemented in windsows in tensorflow!!
+
 download data to ./output/t5/small
 change the directories from gs:// to ./
 t5\data\utils.py#LN21
