@@ -46,8 +46,21 @@ Since our main purpose is to evaluate the retrieval power of refinements to the 
 We save the test file(s) as `{ctx.query, ctx.doc, ctx.query.doc}.test.tsv`.
 
 #### Localhost (GPU)
+download data to ./output/t5/small
+change the directories from gs:// to ./
+t5\data\utils.py#LN21
+#DEFAULT_SPM_PATH = "gs://t5-data/vocabs/cc_all.32000/sentencepiece.model"  # GCS
+DEFAULT_SPM_PATH = './output/t5/vocabs/cc_all.32000/sentencepiece.model'  # GCS
+
+The operative config for the pre-trained models are set so that there is effectively no limit on the number of train steps. If you'd like to train for a specific number of steps, you'll need to pass that in. Since the pre-trained model has already been trained for 1,000,000 steps, you should specify the total number of steps after pre-training and fine-tuning. For example, if you want to fine-tune for an additional 10,000 steps, you should pass
+
+--gin_param="run.train_steps = 1010000"
 
 #### Google Cloud (TPU)
+https://cloud.google.com/storage/docs/gsutil
+
+https://ai.google.com/research/NaturalQuestions
+
 To proceed, we need a google cloud platform account and an active project. We need to push the dataset to cloud storage bucket created in the google cloud storage:
 
 ```sh
@@ -64,7 +77,7 @@ We need to create a TPU virtual machine by downloading the gcloud tool for the t
 gcloud compute tpus tpu-vm create tpu-name --zone=us-central1-a --accelerator-type=v3-8 --version=tpu-vm-tf-2.10.0
 ```
 
-Alternatively, we can navigate to [`cloud.google.com`](https://www.cloud.google.com) >> search for `create a cloud tpu` from the search bar >> choose the zone as `us-central1-a` (this is where we can get accelerator v3-8) >> choose the TPU VM architecture and TPU type as `v3-8` >> choose TPU software version as `tpu-vm-tf-2.10.0` >> under the management section choose the `preemptibility` option (this will cost you much lower and you will only have the TPU running for 24 hours.) 
+Alternatively, we can navigate to [`console.cloud.google.com`](https://console.cloud.google.com/) >> search for `create a cloud tpu` from the search bar >> choose the zone as `us-central1-a` (this is where we can get accelerator v3-8) >> choose the TPU VM architecture and TPU type as `v3-8` >> choose TPU software version as `tpu-vm-tf-2.10.0` >> under the management section choose the `preemptibility` option (this will cost you much lower and you will only have the TPU running for 24 hours.) 
 
 Now we can `ssh` to our virtual TPU to install `T5` and train it:
 
