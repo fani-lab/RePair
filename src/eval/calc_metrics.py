@@ -24,14 +24,14 @@ parser = argparse.ArgumentParser(description='calculate metrics')
 addargs(parser)
 args = parser.parse_args()
 qrels_df = pd.read_csv(args.qrels_file, sep='\t', encoding='utf-8', names=['qid', 'did', 'pid', 'relevance'])
-passage_run_df = pd.read_csv(args.infer_file, sep="\t", names=['qid', 'pid', 'score'])
+passage_run_df = pd.read_csv(args.infer_file, sep="\t", names=['qid', 'pid', 'score'], skip_blank_lines=False)
 
 
 def create_trec_metric_from_chunk(chunks_df_source, chunks_df_target):
     passage_dict = dict()
     qrels_dict = dict()
     for qrel in chunks_df_source.itertuples():
-        qrels_dict[f'{qrel.qid}'] = {str(qrel.pid): int(chunks_df_source.relevance)}
+        qrels_dict[f'{qrel.qid}'] = {str(qrel.pid): int(qrel.relevance)}
         current_qid = chunks_df_target.loc[chunks_df_target['qid'] == qrel.qid]
         passage_dict[f'{qrel.qid}'] = dict(zip(current_qid['pid'].astype(str), current_qid['score']))
         return [qrels_dict, passage_dict]
@@ -56,11 +56,13 @@ def compute_metric(dataLocation, passage_run):
     qrels_df = qrels_df.sort_values(by=['qid'])
     qrels_dict = dict()
     pr_dict = dict()
+    print('creating chunks')
+    chunks_qrels_df = process_map(perform_chunk_retrieval, qrels_df.qid.unique(),
+                                  max_workers=6, chunksize=10)
+    chunks_pq_df = process_map(perform_chunk_passage_retrieval, passage_run_df.qid.unique(),
+                               max_workers=6, chunksize=10)
     with Pool(multiprocessing.cpu_count() - 2) as p:
-        print('creating chunks')
-        chunks_qrels_df = process_map(perform_chunk_retrieval, qrels_df.qid.unique(), max_workers=6, chunksize=10)
-        chunks_pq_df = process_map(perform_chunk_passage_retrieval, passage_run_df.qid.unique(), max_workers=6,
-                                   chunksize=100)
+
         print('parallel processing the code')
         results_dfs = p.starmap(create_trec_metric_from_chunk,
                                 tqdm(zip(chunks_qrels_df, chunks_pq_df), total=len(chunks_pq_df)))
