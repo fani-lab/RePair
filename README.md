@@ -60,9 +60,9 @@ DEFAULT_SPM_PATH = './output/t5/vocabs/cc_all.32000/sentencepiece.model'  # Loca
 - Or use our [`workaround`](https://github.com/fani-lab/text-to-text-transfer-transformer/blob/a9bb744d3e9811e912fddd7bfecf4d5334d00090/t5/data/utils.py#L24) to expose it as gin_param and call T5 as below:
 
 ```
-SET PRETRAINED_STEPS=1000000
-SET FINETUNE_STEPS=100
-SET /a STEPS = %PRETRAINED_STEPS% + %FINETUNE_STEPS%
+@SET PRETRAINED_STEPS=1000000
+@SET FINETUNE_STEPS=100
+@SET /a STEPS = %PRETRAINED_STEPS% + %FINETUNE_STEPS%
 
 t5_mesh_transformer ^
 --module_import="numpy" ^
@@ -78,7 +78,7 @@ t5_mesh_transformer ^
 --gin_param="get_default_spm_path.path = './output/t5/vocabs/cc_all.32000/sentencepiece.model'"
 ```
 
-Note that in Windows, `\\` should be used for `--model_dir` flag. Also, if the pre-trained model has already been trained for `n` steps and we need to fine-tune for another `m` steps, we have to pass `--gin_param="run.train_steps = {n+m}"`
+Note that in Windows, `\\` should be used for `--model_dir` flag. Also, if the pre-trained model has already been trained for `n` steps and we need to fine-tune for another `m` steps, we have to pass `--gin_param="run.train_steps = {n+m}"`. The above `batch` file locally fine-tune the T5-small's model that are pretrained on C4 `"utils.run.init_checkpoint = './output/t5/small/model.ckpt-1000000'"` for another `@SET FINETUNE_STEPS=100` steps on our training set of `"tsv_dataset_fn.filename = './data/preprocessed/toy.msmarco/ctx.doc.query.train.tsv'"` using the local SentencePieceModel at `"get_default_spm_path.path = './output/t5/vocabs/cc_all.32000/sentencepiece.model'`
 
 **Unix-based:**
 
