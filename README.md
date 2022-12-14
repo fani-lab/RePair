@@ -50,6 +50,8 @@ t5_mesh_transformer  --model_dir="./output/t5_" --gin_file="dataset.gin" --gin_p
 
 In windows, --model_dir=".\\output\\t5_"
 
+https://github.com/bigscience-workshop/t-zero/issues/20
+
 --gin_param="tsv_dataset_fn.vocabulary = SentencePieceVocabulary('./output/t5/vocabs/cc_all.32000/sentencepiece.model')" --gin_param="SentencePieceVocabulary.sentencepiece_model_file = './output/t5/vocabs/cc_all.32000/sentencepiece.model'" 
 
 t5.data.DEFAULT_SPM_PATH
