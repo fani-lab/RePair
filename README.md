@@ -46,8 +46,11 @@ Since our main purpose is to evaluate the retrieval power of refinements to the 
 We save the test file(s) as `{ctx.query, ctx.doc, ctx.query.doc}.test.tsv`.
 
 #### Localhost (GPU)
-t5_mesh_transformer  --model_dir="./output/t5/" --gin_file="dataset.gin" --gin_param="utils.run.mesh_shape = 'model:1,batch:1'" --gin_param="utils.run.mesh_devices = ['gpu:0']" --gin_param="run.train_steps = 1000100" --gin_param="utils.run.train_dataset_fn = @t5.models.mesh_transformer.tsv_dataset_fn" --gin_param="tsv_dataset_fn.filename = './data/preprocessed/toy.msmarco/ctx.doc.query.train.tsv'" --gin_file="./output/t5/small/operative_config.gin" 
+t5_mesh_transformer  --model_dir="./output/t5_" --gin_file="dataset.gin" --gin_param="utils.run.mesh_shape = 'model:1,batch:1'" --gin_param="utils.run.mesh_devices = ['gpu:0']" --gin_param="run.train_steps = 1000100" --gin_param="utils.run.train_dataset_fn = @t5.models.mesh_transformer.tsv_dataset_fn" --gin_param="tsv_dataset_fn.filename = './data/preprocessed/toy.msmarco/ctx.doc.query.train.tsv'" --gin_file="./output/t5/small/operative_config.gin" 
 
+In windows, --model_dir=".\\output\\t5_"
+
+https://github.com/bigscience-workshop/t-zero/issues/20
 
 --gin_param="tsv_dataset_fn.vocabulary = SentencePieceVocabulary('./output/t5/vocabs/cc_all.32000/sentencepiece.model')" --gin_param="SentencePieceVocabulary.sentencepiece_model_file = './output/t5/vocabs/cc_all.32000/sentencepiece.model'" 
 
@@ -62,6 +65,9 @@ change the directories from gs:// to ./
 t5\data\utils.py#LN21
 #DEFAULT_SPM_PATH = "gs://t5-data/vocabs/cc_all.32000/sentencepiece.model"  # GCS
 DEFAULT_SPM_PATH = './output/t5/vocabs/cc_all.32000/sentencepiece.model'  # GCS
+
+In line#181, mesh_transformer_main: 
+gin.bind_parameter("run.vocabulary", mesh_transformer.get_vocabulary())
 
 The operative config for the pre-trained models are set so that there is effectively no limit on the number of train steps. If you'd like to train for a specific number of steps, you'll need to pass that in. Since the pre-trained model has already been trained for 1,000,000 steps, you should specify the total number of steps after pre-training and fine-tuning. For example, if you want to fine-tune for an additional 10,000 steps, you should pass
 
