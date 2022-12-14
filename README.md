@@ -46,32 +46,41 @@ Since our main purpose is to evaluate the retrieval power of refinements to the 
 We save the test file(s) as `{ctx.query, ctx.doc, ctx.query.doc}.test.tsv`.
 
 #### Localhost (GPU)
-t5_mesh_transformer  --model_dir="./output/t5_" --gin_file="dataset.gin" --gin_param="utils.run.mesh_shape = 'model:1,batch:1'" --gin_param="utils.run.mesh_devices = ['gpu:0']" --gin_param="run.train_steps = 1000100" --gin_param="utils.run.train_dataset_fn = @t5.models.mesh_transformer.tsv_dataset_fn" --gin_param="tsv_dataset_fn.filename = './data/preprocessed/toy.msmarco/ctx.doc.query.train.tsv'" --gin_file="./output/t5/small/operative_config.gin" 
+**Windows:** T5 uses []() as default SentencePieceModel (word vocabularly) at google cloud for creating tasks. Also, the pretrained models are stored in google cloud. However, 
+1. Google cloud file system protocol (`gs://`) is not supported by Windows yet (see [`here`](https://github.com/tensorflow/tensorflow/issues/38477)). Therefore, we need to download the pretrained models and SenetencePieceModel to our local machine. To do so, we need to install [`gsutil`](https://cloud.google.com/storage/docs/gsutil)
+2. The google clound path for the default SentencePieceModel is hard coded at [`t5.data.DEFAULT_SPM_PATH`](https://github.com/google-research/text-to-text-transfer-transformer/blob/1b8375efe41f208f7f5c0744d57d7d913fa1eac4/t5/data/utils.py#L20)! Therefore, it cannot be adjusted by `gin_params` or `gin config files` when calling T5's binary api (Mesh TensorFlow Transformer) using local SentencePieceModel as raised [`here`](https://github.com/google-research/text-to-text-transfer-transformer/issues/513)
 
-In windows, --model_dir=".\\output\\t5_"
-
-https://github.com/bigscience-workshop/t-zero/issues/20
-
---gin_param="tsv_dataset_fn.vocabulary = SentencePieceVocabulary('./output/t5/vocabs/cc_all.32000/sentencepiece.model')" --gin_param="SentencePieceVocabulary.sentencepiece_model_file = './output/t5/vocabs/cc_all.32000/sentencepiece.model'" 
-
-t5.data.DEFAULT_SPM_PATH
-
-tensorflow.python.framework.errors_impl.UnimplementedError: File system scheme 'gs' not implemented (file: 'gs://t5-data/vocabs/cc_all.32000/sentencepiece.model')
-
-gs is not implemented in windsows in tensorflow!!
-
-download data to ./output/t5/small
-change the directories from gs:// to ./
-t5\data\utils.py#LN21
+- The solution is either explicitly change the path to a local model file like 
+```
+#https://github.com/google-research/text-to-text-transfer-transformer/t5/data/utils.py#L20
 #DEFAULT_SPM_PATH = "gs://t5-data/vocabs/cc_all.32000/sentencepiece.model"  # GCS
-DEFAULT_SPM_PATH = './output/t5/vocabs/cc_all.32000/sentencepiece.model'  # GCS
+DEFAULT_SPM_PATH = './output/t5/vocabs/cc_all.32000/sentencepiece.model'  # Local
+```
+- Or prgramatically run T5 as in [here](https://github.com/google-research/text-to-text-transfer-transformer/tree/main/notebooks), 
+- Or use our [`workaround`](https://github.com/fani-lab/text-to-text-transfer-transformer/blob/a9bb744d3e9811e912fddd7bfecf4d5334d00090/t5/data/utils.py#L24) to expose it as gin_param and call T5 as below:
 
-In line#181, mesh_transformer_main: 
-gin.bind_parameter("run.vocabulary", mesh_transformer.get_vocabulary())
+```
+SET PRETRAINED_STEPS=1000000
+SET FINETUNE_STEPS=100
+SET /a STEPS = %PRETRAINED_STEPS% + %FINETUNE_STEPS%
 
-The operative config for the pre-trained models are set so that there is effectively no limit on the number of train steps. If you'd like to train for a specific number of steps, you'll need to pass that in. Since the pre-trained model has already been trained for 1,000,000 steps, you should specify the total number of steps after pre-training and fine-tuning. For example, if you want to fine-tune for an additional 10,000 steps, you should pass
+t5_mesh_transformer ^
+--module_import="numpy" ^
+--model_dir=".\\output\\t5_" ^
+--gin_file="./output/t5/small/operative_config.gin" ^
+--gin_param="utils.run.mesh_shape = 'model:1,batch:1'" ^
+--gin_param="utils.run.mesh_devices = ['gpu:0']" ^
+--gin_param="run.train_steps = %STEPS%" ^
+--gin_param="utils.run.train_dataset_fn = @t5.models.mesh_transformer.tsv_dataset_fn" ^
+--gin_param="tsv_dataset_fn.filename = './data/preprocessed/toy.msmarco/ctx.doc.query.train.tsv'" ^
+--gin_param="utils.run.init_checkpoint = './output/t5/small/model.ckpt-1000000'" ^
+--gin_param="MIXTURE_NAME = ''" ^
+--gin_param="get_default_spm_path.path = './output/t5/vocabs/cc_all.32000/sentencepiece.model'"
+```
 
---gin_param="run.train_steps = 1010000"
+Note that in Windows, `\\` should be used for `--model_dir` flag. Also, if the pre-trained model has already been trained for `n` steps and we need to fine-tune for another `m` steps, we have to pass `--gin_param="run.train_steps = {n+m}"`
+
+**Unix-based:**
 
 #### Google Cloud (TPU)
 https://cloud.google.com/storage/docs/gsutil
