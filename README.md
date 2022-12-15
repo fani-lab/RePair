@@ -46,9 +46,15 @@ Since our main purpose is to evaluate the retrieval power of refinements to the 
 We save the test file(s) as `{ctx.query, ctx.doc, ctx.query.doc}.test.tsv`.
 
 #### Localhost (GPU)
-**Windows:** T5 uses []() as default SentencePieceModel (word vocabularly) at google cloud for creating tasks. Also, the pretrained models are stored in google cloud. However, 
-1. Google cloud file system protocol (`gs://`) is not supported by Windows yet (see [`here`](https://github.com/tensorflow/tensorflow/issues/38477)). Therefore, we need to download the pretrained models and SenetencePieceModel to our local machine. To do so, we need to install [`gsutil`](https://cloud.google.com/storage/docs/gsutil)
-2. The google clound path for the default SentencePieceModel is hard coded at [`t5.data.DEFAULT_SPM_PATH`](https://github.com/google-research/text-to-text-transfer-transformer/blob/1b8375efe41f208f7f5c0744d57d7d913fa1eac4/t5/data/utils.py#L20)! Therefore, it cannot be adjusted by `gin_params` or `gin config files` when calling T5's binary api (Mesh TensorFlow Transformer) using local SentencePieceModel as raised [`here`](https://github.com/google-research/text-to-text-transfer-transformer/issues/513)
+**Windows:** T5's pretrained models are stored in [`google cloud`](https://console.cloud.google.com/storage/browser/t5-data/pretrained_models/). Also, the default word vocabularly is defined as a SentencePieceModel based on [`C4`](https://console.cloud.google.com/storage/browser/t5-data/vocabs/cc_all.32000) corpus. However, 
+1. Windows does not support google cloud file system protocol (`gs://`) yet (see [`here`](https://github.com/tensorflow/tensorflow/issues/38477)). We need to download the pretrained models and SenetencePieceModel(s) to our local machine. To do so, we need to install [`gsutil`](https://cloud.google.com/storage/docs/gsutil):
+
+```
+gsutil -m cp -r "gs://t5-data/pretrained_models/small" . # or base, large, 3B, 11B
+gsutil -m cp -r "gs://t5-data/vocabs/cc_all.32000" "gs://t5-data/vocabs/cc_en.32000" .
+```
+
+2. The google cloud path for the default SentencePieceModel is hard coded at [`t5.data.DEFAULT_SPM_PATH`](https://github.com/google-research/text-to-text-transfer-transformer/blob/1b8375efe41f208f7f5c0744d57d7d913fa1eac4/t5/data/utils.py#L20)! Therefore, it cannot be adjusted by `gin_params` or `gin config files` when calling T5's binary api (Mesh TensorFlow Transformer) using local SentencePieceModel as raised [`here`](https://github.com/google-research/text-to-text-transfer-transformer/issues/513)
 
 - The solution is either explicitly change the path to a local model file like 
 ```
