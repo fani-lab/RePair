@@ -60,7 +60,7 @@ def finetune(tsv_path, pretrained_dir, steps, output, lseq, task_name, nexamples
     if gcloud: import gcloud
     # Mesh Tensorflow Transformer
     model = t5.models.MtfModel(
-        model_dir=output,
+        model_dir=output.replace('/', os.path.sep),
         tpu=gcloud.TPU_ADDRESS if gcloud else None,
         tpu_topology=gcloud.TPU_TOPOLOGY if gcloud else None,
         model_parallelism=model_parallelism,

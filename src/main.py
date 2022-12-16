@@ -32,7 +32,7 @@ def run(data_list, domain_list, output, settings):
 
         t5_model = './../output/t5-data/pretrained_models/small'  # "gs://t5-data/pretrained_models/{"small", "base", "large", "3B", "11B"}
         mt5.finetune(tsv_path=tsv_path,
-                     pretrained_dir=t5_model, steps=100, output=f'..\\output\\t5_\\local\\{in_type}.{out_type}', task_name='msmarco_passage_cf',
+                     pretrained_dir=t5_model, steps=100, output=f'../output/t5_/local/{in_type}.{out_type}', task_name='msmarco_passage_cf',
                      lseq={"inputs": 32, "targets": 256},#query length and doc length
                      nexamples=query_qrel_doc.shape[0] if query_qrel_doc else None, in_type=in_type, out_type=out_type)
 
