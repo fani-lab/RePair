@@ -10,8 +10,8 @@ np.random.seed(0)
 
 settings = {
     'cmd': ['train','valid'], # steps of pipeline, ['train', 'test', ]
-    'psgtxt': '',#'concat', #if more than one relevant passage, concat them all into one
-    'msmarco': {
-        'pairing': [['ctx', 'query', 'doc'], ['ctx', 'doc', 'query']] # [context, input, output]
+    'concat': False,#if more than one relevant doc, concat them all into one
+    'msmarco-passage': {
+        'pairing': [None, 'query', 'doc']# [None, 'doc', 'query'], # [context, input, output]
     },
 }

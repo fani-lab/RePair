@@ -5,30 +5,37 @@ import param
 from dal.msmarco import *
 #from eval.msmarco import getHits
 
+from mdl import mt5
+
 def run(data_list, domain_list, output, settings):
     # 'qrels.train.tsv' => ,["qid","did","pid","relevancy"]
     # 'queries.train.tsv' => ["qid","query"]
 
-    if ('msmarco' in domain_list):
-        datapath = data_list[domain_list.index('msmarco')]
+    if ('msmarco-passage' in domain_list):
+        datapath = data_list[domain_list.index('msmarco-passage')]
         prep_output = f'./../data/preprocessed/{os.path.split(datapath)[-1]}'
-        try:
-            print('Loading (query,passage) file ...')
-            query_qrel_doc = pd.read_csv(f'{prep_output}/queries.qrels.doc.ctx.train.tsv', sep='\t')
-        except (FileNotFoundError, EOFError) as e:
-            print('Loading (query,passage) file failed! Pairing queries and relevant passages ...')
-            query_qrel_doc = to_pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.train.tsv')
-            if settings['psgtxt'] == 'cancat':
-                prep_output += '/' + settings['psgtxt']
-                pass #concatenate rows with same qid
-            for i in settings['msmarco']['pairing']:
-                #https://github.com/google-research/text-to-text-transfer-transformer#textlinetask
-                query_qrel_doc[i[1]] = query_qrel_doc[i[0]] + ': ' + query_qrel_doc[i[1]]
-                query_qrel_doc.to_csv(f'{prep_output}/{".".join(i)}.train.tsv', sep='\t', encoding='utf-8', index=False, columns=i[1:])
+        in_type = settings['msmarco-passage']['pairing'][1]
+        out_type = settings['msmarco-passage']['pairing'][2]
+        tsv_path = {'train': f'{prep_output}/{in_type}.{out_type}.train.tsv', 'test': f'{prep_output}/{in_type}.{out_type}.test.tsv'}
 
-            '''
-            This needs to be updated for the new training using T5 tensorflow. 
-            '''
+        query_qrel_doc = None
+        if any(not os.path.exists(v) for k, v in tsv_path.items()):
+            print('Pairing queries and relevant passages ...')
+            query_qrel_doc = to_pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.train.tsv')
+            #TODO: query_qrel_doc = to_pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.test.tsv')
+            query_qrel_doc = to_pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.test.tsv')
+            if settings['concat']:
+                prep_output += '/concat'
+                pass #concatenate rows with same qid
+            query_qrel_doc.to_csv(tsv_path['train'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
+            query_qrel_doc.to_csv(tsv_path['test'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
+
+        t5_model = './../output/t5-data/pretrained_models/small'  # "gs://t5-data/pretrained_models/{"small", "base", "large", "3B", "11B"}
+        mt5.finetune(tsv_path=tsv_path,
+                     pretrained_dir=t5_model, steps=100, output=f'..\\output\\t5_\\local\\{in_type}.{out_type}', task_name='msmarco_passage_cf',
+                     lseq={"inputs": 32, "targets": 256},#query length and doc length
+                     nexamples=query_qrel_doc.shape[0] if query_qrel_doc else None, in_type=in_type, out_type=out_type)
+
         #getHits(f'{output}predictions/{os.path.split(datapath)[-1]}', output, os.path.split(datapath)[-1])
     if ('aol' in data_list): print('processing aol...')
     if ('yandex' in data_list): print('processing yandex...')
