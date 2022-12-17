@@ -66,9 +66,9 @@ def run(data_list, domain_list, output, settings):
             qids = pd.read_csv(f'{prep_output}/queries.qrels.doc.ctx.train.tsv', sep='\t', usecols=['qid'])
             query_changes = [f for f in listdir(output) if isfile(join(output, f)) and f.startswith('pred.') and settings['ranker'] not in f]
             query_changes_docs = [(f'{output}/{pf}', f'{output}/{pf}.{settings["ranker"]}') for pf in query_changes]
-            # for (i, o) in query_changes_docs: msmarco.to_search(i, o, qids.values.tolist(), settings['ranker'])
+            # for (i, o) in query_changes_docs: msmarco.to_search(i, o, qids['qid'].values.tolist(), settings['ranker'])
             with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
-                p.starmap(partial(msmarco.to_search, qids=qids.values.tolist(), ranker=settings['ranker']), query_changes_docs)
+                p.starmap(partial(msmarco.to_search, qids=qids['qid'].values.tolist(), ranker=settings['ranker']), query_changes_docs)
 
         if 'eval' in settings['cmd']: pass #TODO: pytrec_eval
 

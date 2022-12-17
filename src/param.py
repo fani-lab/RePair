@@ -9,7 +9,7 @@ np.random.seed(0)
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 settings = {
-    'cmd': ['eval'], # steps of pipeline, ['finetune', 'predict', 'search', 'eval']
+    'cmd': ['search', 'eval'], # steps of pipeline, ['finetune', 'predict', 'search', 'eval']
     'ranker': 'bm25',#'qld'
     'metric': {'success', 'ndcg_cut', 'map_cut'},
     'concat': False,#if more than one relevant doc, concat them all into one
