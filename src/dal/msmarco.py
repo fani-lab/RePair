@@ -1,16 +1,17 @@
 import json
-
 import pandas as pd
-from pyserini.search.lucene import LuceneSearcher
 from tqdm import tqdm
 tqdm.pandas()
 
+import tensorflow as tf
+from pyserini.search.lucene import LuceneSearcher
+
+import param
 # https://github.com/castorini/pyserini/blob/master/docs/prebuilt-indexes.md
-searcher = LuceneSearcher.from_prebuilt_index('msmarco-v1-passage')
-if not searcher:
-    # sometimes you need to manually download the index ==> https://github.com/castorini/pyserini/blob/master/docs/usage-interactive-search.md#how-do-i-manually-download-indexes
-    searcher = LuceneSearcher(f'{input}/lucene-index.msmarco-v1-passage.20220131.9ea315/')
-    if not searcher: raise ValueError(f'Lucene searcher cannot find/build msmarco index at {input}!')
+# searcher = LuceneSearcher.from_prebuilt_index('msmarco-v1-passage')
+# sometimes you need to manually download the index ==> https://github.com/castorini/pyserini/blob/master/docs/usage-interactive-search.md#how-do-i-manually-download-indexes
+searcher = LuceneSearcher(param.settings['msmarco-passage']['index'])
+if not searcher: raise ValueError(f'Lucene searcher cannot find/build msmarco index at {param.settings["msmarco"]["index"]}!')
 
 def to_txt(pid):
     # The``docid`` is overloaded: if it is of type ``str``, it is treated as an external collection ``docid``;
@@ -27,16 +28,23 @@ def to_pair(input, output):
     queries_qrels.to_csv(output, sep='\t', encoding='utf-8', index=False)
     return queries_qrels
 
-
-def to_search(in_query, out_docids, ranker='bm25'):
+def to_search(in_query, out_docids, qids, ranker='bm25'):
     if ranker == 'bm25': searcher.set_bm25(0.82, 0.68)
     if ranker == 'qld': searcher.set_qld()
-    with open(out_docids, 'w') as o:
-        def to_docids(query):
+    with open(out_docids, 'w', encoding='utf-8') as o:
+        def to_docids(row):
+            query = row.query.replace('b\'', '').replace('\'', '')
             hits = searcher.search(query, k=10, remove_dups=True)
-            for i, h in enumerate(hits): o.write(f'{0} Q0  {h.docid:15} {i + 1:2}  {h.score:.5f} Pyserini \n')
-        queries = pd.read_csv(in_query, skip_blank_lines=False, header=None, names=['query'], encoding='utf-8', converters={'query': str.decode('utf_8', 'strict')})
-        queries['docids'] = queries['query'].progress_apply(to_docids)
+            for i, h in enumerate(hits): o.write(f'{qids[row.name]} Q0  {h.docid:15} {i + 1:2}  {h.score:.5f} Pyserini \n')
+        # https://github.com/google-research/text-to-text-transfer-transformer/issues/322
+        # with open(in_query, 'r', encoding='utf-8') as f: [to_docids(l) for l in f]
+        queries = pd.read_csv(in_query, names=['query'], sep='\r\n', skip_blank_lines=False, engine='python')#on windows enf of line (CRLF)
+        assert len(queries) == len(qids)
+        queries.progress_apply(to_docids, axis=1)
 
-to_search('../../output/t5.small.local.query.doc/pred.0-1000005', '../../output/t5.small.local.query.doc/pred.0-1000005.bm25', 'bm25')
+def to_search_(in_query, out_docids, qids, ranker='bm25'):
+    # calling the command line and subprocess for ir
+    pass
+
+
 

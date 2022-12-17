@@ -1,10 +1,10 @@
-import argparse, os, pandas as pd
+import argparse, os, pandas as pd, multiprocessing
+from functools import partial
 from multiprocessing import freeze_support
+from os import listdir
+from os.path import isfile, join
 
 import param
-from dal.msmarco import *
-#from eval.msmarco import getHits
-
 from mdl import mt5w
 
 def run(data_list, domain_list, output, settings):
@@ -12,6 +12,18 @@ def run(data_list, domain_list, output, settings):
     # 'queries.train.tsv' => ["qid","query"]
 
     if ('msmarco-passage' in domain_list):
+
+        from dal import msmarco
+        # from eval.msmarco import getHits
+        ## seems the LuceneSearcher cannot be shared in multiple processes!
+        # from pyserini.search.lucene import LuceneSearcher
+        # # https://github.com/castorini/pyserini/blob/master/docs/prebuilt-indexes.md
+        # msmarco.searcher = LuceneSearcher.from_prebuilt_index('msmarco-v1-passage')
+        # if not msmarco.searcher:
+        #     # sometimes you need to manually download the index ==> https://github.com/castorini/pyserini/blob/master/docs/usage-interactive-search.md#how-do-i-manually-download-indexes
+        #     msmarco.searcher = LuceneSearcher(param.settings['msmarco-passage']['index'])
+        #     if not msmarco.searcher: raise ValueError(f'Lucene searcher cannot find/build msmarco index at {param.settings["msmarco"]["index"]}!')
+
         datapath = data_list[domain_list.index('msmarco-passage')]
         prep_output = f'./../data/preprocessed/{os.path.split(datapath)[-1]}'
         if not os.path.isdir(prep_output): os.makedirs(prep_output)
@@ -22,9 +34,9 @@ def run(data_list, domain_list, output, settings):
         query_qrel_doc = None
         if any(not os.path.exists(v) for k, v in tsv_path.items()):
             print('Pairing queries and relevant passages ...')
-            query_qrel_doc = to_pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.train.tsv')
+            query_qrel_doc = msmarco.to_pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.train.tsv')
             #TODO: query_qrel_doc = to_pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.test.tsv')
-            query_qrel_doc = to_pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.test.tsv')
+            query_qrel_doc = msmarco.to_pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.test.tsv')
             if settings['concat']:
                 prep_output += '/concat'
                 pass #concatenate rows with same qid
@@ -50,7 +62,16 @@ def run(data_list, domain_list, output, settings):
                 output=output,
                 lseq={"inputs": 32, "targets": 256}, gcloud=False)
 
-        #getHits(f'{output}predictions/{os.path.split(datapath)[-1]}', output, os.path.split(datapath)[-1])
+        if 'search' in settings['cmd']:
+            qids = pd.read_csv(f'{prep_output}/queries.qrels.doc.ctx.train.tsv', sep='\t', usecols=['qid'])
+            query_changes = [f for f in listdir(output) if isfile(join(output, f)) and f.startswith('pred.') and settings['ranker'] not in f]
+            query_changes_docs = [(f'{output}/{pf}', f'{output}/{pf}.{settings["ranker"]}') for pf in query_changes]
+            # for (i, o) in query_changes_docs: msmarco.to_search(i, o, qids.values.tolist(), settings['ranker'])
+            with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
+                p.starmap(partial(msmarco.to_search, qids=qids.values.tolist(), ranker=settings['ranker']), query_changes_docs)
+
+        if 'eval' in settings['cmd']: pass #TODO: pytrec_eval
+
     if ('aol' in data_list): print('processing aol...')
     if ('yandex' in data_list): print('processing yandex...')
 
