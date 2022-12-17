@@ -3,5 +3,7 @@ ftfy
 faiss-gpu #faiss-cpu is also an option
 rich
 pyserini
-t5[gcp]
+t5 #also use our fork
 pytrec_eval
+pandas
+pyserini

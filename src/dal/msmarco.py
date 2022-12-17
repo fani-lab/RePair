@@ -1,4 +1,5 @@
-import csv, json
+import json
+
 import pandas as pd
 from pyserini.search.lucene import LuceneSearcher
 from tqdm import tqdm

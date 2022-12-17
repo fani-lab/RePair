@@ -14,6 +14,7 @@ def run(data_list, domain_list, output, settings):
     if ('msmarco-passage' in domain_list):
         datapath = data_list[domain_list.index('msmarco-passage')]
         prep_output = f'./../data/preprocessed/{os.path.split(datapath)[-1]}'
+        if not os.path.isdir(prep_output): os.makedirs(prep_output)
         in_type = settings['msmarco-passage']['pairing'][1]
         out_type = settings['msmarco-passage']['pairing'][2]
         tsv_path = {'train': f'{prep_output}/{in_type}.{out_type}.train.tsv', 'test': f'{prep_output}/{in_type}.{out_type}.test.tsv'}
@@ -39,7 +40,7 @@ def run(data_list, domain_list, output, settings):
                 steps=100,
                 output=output, task_name='msmarco_passage_cf',
                 lseq={"inputs": 32, "targets": 256},  #query length and doc length
-                nexamples=query_qrel_doc.shape[0] if query_qrel_doc else None, in_type=in_type, out_type=out_type, gcloud=False)
+                nexamples=query_qrel_doc.shape[0] if query_qrel_doc is not None else None, in_type=in_type, out_type=out_type, gcloud=False)
 
         if 'predict' in settings['cmd']:
             mt5w.predict(
