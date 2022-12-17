@@ -105,7 +105,7 @@ def predict(iter, split, tsv_path, output, lseq, vocab_model_path='./../output/t
         sequence_length=lseq,
     )
 
-    with tf_verbosity_level('ERROR'):
+    with tf_verbosity_level('ERROR'):#TODO: check what if there is no prediction: empty line??
         for i in range(iter): model.predict(
             input_file=tsv_path[split],
             output_file=f'{output}/pred.{str(i)}'.replace('/', os.path.sep),
