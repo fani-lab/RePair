@@ -37,14 +37,14 @@ def run(data_list, domain_list, output, settings):
             mt5w.finetune(
                 tsv_path=tsv_path,
                 pretrained_dir=f'./../output/t5-data/pretrained_models/{t5_model}',
-                steps=100,
+                steps=5,
                 output=output, task_name='msmarco_passage_cf',
                 lseq={"inputs": 32, "targets": 256},  #query length and doc length
                 nexamples=query_qrel_doc.shape[0] if query_qrel_doc is not None else None, in_type=in_type, out_type=out_type, gcloud=False)
 
         if 'predict' in settings['cmd']:
             mt5w.predict(
-                iter=10,
+                iter=5,
                 split='test',
                 tsv_path=tsv_path,
                 output=output,
