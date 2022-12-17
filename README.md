@@ -22,6 +22,9 @@ conda activate pqr
 ```
 _Note: `` When installing jdk11, remember to check your env path for the executable in Windows._
 
+### Lucene Indexes
+To perform fast IR tasks, we need to build the indexes of document corpora or use the [`prebuilt-indexes`](https://github.com/castorini/pyserini/blob/master/docs/prebuilt-indexes.md) like [`msmarco-passage`](https://rgw.cs.uwaterloo.ca/JIMMYLIN-bucket0/pyserini-indexes/lucene-index.msmarco-v1-passage.20220131.9ea315.tar.gz) and put it at respective data folder like [`./data/raw/msmarco`](./data/raw/msmarco).
+
 ## Model Training and Test
 We use [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to train a model, that when given an input query (origianl query), generates refined (better) versions of the query in terms of retrieving more relevant documents at higher ranking positions. We adopt the [`docTTTTTTQuery`](https://github.com/castorini/docTTTTTquery#learning-a-new-prediction-model-t5-training-with-tensorflow) training methodology to fine-tune `T5` model on `msmarco` (w/o `userid`) and `aol` (w/ and w/o `userid`). For `yandex` dataset, we need to train `T5` from scratch since the tokens are anonymized by random Ids. 
 
