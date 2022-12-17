@@ -3,7 +3,7 @@ Creating alternative queries, also known as query reformulation, has been shown 
 
 
 ## Installation
-You need to have ``Python=3.8`` and install [`pyserini`](https://github.com/castorini/pyserini/) package, among others listed in [``requirements.txt``](requirements.txt):
+You need to have ``Python=3.8`` and install [`pyserini`](https://github.com/castorini/pyserini/) package (needs java 11), among others listed in [``requirements.txt``](requirements.txt):
 
 By ``pip``, clone the codebase and install the required packages:
 ```sh
@@ -20,7 +20,7 @@ cd personalized_query_refinement
 conda env create -f environment.yml
 conda activate pqr
 ```
-_Note: When installing jdk11, remember to check your env path for the executable in Windows._
+_Note: `` When installing jdk11, remember to check your env path for the executable in Windows._
 
 ## Model Training and Test
 We use [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to train a model, that when given an input query (origianl query), generates refined (better) versions of the query in terms of retrieving more relevant documents at higher ranking positions. We adopt the [`docTTTTTTQuery`](https://github.com/castorini/docTTTTTquery#learning-a-new-prediction-model-t5-training-with-tensorflow) training methodology to fine-tune `T5` model on `msmarco` (w/o `userid`) and `aol` (w/ and w/o `userid`). For `yandex` dataset, we need to train `T5` from scratch since the tokens are anonymized by random Ids. 
