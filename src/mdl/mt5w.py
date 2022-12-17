@@ -4,6 +4,7 @@ import tensorflow_datasets as tfds
 
 import t5
 import t5.models
+import t5.data.mixtures
 import seqio
 
 tf.disable_v2_behavior()
@@ -52,6 +53,7 @@ def def_task(tsv_path, task_name, nexamples, in_type, out_type, vocab_model_path
     # for ex in tfds.as_numpy(ds.take(5)): print(ex)
 
 def finetune(tsv_path, pretrained_dir, steps, output, lseq, task_name, nexamples=None, in_type='query', out_type='doc', vocab_model_path='./../output/t5-data/vocabs/cc_en.32000/sentencepiece.model', gcloud=False):
+
     def_task(tsv_path, task_name, nexamples, in_type, out_type, vocab_model_path)
     # Limit number of checkpoints to fit within 5GB (if possible).
     model_parallelism, train_batch_size, keep_checkpoint_max = {"small": (1, 256, 16), "base": (2, 128, 8), "large": (8, 64, 4), "3B": (8, 16, 1), "11B": (8, 16, 1)}[os.path.split(pretrained_dir)[-1]]
@@ -77,3 +79,56 @@ def finetune(tsv_path, pretrained_dir, steps, output, lseq, task_name, nexamples
         pretrained_model_dir=pretrained_dir,
         finetune_steps=steps
     )
+
+    # I think we don't need to export the model. It's saved by checkpoints
+    # model.batch_size = 1  # make one prediction per call
+    # saved_model_path = model.export(
+    #     export_dir,
+    #     checkpoint_step=-1,  # use most recent
+    #     beam_size=1,  # no beam search
+    #     temperature=1.0,  # sample according to predicted distribution
+    # )
+    # TODO: we can export the model
+    return model
+
+def predict(iter, split, tsv_path, output, lseq, vocab_model_path='./../output/t5-data/vocabs/cc_en.32000/sentencepiece.model', gcloud=False):
+# def predict(iter, split, tsv_path, pretrained_dir, steps, output, lseq, task_name, nexamples=None, in_type='query', out_type='doc', vocab_model_path='./../output/t5-data/vocabs/cc_en.32000/sentencepiece.model', gcloud=False):
+
+    if gcloud: import gcloud
+    model_parallelism, train_batch_size, keep_checkpoint_max = {"small": (1, 256, 16), "base": (2, 128, 8), "large": (8, 64, 4), "3B": (8, 16, 1), "11B": (8, 16, 1)}[output.split('.')[-4]]
+    model = t5.models.MtfModel(
+        model_dir=output.replace('/', os.path.sep),
+        tpu=gcloud.TPU_ADDRESS if gcloud else None,
+        tpu_topology=gcloud.TPU_TOPOLOGY if gcloud else None,
+        model_parallelism=model_parallelism,
+        batch_size=train_batch_size * 4,
+        sequence_length=lseq,
+    )
+
+    with tf_verbosity_level('ERROR'):
+        for i in range(iter): model.predict(
+            input_file=tsv_path[split],
+            output_file=f'{output}/pred.{str(i)}.csv',
+            checkpoint_steps=-1,#the last one
+            beam_size=1, #int, a number >= 1 specifying the number of beams to use for
+            temperature=1.0, #float, a value between 0 and 1 (must be 0 if beam_size > 1) 0.0 means argmax/most probable, 1.0 means sample according to predicted distribution.
+            keep_top_k=-1,#integer, a value between 1 and the vocabulary size. When sampling, only pick tokens that are in the k most likely.
+            vocabulary=seqio.SentencePieceVocabulary(vocab_model_path, t5.data.DEFAULT_EXTRA_IDS))
+
+
+    # # since we do eval using IR, we don't need this.
+    # try: seqio.TaskRegistry.get(task_name)
+    # except ValueError as ve: def_task(tsv_path, task_name, nexamples, in_type, out_type, vocab_model_path)
+    # model.eval(mixture_or_task_name=task_name,checkpoint_steps=-1)#"latest", could be "all"
+    # ds = seqio.TaskRegistry.get(task_name).get_dataset(split=split, sequence_length=lseq, shuffle=False)
+    # ## if all checkpoints
+    # pred_files = tf.io.gfile.glob(os.path.join(output, f'{split}_eval/{task_name}_*_predictions'))
+    # latest_pred_file = sorted(pred_files, key=lambda x: int(x.split("_")[-2]))[-1] #get most recent prediction file by sorting by their step.
+    #
+    # #collect (inputs, targets, prediction) from the dataset and predictions file
+    # import random
+    # results = []
+    # with tf.io.gfile.GFile(latest_pred_file) as preds:
+    #     for ex, pred in zip(tfds.as_numpy(ds), preds): results.append((tf.compat.as_text(ex["inputs_pretokenized"]), tf.compat.as_text(ex["targets_pretokenized"]),pred.strip()))
+    #     print(f'Random predictions for {task_name} using checkpoint {latest_pred_file}')
+    #     for inp, tgt, pred in random.choices(results, k=10): print(f'Input:{inp}\nTarget:{tgt}\nPrediction:{pred}\n')

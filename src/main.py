@@ -5,7 +5,7 @@ import param
 from dal.msmarco import *
 #from eval.msmarco import getHits
 
-from mdl import mt5
+from mdl import mt5w
 
 def run(data_list, domain_list, output, settings):
     # 'qrels.train.tsv' => ,["qid","did","pid","relevancy"]
@@ -30,11 +30,24 @@ def run(data_list, domain_list, output, settings):
             query_qrel_doc.to_csv(tsv_path['train'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
             query_qrel_doc.to_csv(tsv_path['test'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
 
-        t5_model = './../output/t5-data/pretrained_models/small'  # "gs://t5-data/pretrained_models/{"small", "base", "large", "3B", "11B"}
-        mt5.finetune(tsv_path=tsv_path,
-                     pretrained_dir=t5_model, steps=100, output=f'../output/t5_/local/{in_type}.{out_type}', task_name='msmarco_passage_cf',
-                     lseq={"inputs": 32, "targets": 256},#query length and doc length
-                     nexamples=query_qrel_doc.shape[0] if query_qrel_doc else None, in_type=in_type, out_type=out_type)
+        t5_model = 'small'  # "gs://t5-data/pretrained_models/{"small", "base", "large", "3B", "11B"}
+        output = f'../output/t5.{t5_model}.local.{in_type}.{out_type}'
+        if 'finetune' in settings['cmd']:
+            mt5w.finetune(
+                tsv_path=tsv_path,
+                pretrained_dir=f'./../output/t5-data/pretrained_models/{t5_model}',
+                steps=100,
+                output=output, task_name='msmarco_passage_cf',
+                lseq={"inputs": 32, "targets": 256},  #query length and doc length
+                nexamples=query_qrel_doc.shape[0] if query_qrel_doc else None, in_type=in_type, out_type=out_type, gcloud=False)
+
+        if 'predict' in settings['cmd']:
+            mt5w.predict(
+                iter=10,
+                split='test',
+                tsv_path=tsv_path,
+                output=output,
+                lseq={"inputs": 32, "targets": 256}, gcloud=False)
 
         #getHits(f'{output}predictions/{os.path.split(datapath)[-1]}', output, os.path.split(datapath)[-1])
     if ('aol' in data_list): print('processing aol...')
