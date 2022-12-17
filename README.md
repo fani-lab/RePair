@@ -49,7 +49,7 @@ Since our main purpose is to evaluate the retrieval power of refinements to the 
 We save the test file(s) as `{ctx.query.*, ctx.doc.*, ctx.querydoc.*}.test.tsv`.
 
 ## Run
-Our run depends on T5 to generate the refinements to the input original queries. We can run T5 on local machine (cpu/gpu), or on google cloud (tpu) which is T5 pereferance. The steps have been explained in details in:
+Our run depends on T5 to generate the refinements to the input original queries. We can run T5 on local machine (cpu/gpu), or on google cloud (tpu), which is T5 pereferance,
 1. [Local Machine (cpu/gpu)(Linux, Windows)](https://github.com/fani-lab/personalized_query_refinement/blob/main/run_t5.md#localhost-cpu-or-gpu)
 2. [Google Cloud (tpu)](https://github.com/fani-lab/personalized_query_refinement/blob/main/run_t5.md#google-cloud-tpu)
 
