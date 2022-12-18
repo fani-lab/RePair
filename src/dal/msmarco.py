@@ -10,8 +10,8 @@ import param
 # https://github.com/castorini/pyserini/blob/master/docs/prebuilt-indexes.md
 # searcher = LuceneSearcher.from_prebuilt_index('msmarco-v1-passage')
 # sometimes you need to manually download the index ==> https://github.com/castorini/pyserini/blob/master/docs/usage-interactive-search.md#how-do-i-manually-download-indexes
-searcher = LuceneSearcher(param.settings['msmarco-passage']['index'])
-if not searcher: raise ValueError(f'Lucene searcher cannot find/build msmarco index at {param.settings["msmarco"]["index"]}!')
+searcher = LuceneSearcher(param.settings['msmarco.passage']['index'])
+if not searcher: raise ValueError(f'Lucene searcher cannot find/build msmarco.passage index at {param.settings["msmarco.passage"]["index"]}!')
 
 def to_txt(pid):
     # The``docid`` is overloaded: if it is of type ``str``, it is treated as an external collection ``docid``;

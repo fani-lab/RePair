@@ -11,24 +11,16 @@ def run(data_list, domain_list, output, settings):
     # 'qrels.train.tsv' => ,["qid","did","pid","relevancy"]
     # 'queries.train.tsv' => ["qid","query"]
 
-    if ('msmarco-passage' in domain_list):
+    if ('msmarco.passage' in domain_list):
 
         from dal import msmarco
         # from eval.msmarco import getHits
-        ## seems the LuceneSearcher cannot be shared in multiple processes!
-        # from pyserini.search.lucene import LuceneSearcher
-        # # https://github.com/castorini/pyserini/blob/master/docs/prebuilt-indexes.md
-        # msmarco.searcher = LuceneSearcher.from_prebuilt_index('msmarco-v1-passage')
-        # if not msmarco.searcher:
-        #     # sometimes you need to manually download the index ==> https://github.com/castorini/pyserini/blob/master/docs/usage-interactive-search.md#how-do-i-manually-download-indexes
-        #     msmarco.searcher = LuceneSearcher(param.settings['msmarco-passage']['index'])
-        #     if not msmarco.searcher: raise ValueError(f'Lucene searcher cannot find/build msmarco index at {param.settings["msmarco"]["index"]}!')
+        ## seems the LuceneSearcher cannot be shared in multiple processes! See dal.msmarco.py
 
-        datapath = data_list[domain_list.index('msmarco-passage')]
+        datapath = data_list[domain_list.index('msmarco.passage')]
         prep_output = f'./../data/preprocessed/{os.path.split(datapath)[-1]}'
         if not os.path.isdir(prep_output): os.makedirs(prep_output)
-        in_type = settings['msmarco-passage']['pairing'][1]
-        out_type = settings['msmarco-passage']['pairing'][2]
+        in_type, out_type = settings['msmarco.passage']['pairing'][1], settings['msmarco.passage']['pairing'][2]
         tsv_path = {'train': f'{prep_output}/{in_type}.{out_type}.train.tsv', 'test': f'{prep_output}/{in_type}.{out_type}.test.tsv'}
 
         query_qrel_doc = None
@@ -39,12 +31,12 @@ def run(data_list, domain_list, output, settings):
             query_qrel_doc = msmarco.to_pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.test.tsv')
             if settings['concat']:
                 prep_output += '/concat'
-                pass #concatenate rows with same qid
+                pass #TODO: concatenate rows with same qid
             query_qrel_doc.to_csv(tsv_path['train'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
             query_qrel_doc.to_csv(tsv_path['test'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
 
         t5_model = 'small'  # "gs://t5-data/pretrained_models/{"small", "base", "large", "3B", "11B"}
-        output = f'../output/t5.{t5_model}.local.{in_type}.{out_type}'
+        output = f'../output/{os.path.split(datapath)[-1]}/t5.{t5_model}.local.{in_type}.{out_type}'
         if 'finetune' in settings['cmd']:
             mt5w.finetune(
                 tsv_path=tsv_path,
@@ -66,7 +58,7 @@ def run(data_list, domain_list, output, settings):
             qids = pd.read_csv(f'{prep_output}/queries.qrels.doc.ctx.train.tsv', sep='\t', usecols=['qid'])
             query_changes = [f for f in listdir(output) if isfile(join(output, f)) and f.startswith('pred.') and settings['ranker'] not in f]
             query_changes_docs = [(f'{output}/{pf}', f'{output}/{pf}.{settings["ranker"]}') for pf in query_changes]
-            # for (i, o) in query_changes_docs: msmarco.to_search(i, o, qids['qid'].values.tolist(), settings['ranker'])
+            # for (i, o) in query_changes_docs: msmarco.passage.passage.to_search(i, o, qids['qid'].values.tolist(), settings['ranker'])
             with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
                 p.starmap(partial(msmarco.to_search, qids=qids['qid'].values.tolist(), ranker=settings['ranker']), query_changes_docs)
 
@@ -78,14 +70,14 @@ def run(data_list, domain_list, output, settings):
 
 def addargs(parser):
     dataset = parser.add_argument_group('dataset')
-    dataset.add_argument('-data', '--data-list', nargs='+', type=str, default=[], required=True, help='a list of dataset paths; required; (eg. -data ./../data/raw/msmarco)')
-    dataset.add_argument('-domain', '--domain-list', nargs='+', type=str, default=[], required=True, help='a list of dataset paths; required; (eg. -domain msmarco)')
+    dataset.add_argument('-data', '--data-list', nargs='+', type=str, default=[], required=True, help='a list of dataset paths; required; (eg. -data ./../data/raw/toy.msmarco.passage)')
+    dataset.add_argument('-domain', '--domain-list', nargs='+', type=str, default=[], required=True, help='a list of dataset paths; required; (eg. -domain msmarco.passage)')
 
     output = parser.add_argument_group('output')
-    output.add_argument('-output', type=str, default='./../output/', help='The output path (default: -output ./../output/)')
+    output.add_argument('-output', type=str, default='../output/', help='The output path (default: -output ../output/)')
 
 
-# python -u main.py -data ../data/raw/toy.msmarco -domain msmarco
+# python -u main.py -data ../data/raw/toy.msmarco.passage -domain msmarco.passage
 
 if __name__ == '__main__':
     freeze_support()

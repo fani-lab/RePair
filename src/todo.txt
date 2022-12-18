@@ -1,0 +1,3 @@
+0) pytrec eval
+1) concat when more than one qrel for a query
+2) adding anserini shell in addition to pyserini

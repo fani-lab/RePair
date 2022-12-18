@@ -13,9 +13,9 @@ settings = {
     'ranker': 'bm25',#'qld'
     'metric': {'success', 'ndcg_cut', 'map_cut'},
     'concat': False,#if more than one relevant doc, concat them all into one
-    'msmarco-passage': {
-        'index': '../data/raw/msmarco/lucene-index.msmarco-v1-passage.20220131.9ea315/',
-        'pairing': [None, 'query', 'doc']# [context={msmarco does not have userinfo}, input={query, doc, docs}, output={query, doc, docs}]
+    'msmarco.passage': {
+        'index': '../data/raw/msmarco.passage/lucene-index.msmarco-v1-passage.20220131.9ea315/',
+        'pairing': [None, 'query', 'doc']# [context={msmarco.passage.passage does not have userinfo}, input={query, doc, docs}, output={query, doc, docs}]
     },
     'aol': {
         'pairing': ['userid', 'query', 'doc']
