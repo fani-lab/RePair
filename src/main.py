@@ -25,8 +25,9 @@ def run(data_list, domain_list, output, settings):
 
         query_qrel_doc = None
         if any(not os.path.exists(v) for k, v in tsv_path.items()):
-            print('Pairing queries and relevant passages ...')
+            print(f'Pairing queries and relevant passages for training set ...')
             query_qrel_doc = msmarco.to_pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.train.tsv')
+            print(f'Pairing queries and relevant passages for test set ...')
             #TODO: query_qrel_doc = to_pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.test.tsv')
             query_qrel_doc = msmarco.to_pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.test.tsv')
             if settings['concat']:
@@ -35,12 +36,12 @@ def run(data_list, domain_list, output, settings):
             query_qrel_doc.to_csv(tsv_path['train'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
             query_qrel_doc.to_csv(tsv_path['test'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
 
-        t5_model = 'small'  # "gs://t5-data/pretrained_models/{"small", "base", "large", "3B", "11B"}
-        t5_output = f'../output/{os.path.split(datapath)[-1]}/t5.{t5_model}.local.{in_type}.{out_type}'
+        t5_model = settings['t5model']  # {"small", "base", "large", "3B", "11B"} cross {"local", "gc"}
+        t5_output = f'../output/{os.path.split(datapath)[-1]}/t5.{t5_model}.{in_type}.{out_type}'
         if 'finetune' in settings['cmd']:
             mt5w.finetune(
                 tsv_path=tsv_path,
-                pretrained_dir=f'./../output/t5-data/pretrained_models/{t5_model}',
+                pretrained_dir=f'./../output/t5-data/pretrained_models/{t5_model.split(".")[0]}', #"gs://t5-data/pretrained_models/{"small", "base", "large", "3B", "11B"}
                 steps=5,
                 output=t5_output, task_name='msmarco_passage_cf',
                 lseq={"inputs": 32, "targets": 256},  #query length and doc length
