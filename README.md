@@ -50,8 +50,8 @@ We save the test file(s) as `{ctx.query.*, ctx.doc.*, ctx.querydoc.*}.test.tsv`.
 
 ## Run
 Our run depends on T5 to generate the refinements to the input original queries. We can run T5 on local machine (cpu/gpu), or on google cloud (tpu), which is T5 pereferance,
-1. [Local Machine (cpu/gpu)(Linux, Windows)](https://github.com/fani-lab/personalized_query_refinement/blob/main/run_t5.md#localhost-cpu-or-gpu)
-2. [Google Cloud (tpu)](https://github.com/fani-lab/personalized_query_refinement/blob/main/run_t5.md#google-cloud-tpu)
+1. [Local Machine (cpu/gpu)(Linux, Windows)](https://github.com/fani-lab/personalized_query_refinement/blob/main/RUNT5.md#localhost-cpu-or-gpu)
+2. [Google Cloud (tpu)](https://github.com/fani-lab/personalized_query_refinement/blob/main/RUNT5.md#google-cloud-tpu)
 
 ## Results
 We calculate the retrieval power of each query refinement on both train and test sets using IR metrics like `map` or `ndcg` compared to the original query and see if the refinements are better.
