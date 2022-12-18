@@ -9,9 +9,10 @@ np.random.seed(0)
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 settings = {
-    'cmd': ['search', 'eval'], # steps of pipeline, ['finetune', 'predict', 'search', 'eval']
+    'cmd': ['eval'], # steps of pipeline, ['finetune', 'predict', 'search', 'eval']
     'ranker': 'bm25',#'qld'
-    'metric': {'success', 'ndcg_cut', 'map_cut'},
+    'metric': 'ndcg', # 'map'
+    'treclib': '"./trec_eval.9.0.4/trec_eval.exe"',#in non-windows, remove .exe, also for pytrec_eval, 'pytrec'
     'concat': False,#if more than one relevant doc, concat them all into one
     'msmarco.passage': {
         'index': '../data/raw/msmarco.passage/lucene-index.msmarco-v1-passage.20220131.9ea315/',

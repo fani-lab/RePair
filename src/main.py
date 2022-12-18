@@ -36,13 +36,13 @@ def run(data_list, domain_list, output, settings):
             query_qrel_doc.to_csv(tsv_path['test'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
 
         t5_model = 'small'  # "gs://t5-data/pretrained_models/{"small", "base", "large", "3B", "11B"}
-        output = f'../output/{os.path.split(datapath)[-1]}/t5.{t5_model}.local.{in_type}.{out_type}'
+        t5_output = f'../output/{os.path.split(datapath)[-1]}/t5.{t5_model}.local.{in_type}.{out_type}'
         if 'finetune' in settings['cmd']:
             mt5w.finetune(
                 tsv_path=tsv_path,
                 pretrained_dir=f'./../output/t5-data/pretrained_models/{t5_model}',
                 steps=5,
-                output=output, task_name='msmarco_passage_cf',
+                output=t5_output, task_name='msmarco_passage_cf',
                 lseq={"inputs": 32, "targets": 256},  #query length and doc length
                 nexamples=query_qrel_doc.shape[0] if query_qrel_doc is not None else None, in_type=in_type, out_type=out_type, gcloud=False)
 
@@ -51,18 +51,29 @@ def run(data_list, domain_list, output, settings):
                 iter=5,
                 split='test',
                 tsv_path=tsv_path,
-                output=output,
+                output=t5_output,
                 lseq={"inputs": 32, "targets": 256}, gcloud=False)
 
         if 'search' in settings['cmd']:
-            qids = pd.read_csv(f'{prep_output}/queries.qrels.doc.ctx.train.tsv', sep='\t', usecols=['qid'])
-            query_changes = [f for f in listdir(output) if isfile(join(output, f)) and f.startswith('pred.') and settings['ranker'] not in f]
-            query_changes_docs = [(f'{output}/{pf}', f'{output}/{pf}.{settings["ranker"]}') for pf in query_changes]
-            # for (i, o) in query_changes_docs: msmarco.passage.passage.to_search(i, o, qids['qid'].values.tolist(), settings['ranker'])
-            with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
-                p.starmap(partial(msmarco.to_search, qids=qids['qid'].values.tolist(), ranker=settings['ranker']), query_changes_docs)
+            query_originals = pd.read_csv(f'{datapath}/queries.train.tsv', sep='\t', names=['qid', 'query'], dtype={'qid': str})
+            query_changes = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["ranker"]}') for f in listdir(t5_output) if isfile(join(t5_output, f)) and f.startswith('pred.') and settings['ranker'] not in f]
 
-        if 'eval' in settings['cmd']: pass #TODO: pytrec_eval
+            # single search: for (i, o) in query_changes_docs: msmarco.to_search(i, o, query_originals['qid'].values.tolist(), settings['ranker'], topk=100, batch=None)
+            # batch search: for (i, o) in query_changes_docs: msmarco.to_search(i, o, query_originals['qid'].values.tolist(), settings['ranker'], topk=100, batch=2)
+            # parallel on each file
+            with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
+                p.starmap(partial(msmarco.to_search, qids=query_originals['qid'].values.tolist(), ranker=settings['ranker'], topk=100, batch=100), query_changes)
+
+            # we need to add the original queries as well
+            msmarco.to_search_df(pd.DataFrame(query_originals['query']), f'{t5_output}/original.{settings["ranker"]}', query_originals['qid'].values.tolist(), settings['ranker'], topk=100, batch=100)
+
+        if 'eval' in settings['cmd']:
+            from evl import trecw
+            search_results = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["metric"]}') for f in listdir(t5_output) if isfile(join(t5_output, f)) and f.endswith(settings['ranker'])]
+
+            # for (i, o) in search_results: trecw.evaluate(i, o, qrels=f'{datapath}/qrels.train.tsv', metric=settings['metric'], lib=settings['treclib'])
+            with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
+                p.starmap(partial(trecw.evaluate, qrels=f'{datapath}/qrels.train.tsv', metric=settings['metric'], lib=settings['treclib']), search_results)
 
     if ('aol' in data_list): print('processing aol...')
     if ('yandex' in data_list): print('processing yandex...')

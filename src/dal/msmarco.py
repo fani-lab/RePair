@@ -28,23 +28,32 @@ def to_pair(input, output):
     queries_qrels.to_csv(output, sep='\t', encoding='utf-8', index=False)
     return queries_qrels
 
-def to_search(in_query, out_docids, qids, ranker='bm25'):
+def to_norm(tf_txt):
+    # lambda x: x.replace('b\'', '').replace('\'', '') if in pandas' convertors
+    # TODO: we need to clean the \\x chars also
+    return tf_txt.replace('b\'', '').replace('\'', '').replace('b\"', '').replace('\"', '')
+
+def to_search(in_query, out_docids, qids, ranker='bm25', topk=100, batch=None):
+    # https://github.com/google-research/text-to-text-transfer-transformer/issues/322
+    # with open(in_query, 'r', encoding='utf-8') as f: [to_docids(l) for l in f]
+    queries = pd.read_csv(in_query, names=['query'], converters={'query': to_norm}, sep='\r\n', skip_blank_lines=False,engine='python')  # on windows enf of line (CRLF)
+    to_search_df(queries, out_docids, qids, ranker=ranker, topk=topk, batch=batch)
+
+def to_search_df(queries, out_docids, qids, ranker='bm25', topk=100, batch=None):
     if ranker == 'bm25': searcher.set_bm25(0.82, 0.68)
     if ranker == 'qld': searcher.set_qld()
-    with open(out_docids, 'w', encoding='utf-8') as o:
-        def to_docids(row):
-            query = row.query.replace('b\'', '').replace('\'', '')
-            hits = searcher.search(query, k=10, remove_dups=True)
-            for i, h in enumerate(hits): o.write(f'{qids[row.name]} Q0  {h.docid:15} {i + 1:2}  {h.score:.5f} Pyserini \n')
-        # https://github.com/google-research/text-to-text-transfer-transformer/issues/322
-        # with open(in_query, 'r', encoding='utf-8') as f: [to_docids(l) for l in f]
-        queries = pd.read_csv(in_query, names=['query'], sep='\r\n', skip_blank_lines=False, engine='python')#on windows enf of line (CRLF)
-        assert len(queries) == len(qids)
-        queries.progress_apply(to_docids, axis=1)
-
-def to_search_(in_query, out_docids, qids, ranker='bm25'):
-    # calling the command line and subprocess for ir
-    pass
-
-
+    assert len(queries) == len(qids)
+    if batch:
+        with open(out_docids, 'w', encoding='utf-8') as o:
+            for b in tqdm(range(0, len(queries), batch)):
+                hits = searcher.batch_search(queries.iloc[b: b + batch]['query'].values.tolist(), qids[b: b + batch], k=topk, threads=4)
+                for qid in hits.keys():
+                    for i, h in enumerate(hits[qid]):
+                        o.write(f'{qid} Q0  {h.docid:15} {i + 1:2}  {h.score:.5f} Pyserini Batch\n')
+    else:
+        with open(out_docids, 'w', encoding='utf-8') as o:
+            def to_docids(row):
+                hits = searcher.search(row.query, k=topk, remove_dups=True)
+                for i, h in enumerate(hits): o.write(f'{qids[row.name]} Q0  {h.docid:15} {i + 1:2}  {h.score:.5f} Pyserini \n')
+            queries.progress_apply(to_docids, axis=1)
 
