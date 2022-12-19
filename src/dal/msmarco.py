@@ -34,9 +34,10 @@ def to_norm(tf_txt):
     return tf_txt.replace('b\'', '').replace('\'', '').replace('b\"', '').replace('\"', '')
 
 def to_search(in_query, out_docids, qids, ranker='bm25', topk=100, batch=None):
+    print(f'Searching docs for {in_query} ...')
     # https://github.com/google-research/text-to-text-transfer-transformer/issues/322
     # with open(in_query, 'r', encoding='utf-8') as f: [to_docids(l) for l in f]
-    queries = pd.read_csv(in_query, names=['query'], converters={'query': to_norm}, sep='\r\n', skip_blank_lines=False,engine='python')  # on windows enf of line (CRLF)
+    queries = pd.read_csv(in_query, names=['query'], converters={'query': to_norm}, sep='\r\r', skip_blank_lines=False,engine='python')  # on windows enf of line (CRLF)
     to_search_df(queries, out_docids, qids, ranker=ranker, topk=topk, batch=batch)
 
 def to_search_df(queries, out_docids, qids, ranker='bm25', topk=100, batch=None):

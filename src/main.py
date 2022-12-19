@@ -56,7 +56,11 @@ def run(data_list, domain_list, output, settings):
                 lseq={"inputs": 32, "targets": 256}, gcloud=False)
 
         if 'search' in settings['cmd']:
-            query_originals = pd.read_csv(f'{datapath}/queries.train.tsv', sep='\t', names=['qid', 'query'], dtype={'qid': str})
+            #seems for some queries there is no qrels, so they are missed for t5 prediction.
+            #query_originals = pd.read_csv(f'{datapath}/queries.train.tsv', sep='\t', names=['qid', 'query'], dtype={'qid': str})
+
+            #we use the file after panda.merge that create the training set so we make sure the mapping of qids
+            query_originals = pd.read_csv(f'{prep_output}/queries.qrels.doc.ctx.train.tsv', sep='\t', usecols=['qid', 'query'], dtype={'qid': str})
             query_changes = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["ranker"]}') for f in listdir(t5_output) if isfile(join(t5_output, f)) and f.startswith('pred.') and settings['ranker'] not in f]
 
             # single search: for (i, o) in query_changes_docs: msmarco.to_search(i, o, query_originals['qid'].values.tolist(), settings['ranker'], topk=100, batch=None)
