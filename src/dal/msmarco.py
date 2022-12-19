@@ -19,12 +19,14 @@ def to_txt(pid):
     try: return json.loads(searcher.doc(str(pid)).raw())['contents'].lower()
     except Exception as e: raise e
 
-def to_pair(input, output):
+def to_pair(input, output, cat=True):
     queries = pd.read_csv(f'{input}/queries.train.tsv', sep='\t', index_col=False, names=['qid', 'query'], converters={'query': str.lower}, header=None)
     qrels = pd.read_csv(f'{input}/qrels.train.tsv', sep='\t', index_col=False, names=['qid', 'did', 'pid', 'relevancy'], header=None)
     queries_qrels = pd.merge(queries, qrels, on='qid', how='inner', copy=False)
-    queries_qrels['doc'] = queries_qrels['pid'].progress_apply(to_txt) #100%|██████████| 532761/532761 [00:32<00:00, 16448.77it/s]
+    doccol = 'docs' if cat else 'doc'
+    queries_qrels[doccol] = queries_qrels['pid'].progress_apply(to_txt) #100%|██████████| 532761/532761 [00:32<00:00, 16448.77it/s]
     queries_qrels['ctx'] = ''
+    if cat: queries_qrels = queries_qrels.groupby(['qid', 'query'], as_index=False).agg({'did': list, 'pid': list, doccol: ' '.join})
     queries_qrels.to_csv(output, sep='\t', encoding='utf-8', index=False)
     return queries_qrels
 

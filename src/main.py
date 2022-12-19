@@ -26,13 +26,11 @@ def run(data_list, domain_list, output, settings):
         query_qrel_doc = None
         if any(not os.path.exists(v) for k, v in tsv_path.items()):
             print(f'Pairing queries and relevant passages for training set ...')
-            query_qrel_doc = msmarco.to_pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.train.tsv')
+            cat = True if 'docs' in {in_type, out_type} else False
+            query_qrel_doc = msmarco.to_pair(datapath, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.train.tsv', cat=cat)
             print(f'Pairing queries and relevant passages for test set ...')
             #TODO: query_qrel_doc = to_pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.test.tsv')
-            query_qrel_doc = msmarco.to_pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.test.tsv')
-            if settings['concat']:
-                prep_output += '/concat'
-                pass #TODO: concatenate rows with same qid
+            query_qrel_doc = msmarco.to_pair(datapath, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.test.tsv', cat=cat)
             query_qrel_doc.to_csv(tsv_path['train'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
             query_qrel_doc.to_csv(tsv_path['test'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
 
@@ -63,8 +61,8 @@ def run(data_list, domain_list, output, settings):
             query_originals = pd.read_csv(f'{prep_output}/queries.qrels.doc.ctx.train.tsv', sep='\t', usecols=['qid', 'query'], dtype={'qid': str})
             query_changes = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["ranker"]}') for f in listdir(t5_output) if isfile(join(t5_output, f)) and f.startswith('pred.') and settings['ranker'] not in f]
 
-            # single search: for (i, o) in query_changes_docs: msmarco.to_search(i, o, query_originals['qid'].values.tolist(), settings['ranker'], topk=100, batch=None)
-            # batch search: for (i, o) in query_changes_docs: msmarco.to_search(i, o, query_originals['qid'].values.tolist(), settings['ranker'], topk=100, batch=2)
+            # single search: for (i, o) in query_changes: msmarco.to_search(i, o, query_originals['qid'].values.tolist(), settings['ranker'], topk=100, batch=None)
+            # batch search: for (i, o) in query_changes: msmarco.to_search(i, o, query_originals['qid'].values.tolist(), settings['ranker'], topk=100, batch=2)
             # parallel on each file
             with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
                 p.starmap(partial(msmarco.to_search, qids=query_originals['qid'].values.tolist(), ranker=settings['ranker'], topk=100, batch=100), query_changes)
