@@ -3,7 +3,7 @@ Creating alternative queries, also known as query reformulation, has been shown 
 
 
 ## Installation
-You need to have ``Python=3.8`` and install [`pyserini`](https://github.com/castorini/pyserini/) package (needs `Java`), among others listed in [``requirements.txt``](requirements.txt):
+You need to have ``Python=3.8`` and install [`pyserini`](https://github.com/castorini/pyserini/) package (needs `Java`), among others listed in [``requirements.txt``](requirements.txt). We also suggest you to clone our repo with the `--recurse-submodules` (altenatively, use the `git submodule update --init` inside the cloned repository) to get the trec_eval metric evaluation tool:
 
 By ``pip``, clone the codebase and install the required packages:
 ```sh
