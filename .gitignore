@@ -3,8 +3,8 @@ Raw
 data/*/msmarco/
 output/*/msmarco
 output/runs/toy.msmarco
-output/predictions/toy.msmarco/*.tsv
-
+output/*.passage
+data/preprocessed
 __pycache__
 /.idea
 /lightning_logs
