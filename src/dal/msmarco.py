@@ -39,7 +39,7 @@ def to_search(in_query, out_docids, qids, ranker='bm25', topk=100, batch=None):
     print(f'Searching docs for {in_query} ...')
     # https://github.com/google-research/text-to-text-transfer-transformer/issues/322
     # with open(in_query, 'r', encoding='utf-8') as f: [to_docids(l) for l in f]
-    queries = pd.read_csv(in_query, names=['query'], converters={'query': to_norm}, sep='\r\r', skip_blank_lines=False,engine='python')  # on windows enf of line (CRLF)
+    queries = pd.read_csv(in_query, names=['query'], converters={'query': to_norm}, sep='\r\r', skip_blank_lines=False, engine='python')  # on windows enf of line (CRLF)
     to_search_df(queries, out_docids, qids, ranker=ranker, topk=topk, batch=batch)
 
 def to_search_df(queries, out_docids, qids, ranker='bm25', topk=100, batch=None):
@@ -52,11 +52,15 @@ def to_search_df(queries, out_docids, qids, ranker='bm25', topk=100, batch=None)
                 hits = searcher.batch_search(queries.iloc[b: b + batch]['query'].values.tolist(), qids[b: b + batch], k=topk, threads=4)
                 for qid in hits.keys():
                     for i, h in enumerate(hits[qid]):
-                        o.write(f'{qid} Q0  {h.docid:15} {i + 1:2}  {h.score:.5f} Pyserini Batch\n')
+                        o.write(f'{qid}\tQ0\t{h.docid:15}\t{i + 1:2}\t{h.score:.5f}\tPyserini Batch\n')
     else:
         with open(out_docids, 'w', encoding='utf-8') as o:
             def to_docids(row):
-                hits = searcher.search(row.query, k=topk, remove_dups=True)
-                for i, h in enumerate(hits): o.write(f'{qids[row.name]} Q0  {h.docid:15} {i + 1:2}  {h.score:.5f} Pyserini \n')
+                 if not pd.isna(row.query):
+                    hits = searcher.search(row.query, k=topk, remove_dups=True)
+                    for i, h in enumerate(hits): o.write(f'{qids[row.name]}\tQ0\t{h.docid:7}\t{i + 1:2}\t{h.score:.5f}\tPyserini\n')
+                 else:
+                     for i, h in enumerate(range(topk)): o.write(f'{qids[row.name]}\tQ0\t""\t{i + 1:2}\t0\tPyserini\n')
+
             queries.progress_apply(to_docids, axis=1)
 
