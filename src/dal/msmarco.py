@@ -59,8 +59,6 @@ def to_search_df(queries, out_docids, qids, ranker='bm25', topk=100, batch=None)
                  if not pd.isna(row.query):
                     hits = searcher.search(row.query, k=topk, remove_dups=True)
                     for i, h in enumerate(hits): o.write(f'{qids[row.name]}\tQ0\t{h.docid:7}\t{i + 1:2}\t{h.score:.5f}\tPyserini\n')
-                 else:
-                     for i, h in enumerate(range(topk)): o.write(f'{qids[row.name]}\tQ0\t""\t{i + 1:2}\t0\tPyserini\n')
 
             queries.progress_apply(to_docids, axis=1)
 
