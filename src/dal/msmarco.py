@@ -81,9 +81,9 @@ def aggregate(original,prediction_files_list,output):
         original = original.merge(pred_df_map, how='left', on='qid')
 
     print('saving all merged queries\n')
-    original.to_csv(f'{output}/agg.all.tsv', sep='\t', encoding='utf-8', index=False)
+    original.to_csv(f'{output}/bm25.map.agg.all.tsv', sep='\t', encoding='utf-8', index=False)
     print('calculating performance of predicted queries\n')
-    with open(f'{output}/agg.best.tsv', mode='w', encoding='UTF-8') as agg_best:
+    with open(f'{output}/bm25.map.agg.best.tsv', mode='w', encoding='UTF-8') as agg_best:
         agg_best.write('qid\torder\tquery\tmap\n')
         for index, row in original.iterrows():
             agg_best.write(f'{row.qid}\t-1\t{row.query}\t{row.og_map}\n')
@@ -93,5 +93,5 @@ def aggregate(original,prediction_files_list,output):
                     best_results.append((row[f'pred.{i}-1004000_query'], row[f'pred.{i}-1004000_map'],f'pred.{i}'))
             best_results = sorted(best_results, key=lambda x: x[1], reverse=True)
             for i, (a, b) in enumerate(best_results): agg_best.write(f'{row.qid}\t{i+1}\t{a}\t{b}\n')
-    print('saving file for all predicted queries that performed better than the original query\n')
+    print('saved file for all predicted queries that performed better than the original query\n')
     return 0
