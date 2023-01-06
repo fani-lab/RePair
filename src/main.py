@@ -68,8 +68,8 @@ def run(data_list, domain_list, output, settings):
                 p.starmap(partial(msmarco.to_search, qids=query_originals['qid'].values.tolist(), ranker=settings['ranker'], topk=100, batch=None), query_changes)
 
             # we need to add the original queries as well
-            if not isfile(join(t5_output,f'original.{settings["ranker"]}')):
-                msmarco.to_search_df(pd.DataFrame(query_originals['query']), f'{t5_output}/original.{settings["ranker"]}', query_originals['qid'].values.tolist(), settings['ranker'], topk=100, batch=None)
+            # if not isfile(join(t5_output,f'original.{settings["ranker"]}')):
+            msmarco.to_search_df(pd.DataFrame(query_originals['query']), f'{t5_output}/original.{settings["ranker"]}', query_originals['qid'].values.tolist(), settings['ranker'], topk=100, batch=None)
 
 
         if 'eval' in settings['cmd']:
@@ -78,7 +78,19 @@ def run(data_list, domain_list, output, settings):
 
             # for (i, o) in search_results: trecw.evaluate(i, o, qrels=f'{datapath}/qrels.train.tsv', metric=settings['metric'], lib=settings['treclib'])
             with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
-                p.starmap(partial(trecw.evaluate, qrels=f'{datapath}/qrels.train.tsv', metric=settings['metric'], lib=settings['treclib']), search_results)
+                p.starmap(partial(trecw.evaluate, qrels=f'{datapath}/qrels.train.nodups.tsv', metric=settings['metric'], lib=settings['treclib']), search_results)
+        if 'aggregate' in settings['cmd']:
+            query_originals = pd.read_csv(
+                f'{prep_output}/queries.qrels.doc{"s" if "docs" in {in_type, out_type} else ""}.ctx.train.tsv',
+                sep='\t', usecols=['qid', 'query'], dtype={'qid': str})
+            original_map = pd.read_csv(join(t5_output, 'original.bm25.map'), sep='\t', names=['map', 'qid', 'og_map'], index_col=False, low_memory=False)
+            original_map.drop(columns='map', inplace=True)
+            original_map.drop(original_map.tail(1).index, inplace=True)
+            query_originals = query_originals.merge(original_map, how='left', on='qid')
+
+            list_of_files = [('.'.join(f.split('.')[0:2]), f) for f in os.listdir(t5_output) if
+                             isfile(join(t5_output, f)) and f.endswith('map') and f.startswith('pred')]
+            msmarco.aggregate(query_originals, list_of_files, t5_output)
 
     if ('aol' in data_list): print('processing aol...')
     if ('yandex' in data_list): print('processing yandex...')

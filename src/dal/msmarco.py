@@ -1,4 +1,5 @@
 import json
+from os.path import isfile,join
 import pandas as pd
 from tqdm import tqdm
 tqdm.pandas()
@@ -28,6 +29,10 @@ def to_pair(input, output, cat=True):
     queries_qrels['ctx'] = ''
     if cat: queries_qrels = queries_qrels.groupby(['qid', 'query'], as_index=False).agg({'did': list, 'pid': list, doccol: ' '.join})
     queries_qrels.to_csv(output, sep='\t', encoding='utf-8', index=False)
+    #removes duplicates from qrels file
+    if not isfile(join(input, 'qrels.train.nodups.tsv')):
+        qrels.drop_duplicates(inplace=True)
+        qrels.to_csv(f'{input}/qrels.train.nodups.tsv', sep='\t', index=False, header=None)
     return queries_qrels
 
 def to_norm(tf_txt):
@@ -62,3 +67,31 @@ def to_search_df(queries, out_docids, qids, ranker='bm25', topk=100, batch=None)
 
             queries.progress_apply(to_docids, axis=1)
 
+def aggregate(original,prediction_files_list,output):
+    for file, file_map in prediction_files_list:
+        pred_df = pd.read_csv(join(output, file), sep='\r\r', skip_blank_lines=False,
+                              names=[f'{file}_query'], engine='python', index_col=False)
+        assert len(original['qid']) == len(pred_df[f'{file}_query'])
+        pred_df['qid'] = original['qid']
+        pred_df_map = pd.read_csv(join(output, file_map), sep='\t', names=['map', 'qid', f'{file}_map'],
+                                  index_col=False, low_memory=False)
+        pred_df_map.drop(columns=['map'], inplace=True)
+        pred_df_map.drop(pred_df_map.tail(1).index, inplace=True)
+        original = original.merge(pred_df, how='left', on='qid')
+        original = original.merge(pred_df_map, how='left', on='qid')
+
+    print('saving all merged queries\n')
+    original.to_csv(f'{output}/agg.all.tsv', sep='\t', encoding='utf-8', index=False)
+    print('calculating performance of predicted queries\n')
+    with open(f'{output}/agg.best.tsv', mode='w', encoding='UTF-8') as agg_best:
+        agg_best.write('qid\torder\tquery\tmap\n')
+        for index, row in original.iterrows():
+            agg_best.write(f'{row.qid}\t-1\t{row.query}\t{row.og_map}\n')
+            best_results = list()
+            for i in range(1, 25):
+                if row[f'pred.{i}-1004000_map'] >= row['og_map']:
+                    best_results.append((row[f'pred.{i}-1004000_query'], row[f'pred.{i}-1004000_map'],f'pred.{i}'))
+            best_results = sorted(best_results, key=lambda x: x[1], reverse=True)
+            for i, (a, b) in enumerate(best_results): agg_best.write(f'{row.qid}\t{i+1}\t{a}\t{b}\n')
+    print('saving file for all predicted queries that performed better than the original query\n')
+    return 0
