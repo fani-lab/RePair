@@ -68,21 +68,26 @@ def to_search_df(queries, out_docids, qids, ranker='bm25', topk=100, batch=None)
             queries.progress_apply(to_docids, axis=1)
 
 def aggregate(original,prediction_files_list,output):
-    for file, file_map in prediction_files_list:
-        pred_df = pd.read_csv(join(output, file), sep='\r\r', skip_blank_lines=False,
-                              names=[f'{file}_query'], engine='python', index_col=False)
-        assert len(original['qid']) == len(pred_df[f'{file}_query'])
-        pred_df['qid'] = original['qid']
-        pred_df_map = pd.read_csv(join(output, file_map), sep='\t', names=['map', 'qid', f'{file}_map'],
-                                  index_col=False, low_memory=False)
-        pred_df_map.drop(columns=['map'], inplace=True)
-        pred_df_map.drop(pred_df_map.tail(1).index, inplace=True)
-        original = original.merge(pred_df, how='left', on='qid')
-        original = original.merge(pred_df_map, how='left', on='qid')
+    if not isfile(f'{output}/bm25.map.agg.all.tsv'):
+        print('no aggregate file found, Writing them all now!\n')
+        for file, file_map in prediction_files_list:
+            pred_df = pd.read_csv(join(output, file), sep='\r\r', skip_blank_lines=False,
+                                  names=[f'{file}_query'], engine='python', index_col=False)
+            assert len(original['qid']) == len(pred_df[f'{file}_query'])
+            pred_df['qid'] = original['qid']
+            pred_df_map = pd.read_csv(join(output, file_map), sep='\t', names=['map', 'qid', f'{file}_map'],
+                                      index_col=False, low_memory=False)
+            pred_df_map.drop(columns=['map'], inplace=True)
+            pred_df_map.drop(pred_df_map.tail(1).index, inplace=True)
+            original = original.merge(pred_df, how='left', on='qid')
+            original = original.merge(pred_df_map, how='left', on='qid')
 
-    print('saving all merged queries\n')
-    original.to_csv(f'{output}/bm25.map.agg.all.tsv', sep='\t', encoding='utf-8', index=False)
-    print('calculating performance of predicted queries\n')
+        print('saving all merged queries\n')
+        original.to_csv(f'{output}/bm25.map.agg.all.tsv', sep='\t', encoding='UTF-8', index=False)
+    else:
+        print('retrieving saved file with all merged queries.\n')
+        original = pd.read_csv(f'{output}/bm25.map.agg.all.tsv', sep='\t', encoding='UTF-8')
+    print('calculating performance of predicted queries from aggregate file\n')
     with open(f'{output}/bm25.map.agg.best.tsv', mode='w', encoding='UTF-8') as agg_best:
         agg_best.write('qid\torder\tquery\tmap\n')
         for index, row in original.iterrows():
@@ -90,8 +95,8 @@ def aggregate(original,prediction_files_list,output):
             best_results = list()
             for i in range(1, 25):
                 if row[f'pred.{i}-1004000_map'] >= row['og_map']:
-                    best_results.append((row[f'pred.{i}-1004000_query'], row[f'pred.{i}-1004000_map'],f'pred.{i}'))
+                    best_results.append((row[f'pred.{i}-1004000_query'], row[f'pred.{i}-1004000_map'], f'pred.{i}'))
             best_results = sorted(best_results, key=lambda x: x[1], reverse=True)
-            for i, (a, b) in enumerate(best_results): agg_best.write(f'{row.qid}\t{i+1}\t{a}\t{b}\n')
+            for i, (query, map_val, fileid) in enumerate(best_results): agg_best.write(f'{fileid}\t{i+1}\t{query}\t{map_val}\n')
     print('saved file for all predicted queries that performed better than the original query\n')
     return 0
