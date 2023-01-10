@@ -90,13 +90,13 @@ def aggregate(original,prediction_files_list,output):
     print('calculating performance of predicted queries from aggregate file\n')
     with open(f'{output}/bm25.map.agg.best.tsv', mode='w', encoding='UTF-8') as agg_best:
         agg_best.write('qid\torder\tquery\tmap\n')
-        for index, row in original.iterrows():
+        for index, row in tqdm(original.iterrows(), total=original.shape[0]):
             agg_best.write(f'{row.qid}\t-1\t{row.query}\t{row.og_map}\n')
             best_results = list()
             for i in range(1, 25):
                 if row[f'pred.{i}-1004000_map'] >= row['og_map']:
-                    best_results.append((row[f'pred.{i}-1004000_query'], row[f'pred.{i}-1004000_map'], f'pred.{i}'))
+                    best_results.append((row[f'pred.{i}-1004000_query'], row[f'pred.{i}-1004000_map'], i))
             best_results = sorted(best_results, key=lambda x: x[1], reverse=True)
-            for i, (query, map_val, fileid) in enumerate(best_results): agg_best.write(f'{fileid}\t{i+1}\t{query}\t{map_val}\n')
+            for i, (query, map_val, fileid) in enumerate(best_results): agg_best.write(f'{row.qid}\t{fileid}\t{query}\t{map_val}\n')
     print('saved file for all predicted queries that performed better than the original query\n')
     return 0
