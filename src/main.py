@@ -14,7 +14,6 @@ def run(data_list, domain_list, output, settings):
     if ('msmarco.passage' in domain_list):
 
         from dal import msmarco
-        # from eval.msmarco import getHits
         ## seems the LuceneSearcher cannot be shared in multiple processes! See dal.msmarco.py
 
         datapath = data_list[domain_list.index('msmarco.passage')]
@@ -92,7 +91,15 @@ def run(data_list, domain_list, output, settings):
                              isfile(join(t5_output, f)) and f.endswith('map') and f.startswith('pred')]
             msmarco.aggregate(query_originals, list_of_files, t5_output)
 
-    if ('aol' in data_list): print('processing aol...')
+    if ('aol' in domain_list):
+        from dal import aol
+        #AOL requires us to construct the Index, Qrels and Queries file from IR_dataset
+        datapath = data_list[domain_list.index('aol')]
+        prep_index = f'./../data/raw/{os.path.split(datapath)[-1]}'
+        if not os.path.isdir(prep_index):os.makedirs(prep_index)
+        #create queries
+        aol.initiate_queries_qrels(prep_index)
+        aol.create_json_collection(prep_index)
     if ('yandex' in data_list): print('processing yandex...')
 
 

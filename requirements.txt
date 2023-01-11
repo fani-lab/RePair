@@ -7,3 +7,4 @@ t5 #also use our fork
 pytrec_eval
 pandas
 pyserini
+ir-datasets

@@ -11,6 +11,7 @@ dependencies:
   - rich
   - pandas
   - pip:
+      - ir_datasets
       - pyserini==0.19.1
       - pytrec-eval-terrier==0.5.5
       - t5 #also use our fork
