@@ -19,7 +19,7 @@ settings = {
         'pairing': [None, 'docs', 'query']# [context={msmarco does not have userinfo}, input={query, doc, doc(s)}, output={query, doc, doc(s)}], s means concat of docs
     },
     'aol': {
-        'index_item': 'title',# acceptable values 'texts','titles'
+        'index_item': 'title',# acceptable values 'text','title'
         'index': '../data/raw/aol/indexes/',
         'pairing': ['userid', 'query', 'doc']
     }
