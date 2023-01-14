@@ -90,5 +90,5 @@ t5_mesh_transformer \
   --gin_param="output_filename = 'gs://{bucket_name}/data/{ctx.query, ctx.doc, ctx.query.doc}.test.pred.tsv'" \
   --gin_param="tokens_per_batch = 131072" \
   --gin_param="Bitransformer.decode.temperature = 1.0" \
-  --gin_param="Unitransformer.sample_autoregressive.sampling_keep_top_k = {n}"
+  --gin_param="Unitransformer.sample_autoregressive.sampling_keep_top_k = 10"
 ```

@@ -3,7 +3,7 @@ from functools import partial
 from multiprocessing import freeze_support
 from os import listdir
 from os.path import isfile, join
-
+from cmn.create_index import create_index
 import param
 from mdl import mt5w
 
@@ -99,7 +99,10 @@ def run(data_list, domain_list, output, settings):
         if not os.path.isdir(prep_index):os.makedirs(prep_index)
         #create queries
         aol.initiate_queries_qrels(prep_index)
-        aol.create_json_collection(prep_index)
+        aol.create_json_collection(prep_index,settings['aol']['index_item'])
+        if not os.path.isdir(os.path.join(prep_index, 'indexes')): os.makedirs(os.path.join(prep_index, 'indexes'))
+        create_index('aol', settings['aol']['index_item'])
+
     if ('yandex' in data_list): print('processing yandex...')
 
 

@@ -1,3 +1,4 @@
+pip install t5[gcp]
 #TPU will be always local
 TRAINSTEPS=1004000
 GCP_PROJECT="replace with YOUR PROJECT ID"

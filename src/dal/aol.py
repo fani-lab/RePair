@@ -33,22 +33,23 @@ def initiate_queries_qrels(input):
         queries_df.to_csv(f'{input}/queries.tsv', sep='\t', encoding='UTF-8', index=False, header=1)
         print('queries file is ready for use')
 
-def create_json_collection(input):
+def create_json_collection(input,index_item):
     """
     logic for this code was taken from https://github.com/castorini/anserini-tools/blob/7b84f773225b5973b4533dfa0aa18653409a6146/scripts/msmarco/convert_collection_to_jsonl.py
     :param input: folder name to create docs
     :return: collection of jsonl
     """
-    if not isfile(join(input, 'text', 'docs00.json')):
+    if not os.path.isdir(os.path.join(input, index_item)): os.makedirs(os.path.join(input, index_item))
+    if not isfile(join(input, index_item, 'docs11.json')):
         max_docs_per_file = 1000000
         file_index = 0
         print('Converting aol docs into jsonl collection...')
         for i, doc in enumerate(dataset.docs_iter()):
-            doc_id, doc_text = doc.doc_id, doc.text
+            doc_id, doc_text = doc.doc_id, doc.index_item
             if i % max_docs_per_file == 0:
                 if i > 0:
                     output_jsonl_file.close()
-                output_path = join(input, 'text', 'docs{:02d}.json'.format(file_index))
+                output_path = join(input, index_item, 'docs{:02d}.json'.format(file_index))
                 output_jsonl_file = open(output_path, 'w', encoding='utf-8', newline='\n')
                 file_index += 1
             output_dict = {'id': doc_id, 'contents': doc_text}
@@ -56,16 +57,5 @@ def create_json_collection(input):
             if i % 100000 == 0:
                 print(f'Converted {i:,} docs, writing into file {file_index}')
     print('completed writing to file!')
-    print('started indexing')
-    #to index this file
-    cli_cmd = f' python -m pyserini.index.lucene \
-  --collection JsonCollection \
-  --input ./../data/raw/aol/text \
-  --index ./../data/raw/indexes/lucene-index-aol-text \
-  --generator DefaultLuceneDocumentGenerator \
-  --threads 8 \
-  --storePositions --storeDocvectors --storeRaw'
-    print(cli_cmd)
-    stream = os.popen(cli_cmd)
-    print(stream.read())
+
 
