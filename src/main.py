@@ -14,7 +14,7 @@ def run(data_list, domain_list, output, settings):
     if ('msmarco.passage' in domain_list):
 
         from dal import msmarco
-        ## seems the LuceneSearcher cannot be shared in multiple processes! See dal.msmarco.py
+        # seems the LuceneSearcher cannot be shared in multiple processes! See dal.msmarco.py
 
         datapath = data_list[domain_list.index('msmarco.passage')]
         prep_output = f'./../data/preprocessed/{os.path.split(datapath)[-1]}'
@@ -93,15 +93,17 @@ def run(data_list, domain_list, output, settings):
 
     if ('aol' in domain_list):
         from dal import aol
-        #AOL requires us to construct the Index, Qrels and Queries file from IR_dataset
+        # AOL requires us to construct the Index, Qrels and Queries file from IR_dataset
         datapath = data_list[domain_list.index('aol')]
         prep_index = f'./../data/raw/{os.path.split(datapath)[-1]}'
         if not os.path.isdir(prep_index):os.makedirs(prep_index)
-        #create queries
+        # create queries and qrels file
         aol.initiate_queries_qrels(prep_index)
-        aol.create_json_collection(prep_index,settings['aol']['index_item'])
+        # if second parameter settings['aol']['index_item'] is ignored create_json_collection and create index will
+        # index a merge of title and text
+        aol.create_json_collection(prep_index)
         if not os.path.isdir(os.path.join(prep_index, 'indexes')): os.makedirs(os.path.join(prep_index, 'indexes'))
-        create_index('aol', settings['aol']['index_item'])
+        create_index('aol')
 
     if ('yandex' in data_list): print('processing yandex...')
 
