@@ -20,12 +20,13 @@ def fetch_content(index_item, doc):
 def initiate_queries_qrels(input):
     """
     :param input: location to store the files
-    :return: creates a qrels and query file from a dataframe
+    :return: creates a duplicate and no duplicate qrels and query file  from a dataframe
     """
-    queries = {'id': list(), 'query': list()}
-    qrels = {'qid': list(), 'did': list(), 'iter': list(), 'rel': list()}
-    # loop to create qrels file
+
+
+    # loop to create qrels file format - qid iter did rel
     if not (isfile(join(input, 'qrels.tsv'))):
+        qrels = {'qid': list(), 'iter': list(), 'did': list(), 'rel': list()}
         print(f'creating qrels file in {input}')
         for qrel in tqdm(dataset.qrels_iter(), total=19442629):
             qrels['qid'].append(qrel.query_id)
@@ -33,18 +34,26 @@ def initiate_queries_qrels(input):
             qrels['iter'].append(qrel.iteration)
             qrels['rel'].append(qrel.relevance)
         qrels_df = pd.DataFrame.from_dict(qrels)
-        qrels_df.to_csv(f'{input}/qrels.tsv', sep='\t', encoding='UTF-8', index=False, header=1)
+        qrels_df.to_csv(f'{input}/qrels.tsv', sep='\t', encoding='UTF-8', index=False, header=False)
+        qrels_df.drop_duplicates(inplace=True)
+        qrels_df.to_csv(f'{input}/qrels.nodups.tsv', sep='\t', encoding='UTF-8', index=False, header=False)
+        qrels_df.drop_duplicates(subset=['qid', 'pid'], inplace=True)
+        qrels_df.to_csv(f'{input}/qrels.nodupsiter.tsv', sep='\t', encoding='UTF-8', index=False, header=False)
         print('qrels file is ready for use')
     if not (isfile(join(input, 'queries.tsv'))):
+        queries = {'id': list(), 'query': list()}
         print(f'creating queries file in {input}')
         for query in tqdm(dataset.queries_iter(), total=9966939):
             queries['id'].append(query.query_id)
             queries['query'].append(query.text)
         queries_df = pd.DataFrame.from_dict(queries)
-        queries_df.dropna()
-        queries_df.to_csv(f'{input}/queries.tsv', sep='\t', encoding='UTF-8', index=False, header=1)
+        queries_df.to_csv(f'{input}/queries.tsv', sep='\t', encoding='UTF-8', index=False, header=False)
+        queries_df.dropna(inplace=True)
+        queries_df.drop_duplicates(inplace=True)
+        queries_df.to_csv(f'{input}/queries.nodups.tsv', sep='\t', encoding='UTF-8', index=False, header=False)
+        toy_sample = queries_df.sample(n=500)
+        toy_sample.to_csv(f'{input.replace("aol","toy.aol")}/queries.nodups.tsv', sep='\t', encoding='UTF-8', index=False, header=False)
         print('queries file is ready for use')
-
 
 def create_json_collection(input, index_item='title_and_text'):
     """
@@ -72,3 +81,17 @@ def create_json_collection(input, index_item='title_and_text'):
     print('completed writing to file!')
 
 
+# def to_pair(input, output, cat=True):
+#     queries = pd.read_csv(f'{input}/queries.nodups.tsv', sep='\t', index_col=False, names=['qid', 'query'], converters={'query': str.lower}, header=None)
+#     qrels = pd.read_csv(f'{input}/qrels.nodupsiter.tsv', sep='\t', index_col=False, names=['qid', 'iter', 'did', 'relevancy'], header=None)
+#     queries_qrels = pd.merge(queries, qrels, on='qid', how='inner', copy=False)
+#     doccol = 'docs' if cat else 'doc'
+#     queries_qrels[doccol] = queries_qrels['pid'].progress_apply(to_txt) #100%|██████████| 532761/532761 [00:32<00:00, 16448.77it/s]
+#     queries_qrels['ctx'] = ''
+#     if cat: queries_qrels = queries_qrels.groupby(['qid', 'query'], as_index=False).agg({'did': list, 'pid': list, doccol: ' '.join})
+#     queries_qrels.to_csv(output, sep='\t', encoding='utf-8', index=False)
+#     #removes duplicates from qrels file
+#     if not isfile(join(input, 'qrels.train.nodups.tsv')):
+#         qrels.drop_duplicates(inplace=True)
+#         qrels.to_csv(f'{input}/qrels.train.nodups.tsv', sep='\t', index=False, header=None)
+#     return queries_qrels
