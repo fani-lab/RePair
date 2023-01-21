@@ -93,10 +93,16 @@ def run(data_list, domain_list, output, settings):
 
     if ('aol' in domain_list):
         from dal import aol
+
         # AOL requires us to construct the Index, Qrels and Queries file from IR_dataset
         datapath = data_list[domain_list.index('aol')]
         prep_index = f'./../data/raw/{os.path.split(datapath)[-1]}'
         if not os.path.isdir(prep_index):os.makedirs(prep_index)
+        prep_output = f'./../data/preprocessed/{os.path.split(datapath)[-1]}'
+        if not os.path.isdir(prep_output): os.makedirs(prep_output)
+        in_type, out_type = settings['aol']['pairing'][1], settings['aol']['pairing'][2]
+        tsv_path = {'train': f'{prep_output}/{in_type}.{out_type}.train.tsv',
+                    'test': f'{prep_output}/{in_type}.{out_type}.test.tsv'}
         # create queries and qrels file
         aol.initiate_queries_qrels(prep_index)
         # if second parameter settings['aol']['index_item'] is ignored create_json_collection and create index will
@@ -104,7 +110,14 @@ def run(data_list, domain_list, output, settings):
         aol.create_json_collection(prep_index)
         if not os.path.isdir(os.path.join(prep_index, 'indexes')): os.makedirs(os.path.join(prep_index, 'indexes'))
         create_index('aol')
-
+        #to pair function
+        cat = True if 'docs' in {in_type, out_type} else False
+        query_qrel_doc = aol.to_pair(prep_index, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.train.tsv',
+                                         cat=cat)
+        query_qrel_doc.to_csv(tsv_path['train'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type],
+                              header=False)
+        query_qrel_doc.to_csv(tsv_path['test'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type],
+                              header=False)
     if ('yandex' in data_list): print('processing yandex...')
 
 
