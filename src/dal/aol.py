@@ -1,7 +1,7 @@
 import json
 import os
 from os.path import isfile, join
-
+import numpy as np
 import pandas as pd
 import ir_datasets
 from tqdm import tqdm
@@ -16,10 +16,8 @@ searcher = ""
 def fetch_content(index_item, doc):
     if index_item == 'title':
         return doc.title
-    elif index_item == 'text':
-        return doc.text
     else:
-        return ' '.join([doc.title, doc.text])
+        return ' '.join([doc.title, doc.url])
 
 
 def to_txt(pid):
@@ -54,8 +52,8 @@ def initiate_queries_qrels(input):
         qrels_df.to_csv(f'{input}/qrels.tsv', sep='\t', encoding='UTF-8', index=False, header=False)
         qrels_df.drop_duplicates(subset=['qid', 'pid'], inplace=True)
         qrels_df.to_csv(f'{input}/qrels.nodups.tsv', sep='\t', encoding='UTF-8', index=False, header=False)
-        qrels_df = qrels_df.groupby('qid', as_index=False).first()
-        qrels_df.to_csv(f'{input}/qrels.first.tsv', sep='\t', encoding='UTF-8', index=False, header=False)
+        # qrels_df = qrels_df.groupby('qid', as_index=False).first()
+        # qrels_df.to_csv(f'{input}/qrels.first.tsv', sep='\t', encoding='UTF-8', index=False, header=False)
         print('qrels file is ready for use')
     if not (isfile(join(input, 'queries.tsv'))):
         queries = {'id': list(), 'query': list()}
@@ -115,20 +113,20 @@ def create_json_collection(input,index_item):
 def to_pair(input, output,index_item, cat=True):
     global searcher
     searcher = LuceneSearcher(param.settings['aol'][
-                                  'index'] + f'lucene-index-aol-{index_item}')
+                                  'index'] + index_item)
     if not searcher: raise ValueError(
         f'Lucene searcher cannot find/build aol index at {param.settings["aol"]["index"]}!')
     queries = pd.read_csv(f'{input}/queries.nodups.tsv', sep='\t', index_col=False, names=['qid', 'query'],
                           converters={'query': str.lower}, header=None)
-    qrels = pd.read_csv(f'{input}/{"qrels.nodups.tsv" if cat else "qrels.first.tsv"}', encoding='UTF-8', sep='\t',
-                        index_col=False, names=['qid', 'pid', 'relevancy'], usecols=['qid', 'pid', 'iter'], header=None)
+    qrels = pd.read_csv(f'{input}/{"qrels.nodups.tsv"}', encoding='UTF-8', sep='\t',
+                        index_col=False, names=['qid', 'iter', 'pid', 'relevancy'], usecols=['qid', 'pid','iter'], header=None)
     queries_qrels = pd.merge(queries, qrels, on='qid', how='inner', copy=False)
     doccol = 'docs' if cat else 'doc'
     del queries
     del qrels
-    queries_qrels['ctx'] = ''
-    queries_qrels[doccol] = queries_qrels['pid'].progress_apply(to_txt)
+    # queries_qrels['ctx'] = ''
     queries_qrels = queries_qrels.astype('category')
-    if cat: queries_qrels = queries_qrels.groupby(['qid', 'query'], as_index=True, observed=True).agg({'pid': list, doccol: ' '.join})
-    queries_qrels.to_csv(output, sep='\t', encoding='utf-8', index=False)
+    queries_qrels[doccol] = queries_qrels['pid'].progress_apply(to_txt)
+    if cat: queries_qrels = queries_qrels.groupby(['qid', 'query'], as_index=True, observed=True).agg({'iter':list,'pid': list, doccol: ' '.join})
+    queries_qrels.to_csv(output, sep='\t', encoding='utf-8')
     return queries_qrels
