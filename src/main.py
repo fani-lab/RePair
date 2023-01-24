@@ -5,7 +5,7 @@ from os import listdir
 from os.path import isfile, join
 from cmn.create_index import create_index
 import param
-from mdl import mt5w
+# from mdl import mt5w
 
 def run(data_list, domain_list, output, settings):
     # 'qrels.train.tsv' => ,["qid","did","pid","relevancy"]
@@ -92,27 +92,30 @@ def run(data_list, domain_list, output, settings):
             msmarco.aggregate(query_originals, list_of_files, t5_output)
 
     if ('aol' in domain_list):
+        datapath = data_list[domain_list.index('aol')]
+        prep_index = f'./../data/raw/{os.path.split(datapath)[-1]}'
+        if not os.path.isdir(prep_index): os.makedirs(prep_index)
+        prep_output = f'./../data/preprocessed/{os.path.split(datapath)[-1]}'
+        if not os.path.isdir(prep_output): os.makedirs(prep_output)
+        index_item = settings['aol']['index_item'] if settings['aol']['index_item'] else "title_and_text"
+        in_type, out_type = settings['aol']['pairing'][1], settings['aol']['pairing'][2]
+        tsv_path = {'train': f'{prep_output}/{in_type}.{out_type}.{index_item}.train.tsv',
+                    'test': f'{prep_output}/{in_type}.{out_type}.{index_item}.test.tsv'}
+
+        if not os.path.isdir(os.path.join(prep_index, 'indexes',index_item)): os.makedirs(os.path.join(prep_index, 'indexes',index_item))
+        cat = True if 'docs' in {in_type, out_type} else False
         from dal import aol
 
         # AOL requires us to construct the Index, Qrels and Queries file from IR_dataset
-        datapath = data_list[domain_list.index('aol')]
-        prep_index = f'./../data/raw/{os.path.split(datapath)[-1]}'
-        if not os.path.isdir(prep_index):os.makedirs(prep_index)
-        prep_output = f'./../data/preprocessed/{os.path.split(datapath)[-1]}'
-        if not os.path.isdir(prep_output): os.makedirs(prep_output)
-        in_type, out_type = settings['aol']['pairing'][1], settings['aol']['pairing'][2]
-        tsv_path = {'train': f'{prep_output}/{in_type}.{out_type}.train.tsv',
-                    'test': f'{prep_output}/{in_type}.{out_type}.test.tsv'}
         # create queries and qrels file
         aol.initiate_queries_qrels(prep_index)
         # if second parameter settings['aol']['index_item'] is ignored create_json_collection and create index will
         # index a merge of title and text
-        aol.create_json_collection(prep_index)
-        if not os.path.isdir(os.path.join(prep_index, 'indexes')): os.makedirs(os.path.join(prep_index, 'indexes'))
-        create_index('aol')
+        aol.create_json_collection(prep_index,index_item)
+        create_index('aol',index_item)
         #to pair function
-        cat = True if 'docs' in {in_type, out_type} else False
-        query_qrel_doc = aol.to_pair(prep_index, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.train.tsv',
+
+        query_qrel_doc = aol.to_pair(prep_index, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item}.train.tsv',index_item,
                                          cat=cat)
         query_qrel_doc.to_csv(tsv_path['train'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type],
                               header=False)

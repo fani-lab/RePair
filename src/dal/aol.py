@@ -11,7 +11,7 @@ import param
 
 tqdm.pandas()
 dataset = ir_datasets.load("aol-ia")
-
+searcher = ""
 
 def fetch_content(index_item, doc):
     if index_item == 'title':
@@ -25,6 +25,7 @@ def fetch_content(index_item, doc):
 def to_txt(pid):
     # The``docid`` is overloaded: if it is of type ``str``, it is treated as an external collection ``docid``;
     # if it is of type ``int``, it is treated as an internal Lucene``docid``. # stupid!!
+    global searcher
     try:
         if not searcher.doc(pid):
             return " "
@@ -42,19 +43,19 @@ def initiate_queries_qrels(input):
 
     # loop to create qrels file format - qid iter did rel
     if not (isfile(join(input, 'qrels.tsv'))):
-        qrels = {'qid': list(), 'iter': list(), 'did': list(), 'rel': list()}
+        qrels = {'qid': list(), 'iter': list(), 'pid': list(), 'rel': list()}
         print(f'creating qrels file in {input}')
         for qrel in tqdm(dataset.qrels_iter(), total=19442629):
             qrels['qid'].append(qrel.query_id)
-            qrels['did'].append(qrel.doc_id)
             qrels['iter'].append(qrel.iteration)
+            qrels['pid'].append(qrel.doc_id)
             qrels['rel'].append(qrel.relevance)
         qrels_df = pd.DataFrame.from_dict(qrels)
         qrels_df.to_csv(f'{input}/qrels.tsv', sep='\t', encoding='UTF-8', index=False, header=False)
-        # qrels_df.drop_duplicates(inplace=True)
         qrels_df.drop_duplicates(subset=['qid', 'pid'], inplace=True)
         qrels_df.to_csv(f'{input}/qrels.nodups.tsv', sep='\t', encoding='UTF-8', index=False, header=False)
-        # qrels_df.to_csv(f'{input}/qrels.nodups.tsv', sep='\t', encoding='UTF-8', index=False, header=False)
+        qrels_df = qrels_df.groupby('qid', as_index=False).first()
+        qrels_df.to_csv(f'{input}/qrels.first.tsv', sep='\t', encoding='UTF-8', index=False, header=False)
         print('qrels file is ready for use')
     if not (isfile(join(input, 'queries.tsv'))):
         queries = {'id': list(), 'query': list()}
@@ -73,7 +74,7 @@ def initiate_queries_qrels(input):
         print('queries file is ready for use')
 
 
-def create_json_collection(input, index_item='title_and_text'):
+def create_json_collection(input,index_item):
     """
     logic for this code was taken from https://github.com/castorini/anserini-tools/blob/7b84f773225b5973b4533dfa0aa18653409a6146/scripts/msmarco/convert_collection_to_jsonl.py
     :param index_item: defaults to title_and_text, use the params to create specified index
@@ -111,21 +112,23 @@ def create_json_collection(input, index_item='title_and_text'):
 
 
 
-searcher = LuceneSearcher(param.settings['aol']['index'] + f'lucene-index-aol-{param.settings["aol"]["index_item"] if param.settings["aol"]["index_item"] else "title_and_text"}')
-if not searcher: raise ValueError(f'Lucene searcher cannot find/build aol index at {param.settings["aol"]["index"]}!')
-
-
-def to_pair(input, output, cat=True):
+def to_pair(input, output,index_item, cat=True):
+    global searcher
+    searcher = LuceneSearcher(param.settings['aol'][
+                                  'index'] + f'lucene-index-aol-{index_item}')
+    if not searcher: raise ValueError(
+        f'Lucene searcher cannot find/build aol index at {param.settings["aol"]["index"]}!')
     queries = pd.read_csv(f'{input}/queries.nodups.tsv', sep='\t', index_col=False, names=['qid', 'query'],
                           converters={'query': str.lower}, header=None)
-    qrels = pd.read_csv(f'{input}/qrels.nodups.tsv', sep='\t', index_col=False,
-                        names=['qid', 'iter', 'pid', 'relevancy'], header=None)
+    qrels = pd.read_csv(f'{input}/{"qrels.nodups.tsv" if cat else "qrels.first.tsv"}', encoding='UTF-8', sep='\t',
+                        index_col=False, names=['qid', 'pid', 'relevancy'], usecols=['qid', 'pid', 'iter'], header=None)
     queries_qrels = pd.merge(queries, qrels, on='qid', how='inner', copy=False)
     doccol = 'docs' if cat else 'doc'
-    queries_qrels[doccol] = queries_qrels['pid'].progress_apply(
-        to_txt)  # 100%|██████████| 532761/532761 [00:32<00:00, 16448.77it/s]
+    del queries
+    del qrels
     queries_qrels['ctx'] = ''
-    if cat: queries_qrels = queries_qrels.groupby(['qid', 'query'], as_index=False).agg(
-        {'iter': list, 'pid': list, doccol: ' '.join})
+    queries_qrels[doccol] = queries_qrels['pid'].progress_apply(to_txt)
+    queries_qrels = queries_qrels.astype('category')
+    if cat: queries_qrels = queries_qrels.groupby(['qid', 'query'], as_index=True, observed=True).agg({'pid': list, doccol: ' '.join})
     queries_qrels.to_csv(output, sep='\t', encoding='utf-8', index=False)
     return queries_qrels
