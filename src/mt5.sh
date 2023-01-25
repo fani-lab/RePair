@@ -27,7 +27,7 @@ t5_mesh_transformer  \
 
 #uses the fine tuned model to predict. Replace inputs and target values
 # query doc pairing has inputs:64 targets: 512
-# doc query pairing has inputs:5112 targets: 64
+# doc query pairing has inputs:512 targets: 64
 #max decode length should be the same as targets
 for ITER in {1..25}; do 
 t5_mesh_transformer \
