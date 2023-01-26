@@ -4,3 +4,8 @@ title Index
 title_and_url index
 1,497,905 Indexed
 27,681 empty
+
+
+Remove all empty and nan values from Query file. We do not consider empty values as it is presumed to be clicked by a user randomly. This does not add value to a user's search query.
+
+Remove all text values less than filter value set.

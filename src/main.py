@@ -5,7 +5,7 @@ from os import listdir
 from os.path import isfile, join
 from cmn.create_index import create_index
 import param
-# from mdl import mt5w
+from mdl import mt5w
 
 def run(data_list, domain_list, output, settings):
     # 'qrels.train.tsv' => ,["qid","did","pid","relevancy"]
@@ -102,7 +102,7 @@ def run(data_list, domain_list, output, settings):
         tsv_path = {'train': f'{prep_output}/{in_type}.{out_type}.{index_item}.train.tsv',
                     'test': f'{prep_output}/{in_type}.{out_type}.{index_item}.test.tsv'}
 
-        if not os.path.isdir(os.path.join(prep_index, 'indexes',index_item)): os.makedirs(os.path.join(prep_index, 'indexes',index_item))
+        if not os.path.isdir(os.path.join(prep_index, 'indexes', index_item)): os.makedirs(os.path.join(prep_index, 'indexes',index_item))
         cat = True if 'docs' in {in_type, out_type} else False
         from dal import aol
 
@@ -115,12 +115,12 @@ def run(data_list, domain_list, output, settings):
         create_index('aol',index_item)
         #to pair function
 
-        query_qrel_doc = aol.to_pair(prep_index, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item}.train.tsv',index_item,
+        query_qrel_doc = aol.to_pair(prep_index, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item}.train.tsv', index_item,
                                          cat=cat)
         query_qrel_doc.to_csv(tsv_path['train'], sep='\t', encoding='utf-8', columns=[in_type, out_type],
-                              header=False)
+                              index=False, header=False)
         query_qrel_doc.to_csv(tsv_path['test'], sep='\t', encoding='utf-8', columns=[in_type, out_type],
-                              header=False)
+                              index=False, header=False)
     if ('yandex' in data_list): print('processing yandex...')
 
 
