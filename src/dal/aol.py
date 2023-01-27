@@ -14,10 +14,11 @@ dataset = ir_datasets.load("aol-ia")
 searcher = ""
 
 def fetch_content(index_item, doc):
-    if index_item == 'title':
-        return doc.title
+    doc_list = {'title': doc.title, 'url': doc.url, 'text': doc.text}
+    if len(index_item) == 1:
+        return doc_list[index_item[0]]
     else:
-        return ' '.join([doc.title, doc.url])
+        return ' '.join([doc_list[item] for item in index_item])
 
 
 def to_txt(pid):
@@ -82,13 +83,14 @@ def create_json_collection(input, index_item):
     if not os.path.isdir(os.path.join(input, index_item)): os.makedirs(os.path.join(input, index_item))
     if not isfile(join(input, index_item, 'docs00.json')):
         # added recently : remove qrel rows whose, qid have empty passage
-        qrels = pd.read_csv(f'{input}/qrels.tsv', sep='\t', names=['qid', 'did', 'pid', 'rel'])
+        qrels = pd.read_csv(f'{input}/qrels.tsv', sep='\t', names=['qid', 'did', 'pid', 'rel'],dtype={'rel': 'int64', 'qid': 'category', 'did': 'category', "pid": "category"})
         empty_pid = set()
         max_docs_per_file = 1000000
         file_index = 0
         print(f'Converting aol docs into jsonl collection for {index_item}')
+        index_list = index_item.split('_')
         for i, doc in enumerate(dataset.docs_iter()):  # doc returns doc_id, title, text, url, ia_url
-            doc_id, doc_content = doc.doc_id, fetch_content(index_item, doc)
+            doc_id, doc_content = doc.doc_id, fetch_content(index_list, doc)
             if i % max_docs_per_file == 0:
                 if i > 0:
                     output_jsonl_file.close()
@@ -96,7 +98,8 @@ def create_json_collection(input, index_item):
                 output_jsonl_file = open(output_path, 'w', encoding='utf-8', newline='\n')
                 file_index += 1
             # the reason to check for length less than 2 is because we get a merge with space added for urls and title merge
-            if len(doc_content) < param.settings["aol"]["filter"][1]: empty_pid.add(doc_id)
+            if len(doc_content) < param.settings["aol"]["filter"][1]:
+                empty_pid.add(doc_id)
             output_dict = {'id': doc_id, 'contents': doc_content}
             output_jsonl_file.write(json.dumps(output_dict) + '\n')
             if i % 100000 == 0:

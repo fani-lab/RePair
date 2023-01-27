@@ -97,12 +97,12 @@ def run(data_list, domain_list, output, settings):
         if not os.path.isdir(prep_index): os.makedirs(prep_index)
         prep_output = f'./../data/preprocessed/{os.path.split(datapath)[-1]}'
         if not os.path.isdir(prep_output): os.makedirs(prep_output)
-        index_item = settings['aol']['index_item'] if settings['aol']['index_item'] else "title_and_url"
+        index_item = settings['aol']['index_item'][0] if len(settings['aol']['index_item']) == 1 else '_'.join([item for item in settings['aol']['index_item']])
         in_type, out_type = settings['aol']['pairing'][1], settings['aol']['pairing'][2]
         tsv_path = {'train': f'{prep_output}/{in_type}.{out_type}.{index_item}.train.tsv',
                     'test': f'{prep_output}/{in_type}.{out_type}.{index_item}.test.tsv'}
 
-        if not os.path.isdir(os.path.join(prep_index, 'indexes', index_item)): os.makedirs(os.path.join(prep_index, 'indexes',index_item))
+        if not os.path.isdir(os.path.join(prep_index, 'indexes', index_item)): os.makedirs(os.path.join(prep_index, 'indexes', index_item))
         cat = True if 'docs' in {in_type, out_type} else False
         from dal import aol
 
@@ -111,8 +111,8 @@ def run(data_list, domain_list, output, settings):
         aol.initiate_queries_qrels(prep_index)
         # if second parameter settings['aol']['index_item'] is ignored create_json_collection and create index will
         # index a merge of title and text
-        aol.create_json_collection(prep_index,index_item)
-        create_index('aol',index_item)
+        aol.create_json_collection(prep_index, index_item)
+        create_index('aol', index_item)
         #to pair function
 
         query_qrel_doc = aol.to_pair(prep_index, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item}.train.tsv', index_item,
