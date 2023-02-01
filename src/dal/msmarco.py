@@ -1,17 +1,17 @@
 import json
+import os
 from os.path import isfile,join
 import pandas as pd
 from tqdm import tqdm
 tqdm.pandas()
 
-import tensorflow as tf
 from pyserini.search.lucene import LuceneSearcher
 
 import param
 # https://github.com/castorini/pyserini/blob/master/docs/prebuilt-indexes.md
 # searcher = LuceneSearcher.from_prebuilt_index('msmarco-v1-passage')
 # sometimes you need to manually download the index ==> https://github.com/castorini/pyserini/blob/master/docs/usage-interactive-search.md#how-do-i-manually-download-indexes
-searcher = LuceneSearcher(param.settings['msmarco.passage']['index'])
+searcher = LuceneSearcher(param.settings['aol']['index'] + param.settings['aol']['index_item'][0])
 if not searcher: raise ValueError(f'Lucene searcher cannot find/build msmarco.passage index at {param.settings["msmarco.passage"]["index"]}!')
 
 def to_txt(pid):
@@ -100,3 +100,83 @@ def aggregate(original,prediction_files_list,output):
             for i, (query, map_val, fileid) in enumerate(best_results): agg_best.write(f'{row.qid}\t{fileid}\t{query}\t{map_val}\n')
     print('saved file for all predicted queries that performed better than the original query\n')
     return 0
+
+def create_dataset(input,qrels,output):
+    diamond_dict = {'qid': list(), 'i_query': list(), 'i_map': list(), 'f_query': list(),
+                    'f_map': list()}
+    platinum_dict = {'qid': list(), 'i_query': list(), 'i_map': list(), 'f_query': list(),
+                     'f_map': list()}
+    gold_dict = {'qid': list(), 'i_query': list(), 'i_map': list(), 'f_query': list(),
+                 'f_map': list()}
+    print('creating diamond,platinum and gold dataset')
+    for name, group in input.groupby('qid'):
+        df = group.head(2)
+        if df.shape[0] == 2:
+            # diamond_queries
+            if (df.iloc[1]['map'] == 1 and df.iloc[0]['map'] < 1):
+                diamond_dict['qid'].append(df.iloc[0]['qid'])
+                if (len(df.iloc[0][2]) < 7):
+                    diamond_dict['i_query'].append(group.tail(1)['query'].values[0])
+                    diamond_dict['i_map'].append(group.tail(1)['map'].values[0])
+                else:
+                    diamond_dict['i_query'].append(df.iloc[0]['query'])
+                    diamond_dict['i_map'].append(df.iloc[0]['map'])
+
+                diamond_dict['f_query'].append(df.iloc[1]['query'])
+                diamond_dict['f_map'].append(df.iloc[1]['map'])
+            # platinum queries
+            if (df.iloc[1]['map'] > df.iloc[0]['map']):
+                platinum_dict['qid'].append(df.iloc[0]['qid'])
+                if (len(df.iloc[0][2]) < 7):
+                    platinum_dict['i_query'].append(group.tail(1)['query'].values[0])
+                    platinum_dict['i_map'].append(group.tail(1)['map'].values[0])
+                else:
+                    platinum_dict['i_query'].append(df.iloc[0]['query'])
+                    platinum_dict['i_map'].append(df.iloc[0]['map'])
+                platinum_dict['f_query'].append(df.iloc[1]['query'])
+                platinum_dict['f_map'].append(df.iloc[1]['map'])
+            # gold_queries
+            if (df.iloc[1]['map'] >= df.iloc[0]['map']):
+                gold_dict['qid'].append(df.iloc[0]['qid'])
+                if (len(df.iloc[0][2]) < 7):
+                    gold_dict['i_query'].append(group.tail(1)['query'].values[0])
+                    gold_dict['i_map'].append(group.tail(1)['map'].values[0])
+                else:
+                    gold_dict['i_query'].append(df.iloc[0]['query'])
+                    gold_dict['i_map'].append(df.iloc[0]['map'])
+                gold_dict['f_query'].append(df.iloc[1]['query'])
+                gold_dict['f_map'].append(df.iloc[1]['map'])
+
+    diamond = pd.DataFrame.from_dict(diamond_dict)
+    diamond.to_csv(f'{output}/queries/diamond.tsv', sep='\t', encoding='utf-8', index=False, header=False)
+    diamond.to_csv(f'{output}/queries/diamond_initial.tsv', sep='\t', encoding='utf-8', index=False, header=False,columns=['qid','i_query','i_map'])
+    diamond.to_csv(f'{output}/queries/diamond_target.tsv', sep='\t', encoding='utf-8', index=False, header=False,
+                   columns=['qid', 'f_query', 'f_map'])
+    print('saved diamond queries')
+    print(f'diamond dataset has {diamond.shape[0]} queries with map 1')
+    diamond_qrels = diamond.merge(qrels, on='qid', how='inner')
+    diamond_qrels.to_csv(f'{output}/qrels/diamond.qrels.tsv', sep='\t', encoding='utf-8', index=False, header=False,
+                         columns=['qid', 'did', 'pid', 'rel'])
+    print('saved diamond qrels')
+    platinum = pd.DataFrame.from_dict(platinum_dict)
+    platinum.to_csv(f'{output}/queries/platinum.tsv', sep='\t', encoding='utf-8', index=False, header=False)
+    platinum.to_csv(f'{output}/queries/platinum_initial.tsv', sep='\t', encoding='utf-8', index=False, header=False,columns=['qid', 'i_query', 'i_map'])
+    platinum.to_csv(f'{output}/queries/platinum_target.tsv', sep='\t', encoding='utf-8', index=False, header=False,
+                    columns=['qid', 'f_query', 'f_map'])
+    print('saved platinum queries')
+    print(f'platinum dataset has {platinum.shape[0]} queries with map greater than the original query')
+    platinum_qrels = platinum.merge(qrels, on='qid', how='inner')
+
+    platinum_qrels.to_csv(f'{output}/qrels/platinum.qrels.tsv', sep='\t', encoding='utf-8', index=False, header=False,
+                         columns=['qid', 'did', 'pid', 'rel'])
+    print('saved platinum qrels')
+    gold = pd.DataFrame.from_dict(gold_dict)
+    gold.to_csv(f'{output}/queries/gold.tsv', sep='\t', encoding='utf-8', index=False, header=False)
+    gold.to_csv(f'{output}/queries/gold_initial.tsv', sep='\t', encoding='utf-8', index=False, header=False)
+    gold.to_csv(f'{output}/queries/gold_target.tsv', sep='\t', encoding='utf-8', index=False, header=False, columns=['qid', 'f_query', 'f_map'])
+    print('saved gold queries')
+    print(f'gold dataset has {gold.shape[0]} queries with map greater than or equal to original query')
+    gold_qrels = gold.merge(qrels, on='qid',how='inner')
+    gold_qrels.to_csv(f'{output}/qrels/gold.qrels.tsv', sep='\t', encoding='utf-8', index=False, header=False,
+                         columns=['qid', 'did', 'pid', 'rel'])
+    print('saved gold qrels')

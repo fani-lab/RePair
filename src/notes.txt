@@ -1,3 +1,7 @@
+Msmarco:
+diamond has 174455 queries
+platinum has 412829 queries
+gold has 485288 queries
 title Index
 1,473,341 indexed
 52,245 empty

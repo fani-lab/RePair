@@ -5,7 +5,7 @@ from os import listdir
 from os.path import isfile, join
 from cmn.create_index import create_index
 import param
-from mdl import mt5w
+# from mdl import mt5w
 
 def run(data_list, domain_list, output, settings):
     # 'qrels.train.tsv' => ,["qid","did","pid","relevancy"]
@@ -90,6 +90,12 @@ def run(data_list, domain_list, output, settings):
             list_of_files = [('.'.join(f.split('.')[0:2]), f) for f in os.listdir(t5_output) if
                              isfile(join(t5_output, f)) and f.endswith('map') and f.startswith('pred')]
             msmarco.aggregate(query_originals, list_of_files, t5_output)
+        if 'create_ds' in settings['cmd']:
+            if not os.path.isdir(join(t5_output,'queries')): os.makedirs(join(t5_output,'queries'))
+            if not os.path.isdir(join(t5_output, 'qrels')): os.makedirs(join(t5_output, 'qrels'))
+            best_df = pd.read_csv(f'{t5_output}/bm25.map.agg.best.tsv', sep='\t', header=0)
+            qrels = pd.read_csv(f'{datapath}/qrels.train.tsv',names=['qid','did','pid','rel'],sep='\t')
+            msmarco.create_dataset(best_df,qrels,t5_output)
 
     if ('aol' in domain_list):
         datapath = data_list[domain_list.index('aol')]
