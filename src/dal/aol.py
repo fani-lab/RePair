@@ -81,7 +81,7 @@ def create_json_collection(input, index_item):
 
 
     if not os.path.isdir(os.path.join(input, index_item)): os.makedirs(os.path.join(input, index_item))
-    if not isfile(join(input, index_item, 'docs00.json')):
+    if not os.path.isdir(join(input, 'indexes',index_item)):
         # added recently : remove qrel rows whose, qid have empty passage
         qrels = pd.read_csv(f'{input}/qrels.tsv', sep='\t', names=['qid', 'did', 'pid', 'rel'],dtype={'rel': 'int64', 'qid': 'category', 'did': 'category', "pid": "category"})
         empty_pid = set()
@@ -147,7 +147,7 @@ def to_search_df(queries, out_docids, qids, index_item,ranker='bm25', topk=100, 
                                   'index'] + index_item)
     if not searcher: raise ValueError(
         f'Lucene searcher cannot find/build aol index at {param.settings["aol"]["index"]}!')
-    max_docs_per_file = 500000
+    max_docs_per_file = 400000
     file_index = 0
 
     if ranker == 'bm25': searcher.set_bm25(0.82, 0.68)
@@ -166,7 +166,7 @@ def to_search_df(queries, out_docids, qids, index_item,ranker='bm25', topk=100, 
         def to_docids(row, o):
              if not pd.isna(row.query):
                 hits = searcher.search(row.query, k=topk, remove_dups=True)
-                for i, h in enumerate(hits): o.write(f'{qids[row.name]}\tQ0\t{h.docid:7}\t{i + 1:2}\t{h.score:.5f}\tPyserini\n')
+                for i, h in enumerate(hits): o.write(f'{qids[row.name]}\tQ0\t{h.docid}\t{i + 1:2}\t{h.score:.5f}\tPyserini\n')
 
         #     queries.progress_apply(to_docids, axis=1)
         for i, doc in tqdm(queries.iterrows(), total=len(queries)):

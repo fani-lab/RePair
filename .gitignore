@@ -1,9 +1,7 @@
 .DS_Store
 Raw
 data/*/msmarco/
-output/*/msmarco
-output/runs/toy.msmarco
-output/*.passage
+output/*
 data/preprocessed
 __pycache__
 /.idea
