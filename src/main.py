@@ -128,9 +128,9 @@ def run(data_list, domain_list, output, settings):
 
         if 'search' in settings['cmd']:
             query_originals = pd.read_csv(f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item}.train.tsv', sep='\t', usecols=['qid', 'query'], dtype={'qid': str})
-            query_changes = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["ranker"]}') for f in listdir(t5_output)
+            query_changes = [(f'{t5_output}/{f.replace()}', f'{t5_output}/{f}.{settings["ranker"]}') for f in listdir(t5_output)
                              if isfile(join(t5_output, f)) and f.startswith('pred.') and settings[
-                                 'ranker'] not in f and f'{f}.{settings["ranker"]}' not in listdir(t5_output)]
+                                 'ranker'] not in f and f'{f}.split_{x}.{settings["ranker"]}' not in listdir(t5_output) for x in range(0,11)]
 
             with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
                 p.starmap(partial(aol.to_search, qids=query_originals['qid'].values.tolist(), index_item=index_item, ranker=settings['ranker'], topk=100, batch=None), query_changes)
@@ -139,7 +139,7 @@ def run(data_list, domain_list, output, settings):
         if 'eval' in settings['cmd']:
             from evl import trecw
             search_results = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["metric"]}') for f in listdir(t5_output) if
-                              isfile(join(t5_output, f)) and f.endswith(settings['ranker']) and f'{f}.{settings["ranker"]}.{settings["metrics"]}' not in listdir(t5_output)]
+                              isfile(join(t5_output, f)) and f.endswith(settings['ranker']) and f'{f}.{settings["ranker"]}.{settings["metrics"]}' not in listdir(t5_output) for x in range(0,11)]
 
             with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
                 p.starmap(partial(trecw.evaluate, qrels=f'{datapath}/qrels.{index_item}.clean.tsv', metric=settings['metric'],
