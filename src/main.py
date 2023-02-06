@@ -142,14 +142,14 @@ def run(data_list, domain_list, output, settings):
             #     p.starmap(partial(aol.to_search, qids=query_originals['qid'].values.tolist(), index_item=index_item, ranker=settings['ranker'], topk=100, batch=None), query_changes)
             aol.to_search_df(pd.DataFrame(query_originals['query']), f'{t5_output}/original.{settings["ranker"]}', query_originals['qid'].values.tolist(), index_item, settings['ranker'], topk=100, batch=None)
 
-    if 'eval' in settings['cmd']:
-        from evl import trecw
-        search_results = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["metric"]}') for f in listdir(t5_output) if
-                          isfile(join(t5_output, f)) and f.endswith(settings['ranker'])]
+        if 'eval' in settings['cmd']:
+            from evl import trecw
+            search_results = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["metric"]}') for f in listdir(t5_output) if
+                              isfile(join(t5_output, f)) and f.endswith(settings['ranker'])]
 
-        with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
-            p.starmap(partial(trecw.evaluate, qrels=f'{datapath}/qrels.{index_item}.clean.tsv', metric=settings['metric'],
-                              lib=settings['treclib']), search_results)
+            with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
+                p.starmap(partial(trecw.evaluate, qrels=f'{datapath}/qrels.{index_item}.clean.tsv', metric=settings['metric'],
+                                  lib=settings['treclib']), search_results)
     if ('yandex' in data_list): print('processing yandex...')
 
 
