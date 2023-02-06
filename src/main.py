@@ -59,7 +59,6 @@ def run(data_list, domain_list, output, settings):
             #we use the file after panda.merge that create the training set so we make sure the mapping of qids
             query_originals = pd.read_csv(f'{prep_output}/queries.qrels.doc{"s" if "docs" in {in_type, out_type} else ""}.ctx.train.tsv', sep='\t', usecols=['qid', 'query'], dtype={'qid': str})
             query_changes = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["ranker"]}') for f in listdir(t5_output) if isfile(join(t5_output, f)) and f.startswith('pred.') and settings['ranker'] not in f and f'{f}.{settings["ranker"]}' not in listdir(t5_output)]
-
             # for (i, o) in query_changes: msmarco.to_search(i, o, query_originals['qid'].values.tolist(), settings['ranker'], topk=100, batch=None)
             # batch search: for (i, o) in query_changes: msmarco.to_search(i, o, query_originals['qid'].values.tolist(), settings['ranker'], topk=100, batch=2)
             # parallel on each file
@@ -73,7 +72,7 @@ def run(data_list, domain_list, output, settings):
 
         if 'eval' in settings['cmd']:
             from evl import trecw
-            search_results = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["metric"]}') for f in listdir(t5_output) if isfile(join(t5_output, f)) and f.endswith(settings['ranker'])]
+            search_results = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["metric"]}') for f in listdir(t5_output) if isfile(join(t5_output, f)) and f.endswith(settings['ranker']) and f'{f}.{settings["ranker"].settings["metric"]}' not in listdir(t5_output)]
 
             # for (i, o) in search_results: trecw.evaluate(i, o, qrels=f'{datapath}/qrels.train.tsv', metric=settings['metric'], lib=settings['treclib'])
             with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
@@ -86,7 +85,6 @@ def run(data_list, domain_list, output, settings):
             original_map.drop(columns='map', inplace=True)
             original_map.drop(original_map.tail(1).index, inplace=True)
             query_originals = query_originals.merge(original_map, how='left', on='qid')
-
             list_of_files = [('.'.join(f.split('.')[0:2]), f) for f in os.listdir(t5_output) if
                              isfile(join(t5_output, f)) and f.endswith('map') and f.startswith('pred')]
             msmarco.aggregate(query_originals, list_of_files, t5_output)
@@ -114,12 +112,10 @@ def run(data_list, domain_list, output, settings):
         # AOL requires us to construct the Index, Qrels and Queries file from IR_dataset
         # create queries and qrels file
         aol.initiate_queries_qrels(prep_index)
-        # if second parameter settings['aol']['index_item'] is ignored create_json_collection and create index will
-        # index a merge of title and text
         aol.create_json_collection(prep_index, index_item)
         create_index('aol', index_item)
         #to pair function
-        if not os.path.isfile(f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item}.train.tsv'):
+        if any(not os.path.exists(v) for k, v in tsv_path.items()):
             query_qrel_doc = aol.to_pair(prep_index, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item}.train.tsv', index_item,
                                              cat=cat)
             query_qrel_doc.to_csv(tsv_path['train'], sep='\t', encoding='utf-8', columns=[in_type, out_type],
@@ -129,23 +125,21 @@ def run(data_list, domain_list, output, settings):
         t5_model = settings['t5model']  # {"small", "base", "large", "3B", "11B"} cross {"local", "gc"}
         t5_output = f'../output/{os.path.split(datapath)[-1]}/t5.{t5_model}.{index_item}.{in_type}.{out_type}'
         if not os.path.isdir(t5_output): os.makedirs(t5_output)
+
         if 'search' in settings['cmd']:
             query_originals = pd.read_csv(f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item}.train.tsv', sep='\t', usecols=['qid', 'query'], dtype={'qid': str})
             query_changes = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["ranker"]}') for f in listdir(t5_output)
                              if isfile(join(t5_output, f)) and f.startswith('pred.') and settings[
                                  'ranker'] not in f and f'{f}.{settings["ranker"]}' not in listdir(t5_output)]
 
-            # for (i, o) in query_changes: msmarco.to_search(i, o, query_originals['qid'].values.tolist(), settings['ranker'], topk=100, batch=None)
-            # batch search: for (i, o) in query_changes: msmarco.to_search(i, o, query_originals['qid'].values.tolist(), settings['ranker'], topk=100, batch=2)
-            # parallel on each file
-            # with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
-            #     p.starmap(partial(aol.to_search, qids=query_originals['qid'].values.tolist(), index_item=index_item, ranker=settings['ranker'], topk=100, batch=None), query_changes)
+            with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
+                p.starmap(partial(aol.to_search, qids=query_originals['qid'].values.tolist(), index_item=index_item, ranker=settings['ranker'], topk=100, batch=None), query_changes)
             aol.to_search_df(pd.DataFrame(query_originals['query']), f'{t5_output}/original.{settings["ranker"]}', query_originals['qid'].values.tolist(), index_item, settings['ranker'], topk=100, batch=None)
 
         if 'eval' in settings['cmd']:
             from evl import trecw
             search_results = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["metric"]}') for f in listdir(t5_output) if
-                              isfile(join(t5_output, f)) and f.endswith(settings['ranker'])]
+                              isfile(join(t5_output, f)) and f.endswith(settings['ranker']) and f'{f}.{settings["ranker"]}.{settings["metrics"]}' not in listdir(t5_output)]
 
             with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
                 p.starmap(partial(trecw.evaluate, qrels=f'{datapath}/qrels.{index_item}.clean.tsv', metric=settings['metric'],
