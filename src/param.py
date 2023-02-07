@@ -9,7 +9,7 @@ extension = '.exe' if platform.system() == 'Windows' else ""
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 settings = {
-    'cmd': ['aggregate'],# steps of pipeline, ['finetune', 'predict', 'search', 'eval','aggregate']
+    'cmd': ['search'],# steps of pipeline, ['finetune', 'predict', 'search', 'eval','aggregate','create_ds']
     't5model': 'base.gc',#'base.gc',# 'small.local'
     'ranker': 'bm25',#'qld'
     'metric': 'map',# 'map'
@@ -19,7 +19,7 @@ settings = {
         'pairing': [None, 'docs', 'query']# [context={msmarco does not have userinfo}, input={query, doc, doc(s)}, output={query, doc, doc(s)}], s means concat of docs
     },
     'aol': {
-        'index_item': ['title', 'url'], # acceptable values ['title', 'url'], ['url'], ['title', 'url', 'text']
+        'index_item': ['title'], # acceptable values ['title', 'url'], ['url'], ['title', 'url', 'text']
         'index': '../data/raw/aol/indexes/',
         'pairing': [None, 'docs', 'query'], #[context={2 scenarios, one with userID and one without userID). input={'userid','query','doc(s)'} output={'query','doc(s)'}
         'filter': [0, 10] #after merge queries and relevant 'index_item', if |query| <= 0 drop the row, if |'index_item'| < 10, drop row
