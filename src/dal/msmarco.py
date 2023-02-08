@@ -44,7 +44,7 @@ def to_search(in_query, out_docids, qids, ranker='bm25', topk=100, batch=None):
     print(f'Searching docs for {in_query} ...')
     # https://github.com/google-research/text-to-text-transfer-transformer/issues/322
     # with open(in_query, 'r', encoding='utf-8') as f: [to_docids(l) for l in f]
-    queries = pd.read_csv(in_query, names=['query'], converters={'query': to_norm}, sep='\r\r', skip_blank_lines=False, engine='python')  # on windows enf of line (CRLF)
+    queries = pd.read_csv(in_query, names=['query'], sep='\r\r', skip_blank_lines=False, engine='python')  # on windows enf of line (CRLF)
     to_search_df(queries, out_docids, qids, ranker=ranker, topk=topk, batch=batch)
 
 def to_search_df(queries, out_docids, qids, ranker='bm25', topk=100, batch=None):
@@ -71,7 +71,7 @@ def aggregate(original,prediction_files_list,output):
     if not isfile(f'{output}/bm25.map.agg.all.tsv'):
         print('no aggregate file found, Writing them all now!\n')
         for file, file_map in prediction_files_list:
-            pred_df = pd.read_csv(join(output, file), converters={'query': to_norm}, sep='\r\r', skip_blank_lines=False,
+            pred_df = pd.read_csv(join(output, file), sep='\r\r', skip_blank_lines=False,
                                   names=[f'{file}_query'], engine='python', index_col=False, header=None)
             assert len(original['qid']) == len(pred_df[f'{file}_query'])
             pred_df['qid'] = original['qid']
@@ -84,9 +84,6 @@ def aggregate(original,prediction_files_list,output):
 
         print('saving all merged queries\n')
         original.to_csv(f'{output}/bm25.map.agg.all.tsv', sep='\t', encoding='UTF-8', index=False)
-    else:
-        print('retrieving saved file with all merged queries.\n')
-        original = pd.read_csv(f'{output}/bm25.map.agg.all.tsv', sep='\t', encoding='UTF-8')
     print('calculating performance of predicted queries from aggregate file\n')
     with open(f'{output}/bm25.map.agg.best.tsv', mode='w', encoding='UTF-8') as agg_best:
         agg_best.write('qid\torder\tquery\tmap\n')
