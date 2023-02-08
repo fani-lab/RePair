@@ -99,16 +99,16 @@ def run(data_list, domain_list, output, settings):
             if not os.path.isdir(join(t5_output,'runs')): os.makedirs(join(t5_output, 'runs'))
             diamond_target = pd.read_csv(f'{t5_output}/queries/diamond_target.tsv',sep='\t', encoding='utf-8', index_col=False, header=None, names=['qid', 'query'])
             diamond_initial = pd.read_csv(f'{t5_output}/queries/diamond_initial.tsv', sep='\t', encoding='utf-8', index_col=False, header=None, names=['qid', 'query'])
-            # msmarco.to_search_df(pd.DataFrame(diamond_target['query']), f'{t5_output}/runs/diamond_target.{settings["ranker"]}',
-            #                      diamond_target['qid'].values.tolist(), settings['ranker'], topk=100, batch=None)
+            msmarco.to_search_df(pd.DataFrame(diamond_target['query']), f'{t5_output}/runs/diamond_target.{settings["ranker"]}',
+                                 diamond_target['qid'].values.tolist(), settings['ranker'], topk=100, batch=None)
             msmarco.to_search_df(pd.DataFrame(diamond_initial['query']),
                                  f'{t5_output}/runs/diamond_initial.{settings["ranker"]}',
                                  diamond_initial['qid'].values.tolist(), settings['ranker'], topk=100, batch=None)
-            trecw.evaluate(f'{t5_output}/runs/diamond_target.{settings["ranker"]}', f'{t5_output}/runs/diamond_target.{settings["ranker"]}.{settings["metric"]}', qrels=f'{datapath}/qrels.nodups.train.tsv', metric=settings['metric'], lib=settings['treclib'])
+            trecw.evaluate(f'{t5_output}/runs/diamond_target.{settings["ranker"]}', f'{t5_output}/runs/diamond_target.{settings["ranker"]}.{settings["metric"]}', qrels=f'{datapath}/qrels.train.nodups.tsv', metric=settings['metric'], lib=settings['treclib'])
 
             trecw.evaluate(f'{t5_output}/runs/diamond_initial.{settings["ranker"]}',
                            f'{t5_output}/runs/diamond_initial.{settings["ranker"]}.{settings["metric"]}',
-                           qrels=f'{datapath}/qrels.nodups.train.tsv', metric=settings['metric'], lib=settings['treclib'])
+                           qrels=f'{datapath}/qrels.train.nodups.tsv', metric=settings['metric'], lib=settings['treclib'])
     if ('aol' in domain_list):
         datapath = data_list[domain_list.index('aol')]
         prep_index = f'./../data/raw/{os.path.split(datapath)[-1]}'
