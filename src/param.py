@@ -10,13 +10,13 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 settings = {
     'cmd': ['stamp'],# steps of pipeline, ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box', 'stamp']
-    'ncpu': multiprocessing.cpu_count(),
+    'ncore': multiprocessing.cpu_count(),
     't5model': 'base.gc',#'base.gc', 'small.local'
     'iter': 5,          #number of finetuning iteration for t5
     'nchanges': 5,      #number of changes to a query
     'ranker': 'bm25',   #'qld', 'bm25'
-    'batch': 5,         #search per batch of queries for IR search using pyserini, if None, search per query
-    'topk': 10,         #number of retrieved documents for a query
+    'batch': 1000,      #search per batch of queries for IR search using pyserini, if None, search per query
+    'topk': 100,         #number of retrieved documents for a query
     'metric': 'map',    # any valid trec_eval metric like map, ndcg, ...
     'treclib': f'"./trec_eval.9.0.4/trec_eval{extension}"',#in non-windows, remove .exe, also for pytrec_eval, 'pytrec'
     'msmarco.passage': {

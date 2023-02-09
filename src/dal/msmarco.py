@@ -29,7 +29,7 @@ def to_pair(input, output, cat=True):
     doccol = 'docs' if cat else 'doc'
     queries_qrels[doccol] = queries_qrels['pid'].progress_apply(to_txt) #100%|██████████| 532761/532761 [00:32<00:00, 16448.77it/s]
     queries_qrels['ctx'] = ''
-    if cat: queries_qrels = queries_qrels.groupby(['qid', 'query'], as_index=False).agg({'did': list, 'pid': list, doccol: ' '.join})
+    if cat: queries_qrels = queries_qrels.groupby(['qid', 'query'], as_index=False, observed=True).agg({'did': list, 'pid': list, doccol: ' '.join})
     queries_qrels.to_csv(output, sep='\t', encoding='utf-8', index=False)
     return queries_qrels
 
