@@ -1,9 +1,9 @@
 import mesh_tensorflow.optimize
-import mesh_tensorflow.transformer.dataset as mesh_tensorflow2
-import mesh_tensorflow.transformer.learning_rate_schedules as mesh_tensorflow3
-import mesh_tensorflow.transformer.t2t_vocabulary as mesh_tensorflow4
-import mesh_tensorflow.transformer.transformer_layers as mesh_tensorflow5
-import mesh_tensorflow.transformer.utils as mesh_tensorflow6
+import mesh_tensorflow.transformer.dataset
+import mesh_tensorflow.transformer.learning_rate_schedules
+import mesh_tensorflow.transformer.t2t_vocabulary
+import mesh_tensorflow.transformer.transformer_layers
+import mesh_tensorflow.transformer.utils
 import t5.models.mesh_transformer
 
 # Macros:
@@ -64,6 +64,10 @@ encoder/DenseReluDense.use_bias = False
 # Parameters for decoder/EncDecAttention:
 # ==============================================================================
 decoder/EncDecAttention.relative_attention_type = None
+
+# Parameters for get_default_spm_path:
+# ==============================================================================
+get_default_spm_path.path = None
 
 # Parameters for get_variable_dtype:
 # ==============================================================================

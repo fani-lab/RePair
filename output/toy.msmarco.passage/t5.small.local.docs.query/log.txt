@@ -1,39 +1,105 @@
-C:\Users\Hossein\.conda\envs\pqr\python.exe C:\Users\Hossein\Github\pqr\src\main.py -data ../data/raw/toy.msmarco -domain msmarco-passage
-WARNING:tensorflow:From C:\Users\Hossein\.conda\envs\pqr\lib\site-packages\tensorflow\python\compat\v2_compat.py:107: disable_resource_variables (from tensorflow.python.ops.variable_scope) is deprecated and will be removed in a future version.
+C:\ProgramData\Anaconda3\envs\pqr\python.exe C:/Users/Administrator/Github/Fani-Lab/personalized_query_refinement/src/main.py -data ../data/raw/toy.msmarco.passage -domain msmarco.passage
+Pairing queries and relevant passages for training set ...
+100%|██████████| 24/24 [00:00<00:00, 776.25it/s]
+100%|██████████| 24/24 [00:00<00:00, 2673.80it/s]
+Pairing queries and relevant passages for test set ...
+WARNING:tensorflow:From C:\ProgramData\Anaconda3\envs\pqr\lib\site-packages\tensorflow\python\compat\v2_compat.py:107: disable_resource_variables (from tensorflow.python.ops.variable_scope) is deprecated and will be removed in a future version.
 Instructions for updating:
 non-resource variables are not supported in the long term
+Finetuning small.local for 5 and storing the checkpoints at ../output/toy.msmarco.passage/t5.small.local.docs.query ...
 WARNING:tensorflow:eval_on_tpu ignored because use_tpu is False.
 WARNING:tensorflow:eval_on_tpu ignored because use_tpu is False.
-WARNING:tensorflow:From C:\Users\Hossein\.conda\envs\pqr\lib\site-packages\tensorflow\python\training\training_util.py:396: Variable.initialized_value (from tensorflow.python.ops.variables) is deprecated and will be removed in a future version.
+WARNING:tensorflow:From C:\ProgramData\Anaconda3\envs\pqr\lib\site-packages\tensorflow\python\training\training_util.py:396: Variable.initialized_value (from tensorflow.python.ops.variables) is deprecated and will be removed in a future version.
 Instructions for updating:
 Use Variable.read_value. Variables in 2.X are initialized automatically both in eager and graph (inside tf.defun) contexts.
-WARNING:tensorflow:From C:\Users\Hossein\.conda\envs\pqr\lib\site-packages\tensorflow\python\training\training_util.py:396: Variable.initialized_value (from tensorflow.python.ops.variables) is deprecated and will be removed in a future version.
+WARNING:tensorflow:From C:\ProgramData\Anaconda3\envs\pqr\lib\site-packages\tensorflow\python\training\training_util.py:396: Variable.initialized_value (from tensorflow.python.ops.variables) is deprecated and will be removed in a future version.
 Instructions for updating:
 Use Variable.read_value. Variables in 2.X are initialized automatically both in eager and graph (inside tf.defun) contexts.
-2022-12-16 21:07:55.139663: E tensorflow/stream_executor/cuda/cuda_driver.cc:265] failed call to cuInit: CUDA_ERROR_NO_DEVICE: no CUDA-capable device is detected
-2022-12-16 21:07:55.140767: I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:169] retrieving CUDA diagnostic information for host: DESKTOP-BKOF3RM
-2022-12-16 21:07:55.141209: I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:176] hostname: DESKTOP-BKOF3RM
+2023-02-09 11:44:44.061393: E tensorflow/stream_executor/cuda/cuda_driver.cc:265] failed call to cuInit: CUDA_ERROR_NO_DEVICE: no CUDA-capable device is detected
+2023-02-09 11:44:44.061831: I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:169] retrieving CUDA diagnostic information for host: hfani
+2023-02-09 11:44:44.061949: I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:176] hostname: hfani
 WARNING:tensorflow:Using default tf glorot_uniform_initializer for variable encoder/block_000/layer_000/SelfAttention/relative_attention_bias  The initialzer will guess the input and output dimensions  based on dimension order.
 WARNING:tensorflow:Using default tf glorot_uniform_initializer for variable encoder/block_000/layer_000/SelfAttention/relative_attention_bias  The initialzer will guess the input and output dimensions  based on dimension order.
 WARNING:tensorflow:Using default tf glorot_uniform_initializer for variable decoder/block_000/layer_000/SelfAttention/relative_attention_bias  The initialzer will guess the input and output dimensions  based on dimension order.
 WARNING:tensorflow:Using default tf glorot_uniform_initializer for variable decoder/block_000/layer_000/SelfAttention/relative_attention_bias  The initialzer will guess the input and output dimensions  based on dimension order.
-WARNING:tensorflow:From C:\Users\Hossein\.conda\envs\pqr\lib\site-packages\mesh_tensorflow\transformer\utils.py:939: Print (from tensorflow.python.ops.logging_ops) is deprecated and will be removed after 2018-08-20.
+WARNING:tensorflow:From C:\ProgramData\Anaconda3\envs\pqr\lib\site-packages\mesh_tensorflow\transformer\utils.py:939: Print (from tensorflow.python.ops.logging_ops) is deprecated and will be removed after 2018-08-20.
 Instructions for updating:
 Use tf.print instead of tf.Print. Note that tf.print returns a no-output operator that directly prints the output. Outside of defuns or eager mode, this operator will not be executed unless it is directly specified in session.run or used as a control dependency for other operators. This is only a concern in graph mode. Below is an example of how to ensure tf.print executes in graph mode:
 
-WARNING:tensorflow:From C:\Users\Hossein\.conda\envs\pqr\lib\site-packages\mesh_tensorflow\transformer\utils.py:939: Print (from tensorflow.python.ops.logging_ops) is deprecated and will be removed after 2018-08-20.
+WARNING:tensorflow:From C:\ProgramData\Anaconda3\envs\pqr\lib\site-packages\mesh_tensorflow\transformer\utils.py:939: Print (from tensorflow.python.ops.logging_ops) is deprecated and will be removed after 2018-08-20.
 Instructions for updating:
 Use tf.print instead of tf.Print. Note that tf.print returns a no-output operator that directly prints the output. Outside of defuns or eager mode, this operator will not be executed unless it is directly specified in session.run or used as a control dependency for other operators. This is only a concern in graph mode. Below is an example of how to ensure tf.print executes in graph mode:
 
-2022-12-16 21:08:15.609291: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX AVX2
+2023-02-09 11:44:59.430794: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX AVX2
 To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2022-12-16 21:08:15.941007: I tensorflow/compiler/mlir/mlir_graph_optimization_pass.cc:354] MLIR V1 optimization pass is not enabled
-step, tf_loss[0.831864119][1000000]
-step, tf_loss[0.705094576][1000001]
-step, tf_loss[0.748294532][1000002]
-WARNING:tensorflow:It seems that global step (tf.train.get_global_step) has not been increased. Current value (could be stable): 1000002 vs previous value: 1000002. You could increase the global step by passing tf.train.get_global_step() to Optimizer.apply_gradients or Optimizer.minimize.
-WARNING:tensorflow:It seems that global step (tf.train.get_global_step) has not been increased. Current value (could be stable): 1000002 vs previous value: 1000002. You could increase the global step by passing tf.train.get_global_step() to Optimizer.apply_gradients or Optimizer.minimize.
-step, tf_loss[0.68180114][1000003]
-step, tf_loss[0.653868556][1000004]
+2023-02-09 11:44:59.647983: I tensorflow/compiler/mlir/mlir_graph_optimization_pass.cc:354] MLIR V1 optimization pass is not enabled
+step, tf_loss[0.0777880251][1000000]
+step, tf_loss[0.0632126704][1000001]
+step, tf_loss[0.0556194708][1000002]
+step, tf_loss[0.048496414][1000003]
+step, tf_loss[0.0412230268][1000004]
+Predicting 5 query changes using small.local and storing the results at ../output/toy.msmarco.passage/t5.small.local.docs.query ...
+Searching documents for query changes using bm25 ...
+Searching docs for ../output/toy.msmarco.passage/t5.small.local.docs.query/pred.3-1000005 ...
+Searching docs for ../output/toy.msmarco.passage/t5.small.local.docs.query/pred.0-1000005 ...
+Searching docs for ../output/toy.msmarco.passage/t5.small.local.docs.query/pred.4-1000005 ...
+Searching docs for ../output/toy.msmarco.passage/t5.small.local.docs.query/pred.1-1000005 ...
+Searching docs for ../output/toy.msmarco.passage/t5.small.local.docs.query/pred.2-1000005 ...
+100%|██████████| 3/3 [00:01<00:00,  1.50it/s]
+100%|██████████| 3/3 [00:02<00:00,  1.48it/s]
+100%|██████████| 3/3 [00:02<00:00,  1.46it/s]
+100%|██████████| 3/3 [00:02<00:00,  1.38it/s]
+100%|██████████| 3/3 [00:02<00:00,  1.34it/s]
+Evaluating retrieved docs for ../output/toy.msmarco.passage/t5.small.local.docs.query/original.bm25 ...
+"./trec_eval.9.0.4/trec_eval.exe" -q -m map ../data/raw/toy.msmarco.passage/qrels.train.nodups.tsv ../output/toy.msmarco.passage/t5.small.local.docs.query/original.bm25 > ../output/toy.msmarco.passage/t5.small.local.docs.query/original.bm25.map
+Evaluating retrieved docs for ../output/toy.msmarco.passage/t5.small.local.docs.query/pred.0-1000005.bm25 ...
+"./trec_eval.9.0.4/trec_eval.exe" -q -m map ../data/raw/toy.msmarco.passage/qrels.train.nodups.tsv ../output/toy.msmarco.passage/t5.small.local.docs.query/pred.0-1000005.bm25 > ../output/toy.msmarco.passage/t5.small.local.docs.query/pred.0-1000005.bm25.map
+Evaluating retrieved docs for ../output/toy.msmarco.passage/t5.small.local.docs.query/pred.1-1000005.bm25 ...
+"./trec_eval.9.0.4/trec_eval.exe" -q -m map ../data/raw/toy.msmarco.passage/qrels.train.nodups.tsv ../output/toy.msmarco.passage/t5.small.local.docs.query/pred.1-1000005.bm25 > ../output/toy.msmarco.passage/t5.small.local.docs.query/pred.1-1000005.bm25.map
+Evaluating retrieved docs for ../output/toy.msmarco.passage/t5.small.local.docs.query/pred.2-1000005.bm25 ...
+"./trec_eval.9.0.4/trec_eval.exe" -q -m map ../data/raw/toy.msmarco.passage/qrels.train.nodups.tsv ../output/toy.msmarco.passage/t5.small.local.docs.query/pred.2-1000005.bm25 > ../output/toy.msmarco.passage/t5.small.local.docs.query/pred.2-1000005.bm25.map
+Evaluating retrieved docs for ../output/toy.msmarco.passage/t5.small.local.docs.query/pred.3-1000005.bm25 ...
+"./trec_eval.9.0.4/trec_eval.exe" -q -m map ../data/raw/toy.msmarco.passage/qrels.train.nodups.tsv ../output/toy.msmarco.passage/t5.small.local.docs.query/pred.3-1000005.bm25 > ../output/toy.msmarco.passage/t5.small.local.docs.query/pred.3-1000005.bm25.map
+Evaluating retrieved docs for ../output/toy.msmarco.passage/t5.small.local.docs.query/pred.4-1000005.bm25 ...
+"./trec_eval.9.0.4/trec_eval.exe" -q -m map ../data/raw/toy.msmarco.passage/qrels.train.nodups.tsv ../output/toy.msmarco.passage/t5.small.local.docs.query/pred.4-1000005.bm25 > ../output/toy.msmarco.passage/t5.small.local.docs.query/pred.4-1000005.bm25.map
+
+
+
+
+
+
+C:/Users/Administrator/Github/Fani-Lab/personalized_query_refinement/src/main.py:96: ParserWarning: Falling back to the 'python' engine because the 'c' engine does not support skipfooter; you can avoid this warning by specifying engine='python'.
+  original_metric_values = pd.read_csv(join(t5_output, f'original.{settings["ranker"]}.{settings["metric"]}'), sep='\t', usecols=[1,2], names=['qid', f'original.{settings["ranker"]}.{settings["metric"]}'], index_col=False, skipfooter=1)
+C:\Users\Administrator\Github\Fani-Lab\personalized_query_refinement\src\dal\msmarco.py:75: ParserWarning: Falling back to the 'python' engine because the 'c' engine does not support skipfooter; you can avoid this warning by specifying engine='python'.
+  pred_metric_values = pd.read_csv(join(output, metric_value), sep='\t', usecols=[1,2], names=['qid', f'{change}.{ranker}.{metric}'], index_col=False, skipfooter=1)
+C:\Users\Administrator\Github\Fani-Lab\personalized_query_refinement\src\dal\msmarco.py:75: ParserWarning: Falling back to the 'python' engine because the 'c' engine does not support skipfooter; you can avoid this warning by specifying engine='python'.
+  pred_metric_values = pd.read_csv(join(output, metric_value), sep='\t', usecols=[1,2], names=['qid', f'{change}.{ranker}.{metric}'], index_col=False, skipfooter=1)
+C:\Users\Administrator\Github\Fani-Lab\personalized_query_refinement\src\dal\msmarco.py:75: ParserWarning: Falling back to the 'python' engine because the 'c' engine does not support skipfooter; you can avoid this warning by specifying engine='python'.
+  pred_metric_values = pd.read_csv(join(output, metric_value), sep='\t', usecols=[1,2], names=['qid', f'{change}.{ranker}.{metric}'], index_col=False, skipfooter=1)
+C:\Users\Administrator\Github\Fani-Lab\personalized_query_refinement\src\dal\msmarco.py:75: ParserWarning: Falling back to the 'python' engine because the 'c' engine does not support skipfooter; you can avoid this warning by specifying engine='python'.
+  pred_metric_values = pd.read_csv(join(output, metric_value), sep='\t', usecols=[1,2], names=['qid', f'{change}.{ranker}.{metric}'], index_col=False, skipfooter=1)
+C:\Users\Administrator\Github\Fani-Lab\personalized_query_refinement\src\dal\msmarco.py:75: ParserWarning: Falling back to the 'python' engine because the 'c' engine does not support skipfooter; you can avoid this warning by specifying engine='python'.
+  pred_metric_values = pd.read_csv(join(output, metric_value), sep='\t', usecols=[1,2], names=['qid', f'{change}.{ranker}.{metric}'], index_col=False, skipfooter=1)
+100%|██████████| 21/21 [00:00<00:00, 5263.87it/s]
+Saving original queries, all their changes, and their map values based on bm25 ...
+Saving original queries, better changes, and map values based on bm25 ...
+Boxing gold queries for bm25.map ...
+gold  has 4 queries
+100%|██████████| 21/21 [00:00<00:00, 5263.87it/s]
+Boxing platinum queries for bm25.map ...
+platinum  has 4 queries
+100%|██████████| 21/21 [00:00<00:00, 7018.92it/s]
+Boxing diamond queries for bm25.map ...
+diamond  has 2 queries
+Stamping diamond queries for bm25.map == 1 ...
+100%|██████████| 21/21 [00:00<00:00, 7018.92it/s]
+100%|██████████| 1/1 [00:00<00:00,  1.97it/s]
+Evaluating retrieved docs for ../output/toy.msmarco.passage/t5.small.local.docs.query/runs/diamond.original.bm25 ...
+"./trec_eval.9.0.4/trec_eval.exe" -q -m map ../data/raw/toy.msmarco.passage/qrels.train.nodups.tsv ../output/toy.msmarco.passage/t5.small.local.docs.query/runs/diamond.original.bm25 > ../output/toy.msmarco.passage/t5.small.local.docs.query/runs/diamond.original.bm25.map
+
+100%|██████████| 1/1 [00:00<00:00,  4.14it/s]
+Evaluating retrieved docs for ../output/toy.msmarco.passage/t5.small.local.docs.query/runs/diamond.change.bm25 ...
+"./trec_eval.9.0.4/trec_eval.exe" -q -m map ../data/raw/toy.msmarco.passage/qrels.train.nodups.tsv ../output/toy.msmarco.passage/t5.small.local.docs.query/runs/diamond.change.bm25 > ../output/toy.msmarco.passage/t5.small.local.docs.query/runs/diamond.change.bm25.map
+
 
 Process finished with exit code 0

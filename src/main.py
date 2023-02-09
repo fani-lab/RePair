@@ -47,7 +47,7 @@ def run(data_list, domain_list, output, settings):
                     steps=settings['iter'],
                     output=t5_output, task_name='msmarco_passage_cf',
                     lseq=settings['msmarco.passage']['lseq'],
-                    nexamples=query_qrel_doc.shape[0] if query_qrel_doc is not None else None, in_type=in_type, out_type=out_type, gcloud=False)
+                    nexamples=None, in_type=in_type, out_type=out_type, gcloud=False)
 
             if 'predict' in settings['cmd']:
                 print(f"Predicting {settings['nchanges']} query changes using {t5_model} and storing the results at {t5_output} ...")
