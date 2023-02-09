@@ -9,7 +9,7 @@ extension = '.exe' if platform.system() == 'Windows' else ""
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 settings = {
-    'cmd': ['box', 'stamp'],# steps of pipeline, ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box', 'stamp']
+    'cmd': ['agg', 'box', 'stamp'],# steps of pipeline, ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box', 'stamp']
     'ncpu': multiprocessing.cpu_count(),
     't5model': 'small.local',#'base.gc',# 'small.local'
     'iter': 5,  # number of finetuning iteration for t5
