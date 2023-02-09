@@ -96,7 +96,7 @@ def run(data_list, domain_list, output, settings):
             original_metric_values = pd.read_csv(join(t5_output, f'original.{settings["ranker"]}.{settings["metric"]}'), sep='\t', usecols=[1,2], names=['qid', f'original.{settings["ranker"]}.{settings["metric"]}'], index_col=False, skipfooter=1)
             original_metric_values[f'original.{settings["ranker"]}.{settings["metric"]}'].fillna(0, inplace=True)
             query_originals = query_originals.merge(original_metric_values, how='left', on='qid')
-            query_changes = [('.'.join(f.split('.')[0:2]), f) for f in os.listdir(t5_output) if f.endswith(settings['metric']) and 'original' not in f]
+            query_changes = [('.'.join(f.split('.')[0:2]), f) for f in os.listdir(t5_output) if f.endswith(f'{settings["ranker"]}.{settings["metric"]}') and 'original' not in f]
             msmarco.aggregate(query_originals, query_changes, t5_output)
 
         box_path = join(t5_output, f'{settings["ranker"]}.{settings["metric"]}.datasets')
