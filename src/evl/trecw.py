@@ -1,7 +1,7 @@
 import os
 
 
-def evaluate(in_docids, out_metrics, qrels, metric, lib='pytrec'):#or 'pytrec'
+def evaluate(in_docids, out_metrics, qrels, metric, lib='trec'):#or 'pytrec'
     #qrels can have queries that are not in in_docids (superset)
     #also prediction may have queries that are not known to qrels
     # with open('pred', 'w') as f:
@@ -14,6 +14,8 @@ def evaluate(in_docids, out_metrics, qrels, metric, lib='pytrec'):#or 'pytrec'
     #"./../trec_eval.9.0.4/trec_eval.exe" -q -m ndcg qrel pred
     # ndcg                    1       1.0000
     # ndcg                    all     1.0000
+    #
+    #However, no duplicate [qid, docid] can be in qrels!!
 
     print(f'Evaluating retrieved docs for {in_docids} ...')
     if lib == 'pytrec':

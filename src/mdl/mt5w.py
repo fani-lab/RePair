@@ -106,14 +106,15 @@ def predict(iter, split, tsv_path, output, lseq, vocab_model_path='./../output/t
     )
 
     with tf_verbosity_level('ERROR'):#TODO: check what if there is no prediction: empty line??
-        for i in range(iter): model.predict(
-            input_file=tsv_path[split],
-            output_file=f'{output}/pred.{str(i)}'.replace('/', os.path.sep),
-            checkpoint_steps=-1,#the last one
-            beam_size=1, #int, a number >= 1 specifying the number of beams to use for
-            temperature=1.0, #float, a value between 0 and 1 (must be 0 if beam_size > 1) 0.0 means argmax/most probable, 1.0 means sample according to predicted distribution.
-            keep_top_k=-1,#integer, a value between 1 and the vocabulary size. When sampling, only pick tokens that are in the k most likely.
-            vocabulary=seqio.SentencePieceVocabulary(vocab_model_path, t5.data.DEFAULT_EXTRA_IDS))
+        for i in range(iter):
+            model.predict(
+                input_file=tsv_path[split],
+                output_file=f'{output}/pred.{str(i)}'.replace('/', os.path.sep),
+                checkpoint_steps=-1,#the last one
+                beam_size=1, #int, a number >= 1 specifying the number of beams to use for
+                temperature=1.0, #float, a value between 0 and 1 (must be 0 if beam_size > 1) 0.0 means argmax/most probable, 1.0 means sample according to predicted distribution.
+                keep_top_k=-1,#integer, a value between 1 and the vocabulary size. When sampling, only pick tokens that are in the k most likely.
+                vocabulary=seqio.SentencePieceVocabulary(vocab_model_path, t5.data.DEFAULT_EXTRA_IDS))
 
 
     # # since we do eval using IR, we don't need this.
