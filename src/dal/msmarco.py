@@ -24,7 +24,7 @@ def to_pair(input, output, cat=True):
     queries = pd.read_csv(f'{input}/queries.train.tsv', sep='\t', index_col=False, names=['qid', 'query'], converters={'query': str.lower}, header=None)
     qrels = pd.read_csv(f'{input}/qrels.train.tsv', sep='\t', index_col=False, names=['qid', 'did', 'pid', 'relevancy'], header=None)
     qrels.drop_duplicates(inplace=True)  # qrels have duplicates!!
-    qrels.to_csv(f'{input}/qrels.train.nodups.tsv', index=False) #trec_eval does not accept duplicate rows!!
+    qrels.to_csv(f'{input}/qrels.train.nodups.tsv', index=False, sep='\t', header=False) #trec_eval does not accept duplicate rows!!
     queries_qrels = pd.merge(queries, qrels, on='qid', how='inner', copy=False)
     doccol = 'docs' if cat else 'doc'
     queries_qrels[doccol] = queries_qrels['pid'].progress_apply(to_txt) #100%|██████████| 532761/532761 [00:32<00:00, 16448.77it/s]
@@ -33,6 +33,7 @@ def to_pair(input, output, cat=True):
     queries_qrels.to_csv(output, sep='\t', encoding='utf-8', index=False)
     return queries_qrels
 
+#gpu-based t5 generate the predictions in b'' format!!!
 def to_norm(tf_txt):
     # lambda x: x.replace('b\'', '').replace('\'', '') if in pandas' convertors
     # TODO: we need to clean the \\x chars also
@@ -42,9 +43,8 @@ def to_search(in_query, out_docids, qids, ranker='bm25', topk=100, batch=None):
     print(f'Searching docs for {in_query} ...')
     # https://github.com/google-research/text-to-text-transfer-transformer/issues/322
     # with open(in_query, 'r', encoding='utf-8') as f: [to_docids(l) for l in f]
-    queries = pd.read_csv(in_query, names=['query'], sep='\r\r', skip_blank_lines=True, engine='python')  # on windows end of line (CRLF)
+    queries = pd.read_csv(in_query, names=['query'], sep='\r', skip_blank_lines=False, engine='c')#a query might be empty str (output of t5)!!
     assert len(queries) == len(qids)
-    # queries.dropna(inplace=True) #a change to a query might be empty str (output of t5)!!
     to_search_df(queries, out_docids, qids, ranker=ranker, topk=topk, batch=batch)
 
 def to_search_df(queries, out_docids, qids, ranker='bm25', topk=100, batch=None):
@@ -59,7 +59,7 @@ def to_search_df(queries, out_docids, qids, ranker='bm25', topk=100, batch=None)
                         o.write(f'{qid}\tQ0\t{h.docid:15}\t{i + 1:2}\t{h.score:.5f}\tPyserini Batch\n')
         else:
             def to_docids(row):
-                if not row.query: return #in the batch call, they do the same. Also, for '', both return [], no exception
+                if not row.query: return #in the batch call, they do the same. Also, for '', both return [] with no exception
                 hits = searcher.search(row.query, k=topk, remove_dups=True)
                 for i, h in enumerate(hits): o.write(f'{qids[row.name]}\tQ0\t{h.docid:7}\t{i + 1:2}\t{h.score:.5f}\tPyserini\n')
 
@@ -69,7 +69,7 @@ def aggregate(original, changes, output):
     metric = changes[0][1].split('.')[-1]#e.g., pred.0.1004000.bm25.map => map
     ranker = changes[0][1].split('.')[-2]#e.g., pred.0.1004000.bm25.map => bm25
     for change, metric_value in changes:
-        pred = pd.read_csv(join(output, change), sep='\r\r', skip_blank_lines=False, names=[change], engine='python', index_col=False, header=None)
+        pred = pd.read_csv(join(output, change), sep='\r', skip_blank_lines=False, names=[change], engine='c', index_col=False, header=None)
         assert len(original['qid']) == len(pred[change])
         pred_metric_values = pd.read_csv(join(output, metric_value), sep='\t', usecols=[1,2], names=['qid', f'{change}.{ranker}.{metric}'], index_col=False, skipfooter=1)
         original[change] = pred #to know the actual change

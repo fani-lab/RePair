@@ -9,19 +9,20 @@ extension = '.exe' if platform.system() == 'Windows' else ""
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 settings = {
-    'cmd': ['agg', 'box', 'stamp'],# steps of pipeline, ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box', 'stamp']
+    'cmd': ['eval', 'agg', 'box', 'stamp'],# steps of pipeline, ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box', 'stamp']
     'ncpu': multiprocessing.cpu_count(),
-    't5model': 'small.local',#'base.gc',# 'small.local'
-    'iter': 5,  # number of finetuning iteration for t5
-    'nchanges': 5,  # number of changes to a query
-    'ranker': 'bm25',#or 'qld'
-    'batch': 5,  # search per batch of queries for IR search using pyserini, if None, search per query
-    'metric': 'map',# any valid trec_eval metric
+    't5model': 'base.gc',#'base.gc', 'small.local'
+    'iter': 5,          #number of finetuning iteration for t5
+    'nchanges': 5,      #number of changes to a query
+    'ranker': 'bm25',   #'qld', 'bm25'
+    'batch': 5,         #search per batch of queries for IR search using pyserini, if None, search per query
+    'topk': 10,         #number of retrieved documents for a query
+    'metric': 'map',    # any valid trec_eval metric like map, ndcg, ...
     'treclib': f'"./trec_eval.9.0.4/trec_eval{extension}"',#in non-windows, remove .exe, also for pytrec_eval, 'pytrec'
     'msmarco.passage': {
         'index': '../data/raw/msmarco.passage/lucene-index.msmarco-v1-passage.20220131.9ea315/',
-        'pairing': [None, 'docs', 'query'],# [context={msmarco does not have userinfo}, input={query, doc, doc(s)}, output={query, doc, doc(s)}], s means concat of docs
-        'lseq':{"inputs": 32, "targets": 256},#query length and doc length for t5 model,
+        'pairing': [None, 'docs', 'query'],     #[context={msmarco does not have userinfo}, input={query, doc, doc(s)}, output={query, doc, doc(s)}], s means concat of docs
+        'lseq':{"inputs": 32, "targets": 256},  #query length and doc length for t5 model,
     },
     'aol': {
         'index_item': ['title'], # acceptable values ['url'], ['title', 'url'], ['title', 'url', 'text']
