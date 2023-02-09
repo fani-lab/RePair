@@ -107,12 +107,12 @@ def run(data_list, domain_list, output, settings):
         if 'stamp' in settings['cmd']:
             from evl import trecw
             if not os.path.isdir(join(t5_output,'runs')): os.makedirs(join(t5_output, 'runs'))
-            diamond_target = pd.read_csv(f'{box_path}/diamond.target.tsv',sep='\t', encoding='utf-8', index_col=False, header=None, names=['qid', 'query'])
-            diamond_initial = pd.read_csv(f'{box_path}/diamond.initial.tsv', sep='\t', encoding='utf-8', index_col=False, header=None, names=['qid', 'query'])
-            msmarco.to_search_df(pd.DataFrame(diamond_target['query']), f'{t5_output}/runs/diamond.target.{settings["ranker"]}', diamond_target['qid'].values.tolist(), settings['ranker'], topk=100, batch=None)
-            msmarco.to_search_df(pd.DataFrame(diamond_initial['query']), f'{t5_output}/runs/diamond.initial.{settings["ranker"]}', diamond_initial['qid'].values.tolist(), settings['ranker'], topk=100, batch=None)
-            trecw.evaluate(f'{t5_output}/runs/diamond.target.{settings["ranker"]}', f'{t5_output}/runs/diamond.target.{settings["ranker"]}.{settings["metric"]}', qrels=f'{datapath}/qrels.train.nodups.tsv', metric=settings['metric'], lib=settings['treclib'])
-            trecw.evaluate(f'{t5_output}/runs/diamond.initial.{settings["ranker"]}', f'{t5_output}/runs/diamond.initial.{settings["ranker"]}.{settings["metric"]}', qrels=f'{datapath}/qrels.train.nodups.tsv', metric=settings['metric'], lib=settings['treclib'])
+            diamond_initial = pd.read_csv(f'{box_path}/diamond.original.tsv', sep='\t', encoding='utf-8', index_col=False, header=None, names=['qid', 'query'])
+            diamond_target = pd.read_csv(f'{box_path}/diamond.change.tsv',sep='\t', encoding='utf-8', index_col=False, header=None, names=['qid', 'query'])
+            msmarco.to_search_df(pd.DataFrame(diamond_initial['query']), f'{t5_output}/runs/diamond.original.{settings["ranker"]}', diamond_initial['qid'].values.tolist(), settings['ranker'], topk=100, batch=None)
+            msmarco.to_search_df(pd.DataFrame(diamond_target['query']), f'{t5_output}/runs/diamond.change.{settings["ranker"]}', diamond_target['qid'].values.tolist(), settings['ranker'], topk=100, batch=None)
+            trecw.evaluate(f'{t5_output}/runs/diamond.original.{settings["ranker"]}', f'{t5_output}/runs/diamond.original.{settings["ranker"]}.{settings["metric"]}', qrels=f'{datapath}/qrels.train.nodups.tsv', metric=settings['metric'], lib=settings['treclib'])
+            trecw.evaluate(f'{t5_output}/runs/diamond.change.{settings["ranker"]}', f'{t5_output}/runs/diamond.change.{settings["ranker"]}.{settings["metric"]}', qrels=f'{datapath}/qrels.train.nodups.tsv', metric=settings['metric'], lib=settings['treclib'])
 
     if 'aol' in domain_list:
         datapath = data_list[domain_list.index('aol')]
