@@ -53,6 +53,7 @@ def to_search_df(queries, out_docids, qids, ranker='bm25', topk=100, batch=None)
     with open(out_docids, 'w', encoding='utf-8') as o:
         if batch:
             for b in tqdm(range(0, len(queries), batch)):
+                #qids must be in list[str]!
                 hits = searcher.batch_search(queries.iloc[b: b + batch]['query'].values.tolist(), qids[b: b + batch], k=topk, threads=param.settings['ncpu'])
                 for qid in hits.keys():
                     for i, h in enumerate(set(hits[qid])):
@@ -95,16 +96,17 @@ def box(input, qrels, output):
     checks = {'gold': 'True',
               'platinum': 'golden_q_metric > original_q_metric',
               'diamond' : 'golden_q_metric > original_q_metric and golden_q_metric == 1'}
-    print('Boxing datasets ...')
     ranker, metric = input.columns[-1].split('.')
-    ds = {'qid': list(), 'query': list(), f'{ranker}.{metric}': list(), 'query_': list(), f'{ranker}.{metric}_': list()}
 
     for c in checks.keys():
-        for _, group in input.groupby('qid'):
-            if group.shape[0] >= 2:
+        print(f'Boxing {c} queries for {ranker}.{metric} ...')
+        ds = {'qid': list(), 'query': list(), f'{ranker}.{metric}': list(), 'query_': list(), f'{ranker}.{metric}_': list()}
+        groups = input.groupby('qid')
+        for _, group in tqdm(groups, total=len(groups)):
+            if len(group) >= 2:
                 original_q, original_q_metric = group.iloc[0], group.iloc[0][f'{ranker}.{metric}']
                 golden_q, golden_q_metric = group.iloc[1], group.iloc[1][f'{ranker}.{metric}']
-                for i in range(1, group.shape[0]):
+                for i in range(1, len(group)):
                     if (group.iloc[i][f'{ranker}.{metric}'] < golden_q[f'{ranker}.{metric}']): break
                     if not eval(checks[c]): break #for gold this is always true since we put >= metric values in *.agg.best.tsv
                     ds['qid'].append(original_q['qid'])
@@ -113,6 +115,7 @@ def box(input, qrels, output):
                     ds['query_'].append(group.iloc[i]['query'])
                     ds[f'{ranker}.{metric}_'].append(golden_q_metric)
         df = pd.DataFrame.from_dict(ds)
+        del ds
         df.to_csv(f'{output}/{c}.tsv', sep='\t', encoding='utf-8', index=False, header=False)
         df.to_csv(f'{output}/{c}.original.tsv', sep='\t', encoding='utf-8', index=False, header=False, columns=['qid', 'query'])
         df.to_csv(f'{output}/{c}.change.tsv', sep='\t', encoding='utf-8', index=False, header=False, columns=['qid', 'query_'])

@@ -9,7 +9,7 @@ extension = '.exe' if platform.system() == 'Windows' else ""
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 settings = {
-    'cmd': ['eval', 'agg', 'box', 'stamp'],# steps of pipeline, ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box', 'stamp']
+    'cmd': ['stamp'],# steps of pipeline, ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box', 'stamp']
     'ncpu': multiprocessing.cpu_count(),
     't5model': 'base.gc',#'base.gc', 'small.local'
     'iter': 5,          #number of finetuning iteration for t5
@@ -28,6 +28,7 @@ settings = {
         'index_item': ['title'], # acceptable values ['url'], ['title', 'url'], ['title', 'url', 'text']
         'index': '../data/raw/aol/indexes/',
         'pairing': [None, 'docs', 'query'], #[context={2 scenarios, one with userID and one without userID). input={'userid','query','doc(s)'} output={'query','doc(s)'}
+        'lseq':{"inputs": 32, "targets": 256},  #query length and doc length for t5 model,
         'filter': {'minql': 0, 'mindocl': 10} # [min query length, min doc length], after merge queries with relevant 'index_item', if |query| <= minql drop the row, if |'index_item'| < mindocl, drop row
     }
 }

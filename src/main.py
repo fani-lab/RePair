@@ -75,7 +75,7 @@ def run(data_list, domain_list, output, settings):
             # we need to add the original queries as well
             if not isfile(join(t5_output, f'original.{settings["ranker"]}')):
                 query_originals.to_csv(f'{t5_output}/original', columns=['query'], index=False, header=False)
-                msmarco.to_search_df(pd.DataFrame(query_originals['query']), f'{t5_output}/original.{settings["ranker"]}', query_originals['qid'].values.tolist(), settings['ranker'], topk=100, batch=settings['batch'])
+                msmarco.to_search_df(pd.DataFrame(query_originals['query']), f'{t5_output}/original.{settings["ranker"]}', query_originals['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
 
         if 'eval' in settings['cmd']:
             from evl import trecw
@@ -105,62 +105,86 @@ def run(data_list, domain_list, output, settings):
             msmarco.box(best_df, qrels, box_path)
 
         if 'stamp' in settings['cmd']:
+            print(f'Stamping diamond queries for {settings["ranker"]}.{settings["metric"]} == 1 ...')
             from evl import trecw
             if not os.path.isdir(join(t5_output,'runs')): os.makedirs(join(t5_output, 'runs'))
-            diamond_initial = pd.read_csv(f'{box_path}/diamond.original.tsv', sep='\t', encoding='utf-8', index_col=False, header=None, names=['qid', 'query'])
-            diamond_target = pd.read_csv(f'{box_path}/diamond.change.tsv',sep='\t', encoding='utf-8', index_col=False, header=None, names=['qid', 'query'])
-            msmarco.to_search_df(pd.DataFrame(diamond_initial['query']), f'{t5_output}/runs/diamond.original.{settings["ranker"]}', diamond_initial['qid'].values.tolist(), settings['ranker'], topk=100, batch=None)
-            msmarco.to_search_df(pd.DataFrame(diamond_target['query']), f'{t5_output}/runs/diamond.change.{settings["ranker"]}', diamond_target['qid'].values.tolist(), settings['ranker'], topk=100, batch=None)
+            diamond_initial = pd.read_csv(f'{box_path}/diamond.original.tsv', sep='\t', encoding='utf-8', index_col=False, header=None, names=['qid', 'query'], dtype={'qid': str})
+            diamond_target = pd.read_csv(f'{box_path}/diamond.change.tsv', sep='\t', encoding='utf-8', index_col=False, header=None, names=['qid', 'query'], dtype={'qid': str})
+            msmarco.to_search_df(pd.DataFrame(diamond_initial['query']), f'{t5_output}/runs/diamond.original.{settings["ranker"]}', diamond_initial['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
+            msmarco.to_search_df(pd.DataFrame(diamond_target['query']), f'{t5_output}/runs/diamond.change.{settings["ranker"]}', diamond_target['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
             trecw.evaluate(f'{t5_output}/runs/diamond.original.{settings["ranker"]}', f'{t5_output}/runs/diamond.original.{settings["ranker"]}.{settings["metric"]}', qrels=f'{datapath}/qrels.train.nodups.tsv', metric=settings['metric'], lib=settings['treclib'])
             trecw.evaluate(f'{t5_output}/runs/diamond.change.{settings["ranker"]}', f'{t5_output}/runs/diamond.change.{settings["ranker"]}.{settings["metric"]}', qrels=f'{datapath}/qrels.train.nodups.tsv', metric=settings['metric'], lib=settings['treclib'])
 
     if 'aol' in domain_list:
         datapath = data_list[domain_list.index('aol')]
-        prep_index = f'./../data/raw/{os.path.split(datapath)[-1]}'
-        if not os.path.isdir(prep_index): os.makedirs(prep_index)
         prep_output = f'./../data/preprocessed/{os.path.split(datapath)[-1]}'
         if not os.path.isdir(prep_output): os.makedirs(prep_output)
-        index_item = '_'.join([item for item in settings['aol']['index_item']])
+        index_item = '.'.join([item for item in settings['aol']['index_item']])
         in_type, out_type = settings['aol']['pairing'][1], settings['aol']['pairing'][2]
         tsv_path = {'train': f'{prep_output}/{in_type}.{out_type}.{index_item}.train.tsv', 'test': f'{prep_output}/{in_type}.{out_type}.{index_item}.test.tsv'}
 
-        if not os.path.isdir(os.path.join(prep_index, 'indexes', index_item)): os.makedirs(os.path.join(prep_index, 'indexes', index_item))
-        cat = True if 'docs' in {in_type, out_type} else False
-        from dal import aol
         # AOL requires us to construct the Index, Qrels and Queries file from IR_dataset
-        # create queries and qrels file
+        from dal import aol
+        prep_index = f'./../data/raw/{os.path.split(datapath)[-1]}'
+        if not os.path.isdir(os.path.join(prep_index, 'indexes', index_item)): os.makedirs(os.path.join(prep_index, 'indexes', index_item))
         aol.initiate_queries_qrels(prep_index)
         aol.create_json_collection(prep_index, index_item)
         create_index('aol', index_item)
-        #to pair function
-        if any(not os.path.exists(v) for k, v in tsv_path.items()):
-            query_qrel_doc = aol.to_pair(prep_index, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item}.train.tsv', index_item,
-                                             cat=cat)
-            query_qrel_doc.to_csv(tsv_path['train'], sep='\t', encoding='utf-8', columns=[in_type, out_type],
-                                  index=False, header=False)
-            query_qrel_doc.to_csv(tsv_path['test'], sep='\t', encoding='utf-8', columns=[in_type, out_type],
-                                  index=False, header=False)
+
+        if 'pair' in settings['cmd']:
+            cat = True if 'docs' in {in_type, out_type} else False
+            print(f'Pairing queries and relevant passages for training set ...')
+            query_qrel_doc = aol.to_pair(prep_index, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item}.train.tsv', index_item, cat=cat)
+            query_qrel_doc.to_csv(tsv_path['train'], sep='\t', encoding='utf-8', columns=[in_type, out_type], index=False, header=False)
+            print(f'Pairing queries and relevant passages for test set ...')
+            query_qrel_doc.to_csv(tsv_path['test'], sep='\t', encoding='utf-8', columns=[in_type, out_type], index=False, header=False)
+
         t5_model = settings['t5model']  # {"small", "base", "large", "3B", "11B"} cross {"local", "gc"}
-        t5_output = f'../output/{os.path.split(datapath)[-1]}/t5.{t5_model}.{index_item}.{in_type}.{out_type}'
-        if not os.path.isdir(t5_output): os.makedirs(t5_output)
+        t5_output = f'../output/{os.path.split(datapath)[-1]}/t5.{t5_model}.{in_type}.{out_type}'
+        if {'finetune', 'predict'} & set(settings['cmd']):
+            from mdl import mt5w
+            if 'finetune' in settings['cmd']:
+                print(f"Finetuning {t5_model} for {settings['iter']} and storing the checkpoints at {t5_output} ...")
+                mt5w.finetune(
+                    tsv_path=tsv_path,
+                    pretrained_dir=f'./../output/t5-data/pretrained_models/{t5_model.split(".")[0]}',
+                    # "gs://t5-data/pretrained_models/{"small", "base", "large", "3B", "11B"}
+                    steps=settings['iter'],
+                    output=t5_output, task_name='aol_cf',
+                    lseq=settings['aol']['lseq'],
+                    nexamples=query_qrel_doc.shape[0] if query_qrel_doc is not None else None, in_type=in_type,
+                    out_type=out_type, gcloud=False)
+
+            if 'predict' in settings['cmd']:
+                print(f"Predicting {settings['nchanges']} query changes using {t5_model} and storing the results at {t5_output} ...")
+                mt5w.predict(
+                    iter=settings['nchanges'],
+                    split='test',
+                    tsv_path=tsv_path,
+                    output=t5_output,
+                    lseq=settings['aol']['lseq'],
+                    gcloud=False)
 
         if 'search' in settings['cmd']:
             query_originals = pd.read_csv(f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item}.train.tsv', sep='\t', usecols=['qid', 'query'], dtype={'qid': str})
-            query_changes = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["ranker"]}') for f in listdir(t5_output)
-                             if isfile(join(t5_output, f)) and f.startswith('pred.') and settings[
-                                 'ranker'] not in f and len([f for x in range(0,12) if f'{f}.split_{x}.{settings["ranker"]}' not in listdir(t5_output)]) > 0]
+            query_changes = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["ranker"]}')
+                             for f in listdir(t5_output) if isfile(join(t5_output, f)) and f.startswith('pred.') and
+                             settings['ranker'] not in f and len([f for x in range(0,12) if f'{f}.split_{x}.{settings["ranker"]}' not in listdir(t5_output)]) > 0]
             with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
-                p.starmap(partial(aol.to_search, qids=query_originals['qid'].values.tolist(), index_item=index_item, ranker=settings['ranker'], topk=100, batch=None), query_changes)
-            aol.to_search_df(pd.DataFrame(query_originals['query']), f'{t5_output}/original.{settings["ranker"]}', query_originals['qid'].values.tolist(), index_item, settings['ranker'], topk=100, batch=None)
+                p.starmap(partial(aol.to_search, qids=query_originals['qid'].values.tolist(), index_item=index_item, ranker=settings['ranker'], topk=settings['topk'], batch=settings['batch']), query_changes)
+
+            if not isfile(join(t5_output, f'original.{settings["ranker"]}')):
+                query_originals.to_csv(f'{t5_output}/original', columns=['query'], index=False, header=False)
+                aol.to_search_df(pd.DataFrame(query_originals['query']), f'{t5_output}/original.{settings["ranker"]}', query_originals['qid'].values.tolist(), index_item, settings['ranker'], topk=settings['topk'], batch=settings['batch'])
 
         if 'eval' in settings['cmd']:
             from evl import trecw
-            search_results = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["metric"]}') for f in listdir(t5_output) if
-                              isfile(join(t5_output, f)) and f.endswith(settings['ranker']) and f'{f}.{settings["ranker"]}.{settings["metrics"]}' not in listdir(t5_output) for x in range(0,11)]
+            search_results = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["metric"]}')
+                              for f in listdir(t5_output) if isfile(join(t5_output, f)) and f.endswith(settings['ranker']) and
+                              f'{f}.{settings["ranker"]}.{settings["metrics"]}' not in listdir(t5_output) for x in range(0,11)]
 
-            with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
-                p.starmap(partial(trecw.evaluate, qrels=f'{datapath}/qrels.{index_item}.clean.tsv', metric=settings['metric'],
-                                  lib=settings['treclib']), search_results)
+            with multiprocessing.Pool(multiprocessing.cpu_count()) as p: p.starmap(partial(trecw.evaluate, qrels=f'{datapath}/qrels.{index_item}.clean.tsv', metric=settings['metric'], lib=settings['treclib']), search_results)
+
     if ('yandex' in data_list): print('processing yandex...')
 
 
