@@ -23,7 +23,7 @@ def to_txt(pid):
 def to_pair(input, output, cat=True):
     queries = pd.read_csv(f'{input}/queries.train.tsv', sep='\t', index_col=False, names=['qid', 'query'], converters={'query': str.lower}, header=None)
     qrels = pd.read_csv(f'{input}/qrels.train.tsv', sep='\t', index_col=False, names=['qid', 'did', 'pid', 'relevancy'], header=None)
-    qrels.drop_duplicates(inplace=True)  # qrels have duplicates!!
+    qrels.drop_duplicates(subset=['qid', 'pid'], inplace=True)  # qrels have duplicates!!
     qrels.to_csv(f'{input}/qrels.train.nodups.tsv', index=False, sep='\t', header=False) #trec_eval does not accept duplicate rows!!
     queries_qrels = pd.merge(queries, qrels, on='qid', how='inner', copy=False)
     doccol = 'docs' if cat else 'doc'
@@ -54,9 +54,9 @@ def to_search_df(queries, out_docids, qids, ranker='bm25', topk=100, batch=None)
         if batch:
             for b in tqdm(range(0, len(queries), batch)):
                 #qids must be in list[str]!
-                hits = searcher.batch_search(queries.iloc[b: b + batch]['query'].values.tolist(), qids[b: b + batch], k=topk, threads=param.settings['ncpu'])
+                hits = searcher.batch_search(queries.iloc[b: b + batch]['query'].values.tolist(), qids[b: b + batch], k=topk, threads=param.settings['ncore'])
                 for qid in hits.keys():
-                    for i, h in enumerate(set(hits[qid])):
+                    for i, h in enumerate(hits[qid]):#hits are sorted desc based on score => required for trec_eval
                         o.write(f'{qid}\tQ0\t{h.docid:15}\t{i + 1:2}\t{h.score:.5f}\tPyserini Batch\n')
         else:
             def to_docids(row):
@@ -106,15 +106,17 @@ def box(input, qrels, output):
             if len(group) >= 2:
                 original_q, original_q_metric = group.iloc[0], group.iloc[0][f'{ranker}.{metric}']
                 golden_q, golden_q_metric = group.iloc[1], group.iloc[1][f'{ranker}.{metric}']
-                for i in range(1, len(group)):
+                for i in range(1, 2):#len(group)): #IMPORTANT: We can have more than one golden query with SAME metric value. Here we skip them so the qid will NOT be replicated!
                     if (group.iloc[i][f'{ranker}.{metric}'] < golden_q[f'{ranker}.{metric}']): break
                     if not eval(checks[c]): break #for gold this is always true since we put >= metric values in *.agg.best.tsv
                     ds['qid'].append(original_q['qid'])
                     ds['query'].append(original_q['query'])
                     ds[f'{ranker}.{metric}'].append(original_q_metric)
                     ds['query_'].append(group.iloc[i]['query'])
-                    ds[f'{ranker}.{metric}_'].append(golden_q_metric)
+                    ds[f'{ranker}.{metric}_'].append(golden_q_metric)#TODO: we can add golden queries with same metric value as a list here
+
         df = pd.DataFrame.from_dict(ds)
+        #df.drop_duplicates(subset=['qid'], inplace=True)
         del ds
         df.to_csv(f'{output}/{c}.tsv', sep='\t', encoding='utf-8', index=False, header=False)
         df.to_csv(f'{output}/{c}.original.tsv', sep='\t', encoding='utf-8', index=False, header=False, columns=['qid', 'query'])
@@ -122,5 +124,5 @@ def box(input, qrels, output):
         print(f'{c}  has {df.shape[0]} queries')
         qrels = df.merge(qrels, on='qid', how='inner')
         qrels.to_csv(f'{output}/{c}.qrels.tsv', sep='\t', encoding='utf-8', index=False, header=False, columns=['qid', 'did', 'pid', 'rel'])
-        qrels.drop_duplicates(inplace=True)
+        qrels.drop_duplicates(subset=['qid', 'pid'], inplace=True)
         qrels.to_csv(f'{output}/{c}.qrels.nodups.tsv', sep='\t', encoding='utf-8', index=False, header=False, columns=['qid', 'did', 'pid', 'rel'])

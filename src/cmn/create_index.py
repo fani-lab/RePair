@@ -1,8 +1,6 @@
-import sys
-import subprocess
-import os
+import sys, subprocess, os
 
-def create_index(index_ds,index_item):
+def create_index(index_ds,index_item, ncore):
     """
     common code to create index using the subprocess module
     :return: a lucene index of dataset
@@ -14,5 +12,5 @@ def create_index(index_ds,index_item):
                         '--input', f'./../data/raw/{index_ds}/{index_item}',
                         '--index', f'./../data/raw/{index_ds}/indexes/{index_item}',
                         '--generator', 'DefaultLuceneDocumentGenerator',
-                        '--threads', '8', '--storePositions', '--storeDocvectors', '--storeRaw', '--optimize'])
+                        '--threads', ncore, '--storePositions', '--storeDocvectors', '--storeRaw', '--optimize'])
         print(f'finished creating index')

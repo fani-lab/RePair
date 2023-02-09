@@ -3,6 +3,7 @@ from functools import partial
 from multiprocessing import freeze_support
 from os import listdir
 from os.path import isfile, join
+from shutil import copyfile
 
 from cmn.create_index import create_index
 import param
@@ -35,6 +36,7 @@ def run(data_list, domain_list, output, settings):
 
         t5_model = settings['t5model']  # {"small", "base", "large", "3B", "11B"} cross {"local", "gc"}
         t5_output = f'../output/{os.path.split(datapath)[-1]}/t5.{t5_model}.{in_type}.{out_type}'
+        copyfile('./param.py', f'{t5_output}/param.py')
         if {'finetune', 'predict'} & set(settings['cmd']):
             from mdl import mt5w
             if 'finetune' in settings['cmd']:
@@ -108,11 +110,15 @@ def run(data_list, domain_list, output, settings):
             print(f'Stamping diamond queries for {settings["ranker"]}.{settings["metric"]} == 1 ...')
             from evl import trecw
             if not os.path.isdir(join(t5_output,'runs')): os.makedirs(join(t5_output, 'runs'))
+
             diamond_initial = pd.read_csv(f'{box_path}/diamond.original.tsv', sep='\t', encoding='utf-8', index_col=False, header=None, names=['qid', 'query'], dtype={'qid': str})
-            diamond_target = pd.read_csv(f'{box_path}/diamond.change.tsv', sep='\t', encoding='utf-8', index_col=False, header=None, names=['qid', 'query'], dtype={'qid': str})
+            diamond_initial.drop_duplicates(subset=['qid'], inplace=True)
             msmarco.to_search_df(pd.DataFrame(diamond_initial['query']), f'{t5_output}/runs/diamond.original.{settings["ranker"]}', diamond_initial['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
-            msmarco.to_search_df(pd.DataFrame(diamond_target['query']), f'{t5_output}/runs/diamond.change.{settings["ranker"]}', diamond_target['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
             trecw.evaluate(f'{t5_output}/runs/diamond.original.{settings["ranker"]}', f'{t5_output}/runs/diamond.original.{settings["ranker"]}.{settings["metric"]}', qrels=f'{datapath}/qrels.train.nodups.tsv', metric=settings['metric'], lib=settings['treclib'])
+
+            diamond_target = pd.read_csv(f'{box_path}/diamond.change.tsv', sep='\t', encoding='utf-8', index_col=False,header=None, names=['qid', 'query'], dtype={'qid': str})
+            diamond_target.drop_duplicates(subset=['qid'], inplace=True)
+            msmarco.to_search_df(pd.DataFrame(diamond_target['query']), f'{t5_output}/runs/diamond.change.{settings["ranker"]}', diamond_target['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
             trecw.evaluate(f'{t5_output}/runs/diamond.change.{settings["ranker"]}', f'{t5_output}/runs/diamond.change.{settings["ranker"]}.{settings["metric"]}', qrels=f'{datapath}/qrels.train.nodups.tsv', metric=settings['metric'], lib=settings['treclib'])
 
     if 'aol' in domain_list:
@@ -129,7 +135,7 @@ def run(data_list, domain_list, output, settings):
         if not os.path.isdir(os.path.join(prep_index, 'indexes', index_item)): os.makedirs(os.path.join(prep_index, 'indexes', index_item))
         aol.initiate_queries_qrels(prep_index)
         aol.create_json_collection(prep_index, index_item)
-        create_index('aol', index_item)
+        create_index('aol', index_item, param.settings['ncore'])
 
         if 'pair' in settings['cmd']:
             cat = True if 'docs' in {in_type, out_type} else False
