@@ -17,7 +17,7 @@ def evaluate(in_docids, out_metrics, qrels, metric, lib='trec'):#or 'pytrec'
     #
     #However, no duplicate [qid, docid] can be in qrels!!
 
-    print(f'Evaluating retrieved docs for {in_docids} ...')
+    print(f'Evaluating retrieved docs for {in_docids} with {metric} ...')
     if lib == 'pytrec':
         raise NotImplementedError
     else:

@@ -14,10 +14,10 @@ settings = {
     't5model': 'small.local',#'base.gc', 'small.local'
     'iter': 5,          #number of finetuning iteration for t5
     'nchanges': 5,      #number of changes to a query
-    'ranker': 'qld',   #'qld', 'bm25'
+    'ranker': 'bm25',   #'qld', 'bm25'
     'batch': 10,      #search per batch of queries for IR search using pyserini, if None, search per query
     'topk': 10,         #number of retrieved documents for a query
-    'metric': 'ndcg',    # any valid trec_eval metric like map, ndcg, ...
+    'metric': 'recip_rank',    # any valid trec_eval metric like map, ndcg, ...
     'treclib': f'"./trec_eval.9.0.4/trec_eval{extension}"',#in non-windows, remove .exe, also for pytrec_eval, 'pytrec'
     'msmarco.passage': {
         'index': '../data/raw/msmarco.passage/lucene-index.msmarco-v1-passage.20220131.9ea315/',

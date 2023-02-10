@@ -71,7 +71,7 @@ def run(data_list, domain_list, output, settings):
             # for (i, o) in query_changes: msmarco.to_search(i, o, query_originals['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
             # batch search: for (i, o) in query_changes: msmarco.to_search(i, o, query_originals['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
             # parallel on each file
-            with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
+            with multiprocessing.Pool(settings['ncore']) as p:
                 p.starmap(partial(msmarco.to_search, qids=query_originals['qid'].values.tolist(), ranker=settings['ranker'], topk=settings['topk'], batch=settings['batch']), query_changes)
 
             # we need to add the original queries as well
@@ -88,7 +88,7 @@ def run(data_list, domain_list, output, settings):
                 qrels.drop_duplicates(subset=['qid', 'pid'], inplace=True)  # qrels have duplicates!!
                 qrels.to_csv(f'{datapath}/qrels.train.nodups.tsv', index=False, sep='\t', header=False)  # trec_eval does not accept duplicate rows!!
             # for (i, o) in search_results: trecw.evaluate(i, o, qrels=f'{datapath}/qrels.train.nodups.tsv', metric=settings['metric'], lib=settings['treclib'])
-            with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
+            with multiprocessing.Pool(settings['ncore']) as p:
                 p.starmap(partial(trecw.evaluate, qrels=f'{datapath}/qrels.train.nodups.tsv', metric=settings['metric'], lib=settings['treclib']), search_results)
 
         if 'agg' in settings['cmd']:
@@ -176,7 +176,7 @@ def run(data_list, domain_list, output, settings):
             query_changes = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["ranker"]}')
                              for f in listdir(t5_output) if isfile(join(t5_output, f)) and f.startswith('pred.') and
                              settings['ranker'] not in f and len([f for x in range(0,12) if f'{f}.split_{x}.{settings["ranker"]}' not in listdir(t5_output)]) > 0]
-            with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
+            with multiprocessing.Pool(settings['ncore']) as p:
                 p.starmap(partial(aol.to_search, qids=query_originals['qid'].values.tolist(), index_item=index_item, ranker=settings['ranker'], topk=settings['topk'], batch=settings['batch']), query_changes)
 
             if not isfile(join(t5_output, f'original.{settings["ranker"]}')):
@@ -189,7 +189,7 @@ def run(data_list, domain_list, output, settings):
                               for f in listdir(t5_output) if isfile(join(t5_output, f)) and f.endswith(settings['ranker']) and
                               f'{f}.{settings["ranker"]}.{settings["metrics"]}' not in listdir(t5_output) for x in range(0,11)]
 
-            with multiprocessing.Pool(multiprocessing.cpu_count()) as p: p.starmap(partial(trecw.evaluate, qrels=f'{datapath}/qrels.{index_item}.clean.tsv', metric=settings['metric'], lib=settings['treclib']), search_results)
+            with multiprocessing.Pool(settings['ncore']) as p: p.starmap(partial(trecw.evaluate, qrels=f'{datapath}/qrels.{index_item}.clean.tsv', metric=settings['metric'], lib=settings['treclib']), search_results)
 
     if ('yandex' in data_list): print('processing yandex...')
 
