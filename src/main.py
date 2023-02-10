@@ -212,6 +212,15 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     run(data_list=args.data_list,
-        domain_list=args.domain_list,
-        output=args.output,
-        settings=param.settings)
+            domain_list=args.domain_list,
+            output=args.output,
+            settings=param.settings)
+
+    # from itertools import product
+    # for ranker, metric in product(['bm25', 'qld'], ['map', 'ndcg', 'recip_rank']):
+    #     param.settings['ranker'] = ranker
+    #     param.settings['metric'] = metric
+    #     run(data_list=args.data_list,
+    #         domain_list=args.domain_list,
+    #         output=args.output,
+    #         settings=param.settings)
