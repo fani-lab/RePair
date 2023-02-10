@@ -9,7 +9,7 @@ extension = '.exe' if platform.system() == 'Windows' else ""
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 settings = {
-    'cmd': ['eval','agg', 'box', 'stamp'],# steps of pipeline, ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box', 'stamp']
+    'cmd': ['search', 'eval','agg', 'box', 'stamp'],# steps of pipeline, ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box', 'stamp']
     'ncore': multiprocessing.cpu_count(),
     't5model': 'small.local',#'base.gc', 'small.local'
     'iter': 5,          #number of finetuning iteration for t5
@@ -17,7 +17,7 @@ settings = {
     'ranker': 'bm25',   #'qld', 'bm25'
     'batch': 10,      #search per batch of queries for IR search using pyserini, if None, search per query
     'topk': 10,         #number of retrieved documents for a query
-    'metric': 'recip_rank',    # any valid trec_eval metric like map, ndcg, ...
+    'metric': 'map',    # any valid trec_eval metric like map, ndcg, recip_rank, ...
     'treclib': f'"./trec_eval.9.0.4/trec_eval{extension}"',#in non-windows, remove .exe, also for pytrec_eval, 'pytrec'
     'msmarco.passage': {
         'index': '../data/raw/msmarco.passage/lucene-index.msmarco-v1-passage.20220131.9ea315/',
