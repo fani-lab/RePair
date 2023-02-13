@@ -1,11 +1,10 @@
-import argparse, os, pandas as pd, multiprocessing
+import argparse, os, pandas as pd, multiprocessing, shutil
 from functools import partial
 from multiprocessing import freeze_support
 from os import listdir
 from os.path import isfile, join
 from shutil import copyfile
 
-from cmn.create_index import create_index
 import param
 
 def run(data_list, domain_list, output, settings):
@@ -14,7 +13,7 @@ def run(data_list, domain_list, output, settings):
 
     if 'msmarco.passage' in domain_list:
 
-        from dal import msmarco
+        from dal.msmarco import MsMarcoPsg
         # seems the LuceneSearcher cannot be shared in multiple processes! See dal.msmarco.py
 
         datapath = data_list[domain_list.index('msmarco.passage')]
@@ -27,10 +26,10 @@ def run(data_list, domain_list, output, settings):
         if 'pair' in settings['cmd']:
             print(f'Pairing queries and relevant passages for training set ...')
             cat = True if 'docs' in {in_type, out_type} else False
-            query_qrel_doc = msmarco.to_pair(datapath, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.train.tsv', cat=cat)
+            query_qrel_doc = MsMarcoPsg.to_pair(datapath, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.train.tsv', cat=cat)
             print(f'Pairing queries and relevant passages for test set ...')
             #TODO: query_qrel_doc = to_pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.test.tsv')
-            query_qrel_doc = msmarco.to_pair(datapath, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.test.tsv', cat=cat)
+            query_qrel_doc = MsMarcoPsg.to_pair(datapath, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.test.tsv', cat=cat)
             query_qrel_doc.to_csv(tsv_path['train'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
             query_qrel_doc.to_csv(tsv_path['test'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
 
@@ -72,24 +71,24 @@ def run(data_list, domain_list, output, settings):
             # batch search: for (i, o) in query_changes: msmarco.to_search(i, o, query_originals['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
             # parallel on each file
             with multiprocessing.Pool(settings['ncore']) as p:
-                p.starmap(partial(msmarco.to_search, qids=query_originals['qid'].values.tolist(), ranker=settings['ranker'], topk=settings['topk'], batch=settings['batch']), query_changes)
+                p.starmap(partial(MsMarcoPsg.to_search, qids=query_originals['qid'].values.tolist(), ranker=settings['ranker'], topk=settings['topk'], batch=settings['batch']), query_changes)
 
             # we need to add the original queries as well
             if not isfile(join(t5_output, f'original.{settings["ranker"]}')):
                 query_originals.to_csv(f'{t5_output}/original', columns=['query'], index=False, header=False)
-                msmarco.to_search_df(pd.DataFrame(query_originals['query']), f'{t5_output}/original.{settings["ranker"]}', query_originals['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
+                MsMarcoPsg.to_search_df(pd.DataFrame(query_originals['query']), f'{t5_output}/original.{settings["ranker"]}', query_originals['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
 
         if 'eval' in settings['cmd']:
             from evl import trecw
             search_results = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["metric"]}') for f in listdir(t5_output) if f.endswith(settings['ranker'])]
 
-            if not isfile(f'{datapath}/qrels.train.nodups.tsv'):
+            if not isfile(f'{datapath}/qrels.train.tsv_'):
                 qrels = pd.read_csv(f'{datapath}/qrels.train.tsv', sep='\t', index_col=False, names=['qid', 'did', 'pid', 'relevancy'], header=None)
                 qrels.drop_duplicates(subset=['qid', 'pid'], inplace=True)  # qrels have duplicates!!
-                qrels.to_csv(f'{datapath}/qrels.train.nodups.tsv', index=False, sep='\t', header=False)  # trec_eval does not accept duplicate rows!!
-            # for (i, o) in search_results: trecw.evaluate(i, o, qrels=f'{datapath}/qrels.train.nodups.tsv', metric=settings['metric'], lib=settings['treclib'])
+                qrels.to_csv(f'{datapath}/qrels.train.tsv_', index=False, sep='\t', header=False)  # trec_eval does not accept duplicate rows!!
+            # for (i, o) in search_results: trecw.evaluate(i, o, qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'], lib=settings['treclib'])
             with multiprocessing.Pool(settings['ncore']) as p:
-                p.starmap(partial(trecw.evaluate, qrels=f'{datapath}/qrels.train.nodups.tsv', metric=settings['metric'], lib=settings['treclib']), search_results)
+                p.starmap(partial(trecw.evaluate, qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'], lib=settings['treclib']), search_results)
 
         if 'agg' in settings['cmd']:
             query_originals = pd.read_csv(f'{prep_output}/queries.qrels.doc{"s" if "docs" in {in_type, out_type} else ""}.ctx.train.tsv', sep='\t', usecols=['qid', 'query'], dtype={'qid': int})
@@ -97,14 +96,14 @@ def run(data_list, domain_list, output, settings):
             original_metric_values[f'original.{settings["ranker"]}.{settings["metric"]}'].fillna(0, inplace=True)
             query_originals = query_originals.merge(original_metric_values, how='left', on='qid')
             query_changes = [('.'.join(f.split('.')[0:2]), f) for f in os.listdir(t5_output) if f.endswith(f'{settings["ranker"]}.{settings["metric"]}') and 'original' not in f]
-            msmarco.aggregate(query_originals, query_changes, t5_output)
+            MsMarcoPsg.aggregate(query_originals, query_changes, t5_output)
 
         box_path = join(t5_output, f'{settings["ranker"]}.{settings["metric"]}.datasets')
         if 'box' in settings['cmd']:
             if not os.path.isdir(box_path): os.makedirs(box_path)
             best_df = pd.read_csv(f'{t5_output}/{settings["ranker"]}.{settings["metric"]}.agg.best.tsv', sep='\t', header=0)
-            qrels = pd.read_csv(f'{datapath}/qrels.train.nodups.tsv', names=['qid', 'did', 'pid', 'rel'], sep='\t')
-            msmarco.box(best_df, qrels, box_path)
+            qrels = pd.read_csv(f'{datapath}/qrels.train.tsv_', names=['qid', 'did', 'pid', 'rel'], sep='\t')
+            MsMarcoPsg.box(best_df, qrels, box_path)
 
         if 'stamp' in settings['cmd']:
             print(f'Stamping diamond queries for {settings["ranker"]}.{settings["metric"]} == 1 ...')
@@ -113,34 +112,35 @@ def run(data_list, domain_list, output, settings):
 
             diamond_initial = pd.read_csv(f'{box_path}/diamond.original.tsv', sep='\t', encoding='utf-8', index_col=False, header=None, names=['qid', 'query'], dtype={'qid': str})
             diamond_initial.drop_duplicates(subset=['qid'], inplace=True)#See msmarco.boxing(): in case we store more than two golden changes with same metric value
-            msmarco.to_search_df(pd.DataFrame(diamond_initial['query']), f'{t5_output}/runs/diamond.original.{settings["ranker"]}', diamond_initial['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
-            trecw.evaluate(f'{t5_output}/runs/diamond.original.{settings["ranker"]}', f'{t5_output}/runs/diamond.original.{settings["ranker"]}.{settings["metric"]}', qrels=f'{datapath}/qrels.train.nodups.tsv', metric=settings['metric'], lib=settings['treclib'])
+            MsMarcoPsg.to_search_df(pd.DataFrame(diamond_initial['query']), f'{t5_output}/runs/diamond.original.{settings["ranker"]}', diamond_initial['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
+            trecw.evaluate(f'{t5_output}/runs/diamond.original.{settings["ranker"]}', f'{t5_output}/runs/diamond.original.{settings["ranker"]}.{settings["metric"]}', qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'], lib=settings['treclib'])
 
             diamond_target = pd.read_csv(f'{box_path}/diamond.change.tsv', sep='\t', encoding='utf-8', index_col=False,header=None, names=['qid', 'query'], dtype={'qid': str})
             diamond_target.drop_duplicates(subset=['qid'], inplace=True)#See msmarco.boxing(): in case we store more than two golden changes with same metric value
-            msmarco.to_search_df(pd.DataFrame(diamond_target['query']), f'{t5_output}/runs/diamond.change.{settings["ranker"]}', diamond_target['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
-            trecw.evaluate(f'{t5_output}/runs/diamond.change.{settings["ranker"]}', f'{t5_output}/runs/diamond.change.{settings["ranker"]}.{settings["metric"]}', qrels=f'{datapath}/qrels.train.nodups.tsv', metric=settings['metric'], lib=settings['treclib'])
+            MsMarcoPsg.to_search_df(pd.DataFrame(diamond_target['query']), f'{t5_output}/runs/diamond.change.{settings["ranker"]}', diamond_target['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
+            trecw.evaluate(f'{t5_output}/runs/diamond.change.{settings["ranker"]}', f'{t5_output}/runs/diamond.change.{settings["ranker"]}.{settings["metric"]}', qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'], lib=settings['treclib'])
 
     if 'aol' in domain_list:
+        # AOL requires us to construct the Index, Qrels and Queries file from IR_dataset
+        from dal.aol import Aol
+
+        index_item_str = '.'.join(settings['aol']['index_item'])
         datapath = data_list[domain_list.index('aol')]
+        raw_path = f'./../data/raw/{os.path.split(datapath)[-1]}'
         prep_output = f'./../data/preprocessed/{os.path.split(datapath)[-1]}'
         if not os.path.isdir(prep_output): os.makedirs(prep_output)
-        index_item = '.'.join([item for item in settings['aol']['index_item']])
         in_type, out_type = settings['aol']['pairing'][1], settings['aol']['pairing'][2]
-        tsv_path = {'train': f'{prep_output}/{in_type}.{out_type}.{index_item}.train.tsv', 'test': f'{prep_output}/{in_type}.{out_type}.{index_item}.test.tsv'}
+        tsv_path = {'train': f'{prep_output}/{in_type}.{out_type}.{index_item_str}.train.tsv', 'test': f'{prep_output}/{in_type}.{out_type}.{index_item_str}.test.tsv'}
 
-        # AOL requires us to construct the Index, Qrels and Queries file from IR_dataset
-        from dal import aol
-        prep_index = f'./../data/raw/{os.path.split(datapath)[-1]}'
-        if not os.path.isdir(os.path.join(prep_index, 'indexes', index_item)): os.makedirs(os.path.join(prep_index, 'indexes', index_item))
-        aol.initiate_queries_qrels(prep_index)
-        aol.create_json_collection(prep_index, index_item)
-        create_index('aol', index_item, param.settings['ncore'])
+        Aol.init('./../data/raw/', param.settings['aol']['index_item'], param.settings['aol']['index'], param.settings['ncore'])
+        # dangerous cleaning!
+        # for d in os.listdir('./../data/raw/'):
+        #     if not (d.find('aol-ia') > -1 or d.find('msmarco') > -1) and os.path.isdir(f'./../data/raw/{d}'): shutil.rmtree(f'./../data/raw/{d}')
 
         if 'pair' in settings['cmd']:
             cat = True if 'docs' in {in_type, out_type} else False
             print(f'Pairing queries and relevant passages for training set ...')
-            query_qrel_doc = aol.to_pair(prep_index, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item}.train.tsv', index_item, cat=cat)
+            query_qrel_doc = Aol.to_pair(raw_path, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item_str}.train.tsv', settings['aol']['index_item'], cat=cat)
             query_qrel_doc.to_csv(tsv_path['train'], sep='\t', encoding='utf-8', columns=[in_type, out_type], index=False, header=False)
             print(f'Pairing queries and relevant passages for test set ...')
             query_qrel_doc.to_csv(tsv_path['test'], sep='\t', encoding='utf-8', columns=[in_type, out_type], index=False, header=False)
@@ -177,11 +177,11 @@ def run(data_list, domain_list, output, settings):
                              for f in listdir(t5_output) if isfile(join(t5_output, f)) and f.startswith('pred.') and
                              settings['ranker'] not in f and len([f for x in range(0,12) if f'{f}.split_{x}.{settings["ranker"]}' not in listdir(t5_output)]) > 0]
             with multiprocessing.Pool(settings['ncore']) as p:
-                p.starmap(partial(aol.to_search, qids=query_originals['qid'].values.tolist(), index_item=index_item, ranker=settings['ranker'], topk=settings['topk'], batch=settings['batch']), query_changes)
+                p.starmap(partial(Aol.to_search, qids=query_originals['qid'].values.tolist(), index_item=index_item, ranker=settings['ranker'], topk=settings['topk'], batch=settings['batch']), query_changes)
 
             if not isfile(join(t5_output, f'original.{settings["ranker"]}')):
                 query_originals.to_csv(f'{t5_output}/original', columns=['query'], index=False, header=False)
-                aol.to_search_df(pd.DataFrame(query_originals['query']), f'{t5_output}/original.{settings["ranker"]}', query_originals['qid'].values.tolist(), index_item, settings['ranker'], topk=settings['topk'], batch=settings['batch'])
+                Aol.to_search_df(pd.DataFrame(query_originals['query']), f'{t5_output}/original.{settings["ranker"]}', query_originals['qid'].values.tolist(), index_item, settings['ranker'], topk=settings['topk'], batch=settings['batch'])
 
         if 'eval' in settings['cmd']:
             from evl import trecw
@@ -204,6 +204,7 @@ def addargs(parser):
 
 
 # python -u main.py -data ../data/raw/toy.msmarco.passage -domain msmarco.passage
+# python -u main.py -data ../data/raw/toy.aol -domain aol
 
 if __name__ == '__main__':
     freeze_support()
