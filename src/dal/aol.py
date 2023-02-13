@@ -29,18 +29,10 @@ class Aol(Dataset):
             qrels = pd.DataFrame.from_records(aolia.qrels_iter(), columns=['qid', 'did', 'rel', 'uid'], nrows=1)  # namedtuple<query_id, doc_id, relevance, iteration>
             queries = pd.DataFrame.from_records(aolia.queries_iter(), columns=['qid', 'query'], nrows=1)# namedtuple<query_id, text>
 
-            # print('Cleansing queries ...')
-            # queries.dropna(inplace=True)
-            # queries.drop_duplicates(inplace=True)
-            # queries.drop(queries[queries['text'].str.strip().str.len() <= param.settings['aol']['filter']['minql']].index, inplace=True)
-            # queries.to_csv(f'{homedir}/aol-ia/queries.tsv_', sep='\t', encoding='UTF-8', index=False, header=False)
             print('Creating jsonl collections for indexing ...')
             print(f'Raw documents should be downloaded already at {homedir}/aol-ia/downloaded_docs/ as explained here: https://github.com/terrierteam/aolia-tools')
             index_item_str = '.'.join(index_item)
-            empdocs = Aol.create_jsonl(aolia, index_item, f'{homedir}/aol-ia/{index_item_str}')
-            # qrels.drop(qrels[qrels.did.isin(empdocs)].index, inplace=True)  # remove qrels whose docs are empty
-            # this makes different qrels as some may have url but no title ...
-            # qrels.to_csv(f'{homedir}/aol-ia/qrels.{index_item_str}.tsv_', sep='\t', encoding='UTF-8', index=False, header=False)
+            Aol.create_jsonl(aolia, index_item, f'{homedir}/aol-ia/{index_item_str}')
             lucenex(f'{homedir}/aol-ia/{index_item_str}/', f'{indexdir}/{index_item_str}/', ncore)
             # do NOT rename qrel to qrel.tsv or anything else as aol-ia hardcoded it
             # if os.path.isfile('./../data/raw/aol-ia/qrels'): os.rename('./../data/raw/aol-ia/qrels', '../data/raw/aol-ia/qrels')
@@ -55,7 +47,6 @@ class Aol(Dataset):
         :param output: folder name to create docs
         :return: list of docids that have empty body based on the index_item
         """
-        empty_did = set()
         print(f'Converting aol docs into jsonl collection for {index_item}')
         if not os.path.isdir(output): os.makedirs(output)
         output_jsonl_file = open(f'{output}/docs.json', 'w', encoding='utf-8', newline='\n')
@@ -63,29 +54,23 @@ class Aol(Dataset):
             did = doc.doc_id
             doc = {'title': doc.title, 'url': doc.url, 'text': doc.text}
             doc = ' '.join([doc[item] for item in index_item])
-            # if len(doc) < param.settings["aol"]["filter"]['mindocl']:
-            #     empty_did.add(did)
-            #     continue
             output_jsonl_file.write(json.dumps({'id': did, 'contents': doc}) + '\n')
             if i % 100000 == 0: print(f'Converted {i:,} docs, writing into file {output_jsonl_file.name} ...')
         output_jsonl_file.close()
-        return empty_did
 
     @staticmethod
     def to_txt(did):
         # no need to tell what type of content, the index already know that based on the index_item
-        try:
-            if not Dataset.searcher.doc(did): return None # it happens because the did may not have text. to drop these queries
-            else: return json.loads(Dataset.searcher.doc(str(did)).raw())['contents'].lower()
-        except Exception as e: raise e
-
+        if not Dataset.searcher.doc(did): return None # it happens because the did may not have text. to drop these queries
+        else: return json.loads(Dataset.searcher.doc(str(did)).raw())['contents'].lower()
+        
     @staticmethod
     def to_pair(input, output, index_item, cat=True):
         queries = pd.read_csv(f'{input}/queries.tsv', sep='\t', index_col=False, names=['qid', 'query'], converters={'query': str.lower}, header=None)
         # the column order in the file is [qid, uid, did, uid]!!!! STUPID!!
         qrels = pd.read_csv(f'{input}/qrels', encoding='UTF-8', sep='\t', index_col=False, names=['qid', 'uid', 'did', 'rel'], header=None)
         #not considering uid
-        # did is a hash of the URL. qid is the a hash of the *noramlised query* ==> two uid may have same qid then.
+        # docid is a hash of the URL. qid is the a hash of the *noramlised query* ==> two uid may have same qid then, same docid.
         queries_qrels = pd.merge(queries, qrels, on='qid', how='inner', copy=False)
 
         doccol = 'docs' if cat else 'doc'
@@ -94,7 +79,7 @@ class Aol(Dataset):
         queries_qrels = queries_qrels.astype('category')
         queries_qrels[doccol] = queries_qrels['did'].progress_apply(Aol.to_txt)
 
-        # no uid for now
+        # no uid for now + some cleansings ...
         queries_qrels.drop_duplicates(subset=['qid', 'did'], inplace=True)  # two users with same click for same query
         queries_qrels['uid'] = -1
         queries_qrels.dropna(inplace=True) #empty doctxt, query, ...
