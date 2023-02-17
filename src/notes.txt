@@ -15,15 +15,14 @@ AOL title
 title Index
 1,473,341 indexed
 52,245 empty
+docs query pair 4459613
 title_and_url index (all documents are indexed because there are no empty urls at all
 1,525,586 Indexed
 0 empty
-
-AOL:
-
+docs query pair 4672506
 
 Remove all empty and nan values from Query file. We do not consider empty values as it is presumed to be clicked by a user randomly. This does not add value to a user's search query.
 
 Remove all text values less than filter value set.
 
-The files from the test folder need to be concatenated so it will search 500000 search at a time.
+The files from the test folder need to be concatenated so it will search 400000 search at a time.
