@@ -9,9 +9,9 @@ extension = '.exe' if platform.system() == 'Windows' else ""
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 settings = {
-    'cmd': ['pair'],# steps of pipeline, ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box', 'stamp']
+    'cmd': ['box'],# steps of pipeline, ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box', 'stamp']
     'ncore': multiprocessing.cpu_count(),
-    't5model': 'small.local',#'base.gc', 'small.local'
+    't5model': 'base.gc',#'base.gc', 'small.local'
     'iter': 5,          #number of finetuning iteration for t5
     'nchanges': 5,      #number of changes to a query
     'ranker': 'bm25',   #'qld', 'bm25'
@@ -25,10 +25,10 @@ settings = {
         'lseq':{"inputs": 32, "targets": 256},  #query length and doc length for t5 model,
     },
     'aol': {
-        'index_item': ['title', 'url'], # acceptable values ['url'], ['title', 'url'], ['title', 'url', 'text']
+        'index_item': ['title'], # acceptable values ['url'], ['title', 'url'], ['title', 'url', 'text']
         'index': f'../data/raw/aol-ia/lucene-index/',
         'pairing': [None, 'docs', 'query'], #[context={2 scenarios, one with userID and one without userID). input={'userid','query','doc(s)'} output={'query','doc(s)'}
         'lseq':{"inputs": 32, "targets": 256},  #query length and doc length for t5 model,
-        'filter': {'minql': 1, 'mindocl': 10} # [min query length, min doc length], after merge queries with relevant 'index_item', if |query| <= minql drop the row, if |'index_item'| < mindocl, drop row
+        'filter': {'minql': 1, 'mindocl': 10}# [min query length, min doc length], after merge queries with relevant 'index_item', if |query| <= minql drop the row, if |'index_item'| < mindocl, drop row
     }
 }

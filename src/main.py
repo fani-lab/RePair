@@ -132,7 +132,7 @@ def run(data_list, domain_list, output, settings):
         in_type, out_type = settings['aol']['pairing'][1], settings['aol']['pairing'][2]
         tsv_path = {'train': f'{prep_output}/{in_type}.{out_type}.{index_item_str}.train.tsv', 'test': f'{prep_output}/{in_type}.{out_type}.{index_item_str}.test.tsv'}
 
-        Aol.init('./../data/raw/', param.settings['aol']['index_item'], param.settings['aol']['index'], param.settings['ncore'])
+        Aol.init('./../data/raw', param.settings['aol']['index_item'], param.settings['aol']['index'], param.settings['ncore'])
         # dangerous cleaning!
         # for d in os.listdir('./../data/raw/'):
         #     if not (d.find('aol-ia') > -1 or d.find('msmarco') > -1) and os.path.isdir(f'./../data/raw/{d}'): shutil.rmtree(f'./../data/raw/{d}')
@@ -140,13 +140,13 @@ def run(data_list, domain_list, output, settings):
         if 'pair' in settings['cmd']:
             cat = True if 'docs' in {in_type, out_type} else False
             print(f'Pairing queries and relevant passages for training set ...')
-            query_qrel_doc = Aol.to_pair(raw_path, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item_str}.train.tsv', settings['aol']['index_item'], cat=cat)
+            query_qrel_doc = Aol.to_pair(raw_path, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item_str}.train.tsv', settings['aol-ia']['index_item'], cat=cat)
             query_qrel_doc.to_csv(tsv_path['train'], sep='\t', encoding='utf-8', columns=[in_type, out_type], index=False, header=False)
             print(f'Pairing queries and relevant passages for test set ...')
             query_qrel_doc.to_csv(tsv_path['test'], sep='\t', encoding='utf-8', columns=[in_type, out_type], index=False, header=False)
 
         t5_model = settings['t5model']  # {"small", "base", "large", "3B", "11B"} cross {"local", "gc"}
-        t5_output = f'../output/{os.path.split(datapath)[-1]}/t5.{t5_model}.{in_type}.{out_type}'
+        t5_output = f'../output/{os.path.split(datapath)[-1]}/t5.{t5_model}.{index_item_str}.{in_type}.{out_type}'
         if {'finetune', 'predict'} & set(settings['cmd']):
             from mdl import mt5w
             if 'finetune' in settings['cmd']:
@@ -172,12 +172,12 @@ def run(data_list, domain_list, output, settings):
                     gcloud=False)
 
         if 'search' in settings['cmd']:
-            query_originals = pd.read_csv(f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item}.train.tsv', sep='\t', usecols=['qid', 'query'], dtype={'qid': str})
+            query_originals = pd.read_csv(f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item_str}.train.tsv', sep='\t', usecols=['qid', 'query'], dtype={'qid': str})
             query_changes = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["ranker"]}')
                              for f in listdir(t5_output) if isfile(join(t5_output, f)) and f.startswith('pred.') and
                              settings['ranker'] not in f and len([f for x in range(0,12) if f'{f}.split_{x}.{settings["ranker"]}' not in listdir(t5_output)]) > 0]
             with multiprocessing.Pool(settings['ncore']) as p:
-                p.starmap(partial(Aol.to_search, qids=query_originals['qid'].values.tolist(), index_item=index_item, ranker=settings['ranker'], topk=settings['topk'], batch=settings['batch']), query_changes)
+                p.starmap(partial(Aol.to_search, qids=query_originals['qid'].values.tolist(), index_item=index_item_str, ranker=settings['ranker'], topk=settings['topk'], batch=settings['batch']), query_changes)
 
             if not isfile(join(t5_output, f'original.{settings["ranker"]}')):
                 query_originals.to_csv(f'{t5_output}/original', columns=['query'], index=False, header=False)
@@ -189,7 +189,27 @@ def run(data_list, domain_list, output, settings):
                               for f in listdir(t5_output) if isfile(join(t5_output, f)) and f.endswith(settings['ranker']) and
                               f'{f}.{settings["ranker"]}.{settings["metrics"]}' not in listdir(t5_output) for x in range(0,11)]
 
-            with multiprocessing.Pool(settings['ncore']) as p: p.starmap(partial(trecw.evaluate, qrels=f'{datapath}/qrels.{index_item}.clean.tsv', metric=settings['metric'], lib=settings['treclib']), search_results)
+            with multiprocessing.Pool(settings['ncore']) as p: p.starmap(partial(trecw.evaluate, qrels=f'{datapath}/qrels.{index_item_str}.clean.tsv', metric=settings['metric'], lib=settings['treclib']), search_results)
+        if 'agg' in settings['cmd']:
+            splits = [f'split_{x}' for x in range(0, 12)]
+            query_originals = pd.read_csv(f'{prep_output}/queries.qrels.doc{"s" if "docs" in {in_type, out_type} else ""}.ctx.{index_item_str}.train.tsv', sep='\t', usecols=['qid', 'query'])
+            map_list = list()
+            for split in splits:
+                print(f'appending {split} for original maps')
+                map_list.append(pd.read_csv(join(t5_output, f'original.{split}.{settings["ranker"]}.{settings["metric"]}'), engine='python', sep='\t', usecols=[1,2], names=['qid', f'original.{settings["ranker"]}.{settings["metric"]}'], index_col=False, skipfooter=1))
+            original_metric_values = pd.concat(map_list, ignore_index=True)
+            query_originals = query_originals.merge(original_metric_values, how='left', on='qid')
+            query_originals[f'original.{settings["ranker"]}.{settings["metric"]}'].fillna(0, inplace=True)
+            query_changes = [f for f in os.listdir(t5_output) if not f.endswith(f'{settings["ranker"]}.{settings["metric"]}') and 'original' not in f]
+            Aol.aggregate(query_originals, query_changes, splits, t5_output, settings["ranker"], settings["metric"])
+        box_path = join(t5_output, f'{settings["ranker"]}.{settings["metric"]}.datasets')
+        if 'box' in settings['cmd']:
+            if not os.path.isdir(box_path): os.makedirs(box_path)
+            best_df = pd.read_csv(f'{t5_output}/{settings["ranker"]}.{settings["metric"]}.agg.best.tsv', sep='\t',
+                                  header=0)
+            qrels = pd.read_csv(f'{datapath}/qrels.tsv_', names=['qid', 'did', 'pid', 'rel'], sep='\t')
+            Aol.box(best_df, qrels, box_path)
+
 
     if ('yandex' in data_list): print('processing yandex...')
 
@@ -204,7 +224,7 @@ def addargs(parser):
 
 
 # python -u main.py -data ../data/raw/toy.msmarco.passage -domain msmarco.passage
-# python -u main.py -data ../data/raw/toy.aol -domain aol
+# python -u main.py -data ../data/raw/toy.aol-ia -domain aol-ia
 
 if __name__ == '__main__':
     freeze_support()

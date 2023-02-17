@@ -129,3 +129,82 @@ class Aol(Dataset):
                     file_index += 1
                 to_docids(doc, out_file)
                 if i % 100000 == 0: print(f'wrote {i} files to {out_docids.replace(ranker,"split_"+ str(file_index - 1) + "." + ranker)}')
+    @staticmethod
+    def aggregate(original, changes, splits, output, ranker, metric):
+        for change in changes:
+            map_split = list()
+            pred = pd.read_csv(join(output, change), sep='\r\r', skip_blank_lines=False, names=[change], engine='python',
+                               index_col=False, header=None)
+            assert len(original['qid']) == len(pred[change])
+            for split in splits:
+                print(f'appending {split} for {change} maps')
+                map_split.append(pd.read_csv(join(output, f'{change}.{split}.{ranker}.{metric}'), sep='\t', usecols=[1, 2],
+                                                 names=['qid', f'{change}.{ranker}.{metric}'], engine='python', index_col=False,
+                                                 skipfooter=1))
+            pred_metric_values = pd.concat(map_split, ignore_index=True)
+            original[change] = pred  # to know the actual change
+            original = original.merge(pred_metric_values, how='left',
+                                      on='qid')  # to know the metric value of the change
+            original[f'{change}.{ranker}.{metric}'].fillna(0, inplace=True)
+            original[f'{change}.{ranker}.{metric}'] = original[f'{change}.{ranker}.{metric}'].astype(float)
+
+        print(f'Saving original queries, all their changes, and their {metric} values based on {ranker} ...')
+        original.to_csv(f'{output}/{ranker}.{metric}.agg.all.tsv', sep='\t', encoding='UTF-8', index=False)
+        print(f'Saving original queries, better changes, and {metric} values based on {ranker} ...')
+        with open(f'{output}/{ranker}.{metric}.agg.best.tsv', mode='w', encoding='UTF-8') as agg_best:
+            agg_best.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
+            for index, row in tqdm(original.iterrows(), total=original.shape[0]):
+                agg_best.write(f'{row.qid}\t-1\t{row.query}\t{row["original." + ranker + "." + metric]}\n')
+                best_results = list()
+                for change in changes:
+                    if row[f'{change}.{ranker}.{metric}'] > 0 and row[f'{change}.{ranker}.{metric}'] >= row[
+                        f'original.{ranker}.{metric}']: best_results.append(
+                        (row[change], row[f'{change}.{ranker}.{metric}'], change))
+                best_results = sorted(best_results, key=lambda x: x[1], reverse=True)
+                for i, (query, metric_value, change) in enumerate(best_results): agg_best.write(
+                    f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
+
+    @staticmethod
+    def box(input, qrels, output):
+
+        checks = {'gold': 'True',
+                  'platinum': 'golden_q_metric > original_q_metric',
+                  'diamond': 'golden_q_metric > original_q_metric and golden_q_metric == 1'}
+        ranker, metric = input.columns[-1].split('.')
+
+        for c in checks.keys():
+            print(f'Boxing {c} queries for {ranker}.{metric} ...')
+            ds = {'qid': list(), 'query': list(), f'{ranker}.{metric}': list(), 'query_': list(),
+                  f'{ranker}.{metric}_': list()}
+            groups = input.groupby('qid')
+            for _, group in tqdm(groups, total=len(groups)):
+                if len(group) >= 2:
+                    original_q, original_q_metric = group.iloc[0], group.iloc[0][f'{ranker}.{metric}']
+                    golden_q, golden_q_metric = group.iloc[1], group.iloc[1][f'{ranker}.{metric}']
+                    for i in range(1,
+                                   2):  # len(group)): #IMPORTANT: We can have more than one golden query with SAME metric value. Here we skip them so the qid will NOT be replicated!
+                        if (group.iloc[i][f'{ranker}.{metric}'] < golden_q[f'{ranker}.{metric}']): break
+                        if not eval(checks[
+                                        c]): break  # for gold this is always true since we put >= metric values in *.agg.best.tsv
+                        ds['qid'].append(original_q['qid'])
+                        ds['query'].append(original_q['query'])
+                        ds[f'{ranker}.{metric}'].append(original_q_metric)
+                        ds['query_'].append(group.iloc[i]['query'])
+                        ds[f'{ranker}.{metric}_'].append(
+                            golden_q_metric)  # TODO: we can add golden queries with same metric value as a list here
+
+            df = pd.DataFrame.from_dict(ds)
+            # df.drop_duplicates(subset=['qid'], inplace=True)
+            del ds
+            df.to_csv(f'{output}/{c}.tsv', sep='\t', encoding='utf-8', index=False, header=False)
+            df.to_csv(f'{output}/{c}.original.tsv', sep='\t', encoding='utf-8', index=False, header=False,
+                      columns=['qid', 'query'])
+            df.to_csv(f'{output}/{c}.change.tsv', sep='\t', encoding='utf-8', index=False, header=False,
+                      columns=['qid', 'query_'])
+            print(f'{c}  has {df.shape[0]} queries')
+            qrels = df.merge(qrels, on='qid', how='inner')
+            qrels.to_csv(f'{output}/{c}.qrels.tsv', sep='\t', encoding='utf-8', index=False, header=False,
+                         columns=['qid', 'did', 'pid', 'rel'])
+            qrels.drop_duplicates(subset=['qid', 'pid'], inplace=True)
+            qrels.to_csv(f'{output}/{c}.qrels.tsv_', sep='\t', encoding='utf-8', index=False, header=False,
+                         columns=['qid', 'did', 'pid', 'rel'])
