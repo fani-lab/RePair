@@ -69,7 +69,7 @@ class MsMarcoPsg(Dataset):
                             o.write(f'{qid}\tQ0\t{h.docid:15}\t{i + 1:2}\t{h.score:.5f}\tPyserini Batch\n')
             else:
                 def to_docids(row):
-                    if not row.query: return #in the batch call, they do the same. Also, for '', both return [] with no exception
+                    if pd.isna(row.query): return #in the batch call, they do the same. Also, for '', both return [] with no exception
                     hits = Dataset.searcher.search(row.query, k=topk, remove_dups=True)
                     for i, h in enumerate(hits): o.write(f'{qids[row.name]}\tQ0\t{h.docid:7}\t{i + 1:2}\t{h.score:.5f}\tPyserini\n')
 

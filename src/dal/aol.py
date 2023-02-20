@@ -114,7 +114,7 @@ class Aol(Dataset):
             #                 o.write(f'{qid}\tQ0\t{h.docid:15}\t{i + 1:2}\t{h.score:.5f}\tPyserini Batch\n')
         else:
             def to_docids(row, o):
-                if not row.query: return
+                if pd.isna(row.query): return
                 hits = Dataset.searcher.search(row.query, k=topk, remove_dups=True)
                 for i, h in enumerate(hits): o.write(f'{qids[row.name]}\tQ0\t{h.docid}\t{i + 1:2}\t{h.score:.5f}\tPyserini\n')
 
@@ -131,15 +131,17 @@ class Aol(Dataset):
                 if i % 100000 == 0: print(f'wrote {i} files to {out_docids.replace(ranker,"split_"+ str(file_index - 1) + "." + ranker)}')
     @staticmethod
     def aggregate(original, changes, splits, output, ranker, metric):
+        def to_norm(tf_txt):
+            return tf_txt.replace('\"', '')
         for change in changes:
             map_split = list()
-            pred = pd.read_csv(join(output, change), sep='\r\r', skip_blank_lines=False, names=[change], engine='python',
-                               index_col=False, header=None)
+            pred = pd.read_csv(join(output, change), sep='\r\r', skip_blank_lines=False, converters={change : to_norm}, names=[change], engine='python',
+                               index_col=False, header=None, encoding='utf-8')
             assert len(original['qid']) == len(pred[change])
             for split in splits:
                 print(f'appending {split} for {change} maps')
                 map_split.append(pd.read_csv(join(output, f'{change}.{split}.{ranker}.{metric}'), sep='\t', usecols=[1, 2],
-                                                 names=['qid', f'{change}.{ranker}.{metric}'], engine='python', index_col=False,
+                                                 names=['qid', f'{change}.{ranker}.{metric}'], encoding='utf-8', engine='python', index_col=False,
                                                  skipfooter=1))
             pred_metric_values = pd.concat(map_split, ignore_index=True)
             original[change] = pred  # to know the actual change
