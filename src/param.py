@@ -9,13 +9,13 @@ extension = '.exe' if platform.system() == 'Windows' else ""
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 settings = {
-    'cmd': ['box'],# steps of pipeline, ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box', 'stamp']
+    'cmd': ['ds_split'],# steps of pipeline, ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box', 'stamp','ds_split']
     'ncore': multiprocessing.cpu_count(),
     't5model': 'base.gc',#'base.gc', 'small.local'
     'iter': 5,          #number of finetuning iteration for t5
     'nchanges': 5,      #number of changes to a query
     'ranker': 'bm25',   #'qld', 'bm25'
-    'batch': 10,      #search per batch of queries for IR search using pyserini, if None, search per query
+    'batch': None,      #search per batch of queries for IR search using pyserini, if None, search per query
     'topk': 10,         #number of retrieved documents for a query
     'metric': 'map',    # any valid trec_eval metric like map, ndcg, recip_rank, ...
     'treclib': f'"./trec_eval.9.0.4/trec_eval{extension}"',#in non-windows, remove .exe, also for pytrec_eval, 'pytrec'

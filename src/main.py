@@ -1,10 +1,10 @@
-import argparse, os, pandas as pd, multiprocessing, shutil
+import argparse, os, pandas as pd, multiprocessing
 from functools import partial
 from multiprocessing import freeze_support
 from os import listdir
 from os.path import isfile, join
 from shutil import copyfile
-
+import cmn.refiner as refiner
 import param
 
 def run(data_list, domain_list, output, settings):
@@ -93,8 +93,8 @@ def run(data_list, domain_list, output, settings):
         if 'agg' in settings['cmd']:
             query_originals = pd.read_csv(f'{prep_output}/queries.qrels.doc{"s" if "docs" in {in_type, out_type} else ""}.ctx.train.tsv', sep='\t', usecols=['qid', 'query'], dtype={'qid': int})
             original_metric_values = pd.read_csv(join(t5_output, f'original.{settings["ranker"]}.{settings["metric"]}'), sep='\t', usecols=[1,2], names=['qid', f'original.{settings["ranker"]}.{settings["metric"]}'], index_col=False, skipfooter=1)
-            original_metric_values[f'original.{settings["ranker"]}.{settings["metric"]}'].fillna(0, inplace=True)
             query_originals = query_originals.merge(original_metric_values, how='left', on='qid')
+            query_originals[f'original.{settings["ranker"]}.{settings["metric"]}'].fillna(0, inplace=True)
             query_changes = [('.'.join(f.split('.')[0:2]), f) for f in os.listdir(t5_output) if f.endswith(f'{settings["ranker"]}.{settings["metric"]}') and 'original' not in f]
             MsMarcoPsg.aggregate(query_originals, query_changes, t5_output)
 
@@ -106,19 +106,103 @@ def run(data_list, domain_list, output, settings):
             MsMarcoPsg.box(best_df, qrels, box_path)
 
         if 'stamp' in settings['cmd']:
-            print(f'Stamping diamond queries for {settings["ranker"]}.{settings["metric"]} == 1 ...')
+            print(f'Stamping diamond queries for {settings["ranker"]}."recip_rank.10" == 1 ...')
             from evl import trecw
             if not os.path.isdir(join(t5_output,'runs')): os.makedirs(join(t5_output, 'runs'))
 
             diamond_initial = pd.read_csv(f'{box_path}/diamond.original.tsv', sep='\t', encoding='utf-8', index_col=False, header=None, names=['qid', 'query'], dtype={'qid': str})
             diamond_initial.drop_duplicates(subset=['qid'], inplace=True)#See msmarco.boxing(): in case we store more than two golden changes with same metric value
-            MsMarcoPsg.to_search_df(pd.DataFrame(diamond_initial['query']), f'{t5_output}/runs/diamond.original.{settings["ranker"]}', diamond_initial['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
-            trecw.evaluate(f'{t5_output}/runs/diamond.original.{settings["ranker"]}', f'{t5_output}/runs/diamond.original.{settings["ranker"]}.{settings["metric"]}', qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'], lib=settings['treclib'])
+            if not isfile(f'{t5_output}/runs/diamond.original.{settings["ranker"]}'):
+                MsMarcoPsg.to_search_df(pd.DataFrame(diamond_initial['query']), f'{t5_output}/runs/diamond.original.{settings["ranker"]}', diamond_initial['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
+            trecw.evaluate(f'{t5_output}/runs/diamond.original.{settings["ranker"]}', f'{t5_output}/runs/diamond.original.{settings["ranker"]}."recip_rank.10"', qrels=f'{datapath}/qrels.train.tsv_', metric='recip_rank.10', lib=settings['treclib'])
 
             diamond_target = pd.read_csv(f'{box_path}/diamond.change.tsv', sep='\t', encoding='utf-8', index_col=False,header=None, names=['qid', 'query'], dtype={'qid': str})
             diamond_target.drop_duplicates(subset=['qid'], inplace=True)#See msmarco.boxing(): in case we store more than two golden changes with same metric value
-            MsMarcoPsg.to_search_df(pd.DataFrame(diamond_target['query']), f'{t5_output}/runs/diamond.change.{settings["ranker"]}', diamond_target['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
-            trecw.evaluate(f'{t5_output}/runs/diamond.change.{settings["ranker"]}', f'{t5_output}/runs/diamond.change.{settings["ranker"]}.{settings["metric"]}', qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'], lib=settings['treclib'])
+            if not isfile( f'{t5_output}/runs/diamond.change.{settings["ranker"]}'):
+                MsMarcoPsg.to_search_df(pd.DataFrame(diamond_target['query']), f'{t5_output}/runs/diamond.change.{settings["ranker"]}', diamond_target['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
+            trecw.evaluate(f'{t5_output}/runs/diamond.change.{settings["ranker"]}', f'{t5_output}/runs/diamond.change.{settings["ranker"]}."recip_rank.10"', qrels=f'{datapath}/qrels.train.tsv_', metric="recip_rank.10", lib=settings['treclib'])
+
+
+            #platinum queries
+
+            platinum_initial = pd.read_csv(f'{box_path}/platinum.original.tsv', sep='\t', encoding='utf-8', index_col=False, header=None, names=['qid', 'query'], dtype={'qid': str})
+            platinum_initial.drop_duplicates(subset=['qid'], inplace=True)  # See msmarco.boxing(): in case we store more than two golden changes with same metric value
+            if not isfile(f'{t5_output}/runs/platinum.original.{settings["ranker"]}'):
+                MsMarcoPsg.to_search_df(pd.DataFrame(platinum_initial['query']), f'{t5_output}/runs/platinum.original.{settings["ranker"]}', platinum_initial['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
+            trecw.evaluate(f'{t5_output}/runs/platinum.original.{settings["ranker"]}', f'{t5_output}/runs/platinum.original.{settings["ranker"]}."recip_rank.10"', qrels=f'{datapath}/qrels.train.tsv_', metric="recip_rank.10", lib=settings['treclib'])
+
+            platinum_target = pd.read_csv(f'{box_path}/platinum.change.tsv', sep='\t', encoding='utf-8', index_col=False, header=None, names=['qid', 'query'], dtype={'qid': str})
+            platinum_target.drop_duplicates(subset=['qid'], inplace=True)  # See msmarco.boxing(): in case we store more than two golden changes with same metric value
+            if not isfile(f'{t5_output}/runs/platinum.change.{settings["ranker"]}'):
+                MsMarcoPsg.to_search_df(pd.DataFrame(platinum_target['query']), f'{t5_output}/runs/platinum.change.{settings["ranker"]}', platinum_target['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
+            trecw.evaluate(f'{t5_output}/runs/platinum.change.{settings["ranker"]}', f'{t5_output}/runs/platinum.change.{settings["ranker"]}."recip_rank.10"', qrels=f'{datapath}/qrels.train.tsv_', metric="recip_rank.10", lib=settings['treclib'])
+
+            #gold
+            gold_initial = pd.read_csv(f'{box_path}/gold.original.tsv', sep='\t', encoding='utf-8',
+                                           index_col=False, header=None, names=['qid', 'query'], dtype={'qid': str})
+            gold_initial.drop_duplicates(subset=['qid'],
+                                             inplace=True)  # See msmarco.boxing(): in case we store more than two golden changes with same metric value
+            if not isfile(f'{t5_output}/runs/gold.original.{settings["ranker"]}'):
+                MsMarcoPsg.to_search_df(pd.DataFrame(gold_initial['query']),
+                                        f'{t5_output}/runs/gold.original.{settings["ranker"]}',
+                                        gold_initial['qid'].values.tolist(), settings['ranker'],
+                                        topk=settings['topk'], batch=settings['batch'])
+            trecw.evaluate(f'{t5_output}/runs/gold.original.{settings["ranker"]}',
+                           f'{t5_output}/runs/gold.original.{settings["ranker"]}."recip_rank.10"',
+                           qrels=f'{datapath}/qrels.train.tsv_', metric="recip_rank.10", lib=settings['treclib'])
+
+            gold_target = pd.read_csv(f'{box_path}/gold.change.tsv', sep='\t', encoding='utf-8',
+                                          index_col=False, header=None, names=['qid', 'query'], dtype={'qid': str})
+            gold_target.drop_duplicates(subset=['qid'],
+                                            inplace=True)  # See msmarco.boxing(): in case we store more than two golden changes with same metric value
+            if not isfile(f'{t5_output}/runs/gold.change.{settings["ranker"]}'):
+                MsMarcoPsg.to_search_df(pd.DataFrame(gold_target['query']),
+                                        f'{t5_output}/runs/gold.change.{settings["ranker"]}',
+                                        gold_target['qid'].values.tolist(), settings['ranker'],
+                                        topk=settings['topk'], batch=settings['batch'])
+            trecw.evaluate(f'{t5_output}/runs/gold.change.{settings["ranker"]}',
+                           f'{t5_output}/runs/gold.change.{settings["ranker"]}."recip_rank.10"',
+qrels=f'{datapath}/qrels.train.tsv_', metric="recip_rank.10", lib=settings['treclib'])
+
+        # if 'refiner' in settings['cmd']:
+        #     # search step
+        #     from evl import trecw
+        #     print(f'using t5 as a refiner for a sample collection of msmarco')
+        #     refiner_output = f'../output/t5-refinement'
+        #     query_originals = pd.read_csv(f'{prep_output}/queries.dev.small.tsv', sep='\t', names=['qid', 'query'],
+        #                                         dtype={'qid': str})
+        #     query_changes = [(f'{refiner_output}/aol.title.pred.msmarco-1004000', f'{refiner_output}/aol.title.pred.msmarco-1004000.{settings["ranker"]}'),
+        #                      (f'{refiner_output}/aol.title.url.pred.msmarco-1004000', f'{refiner_output}/aol.title.url.pred.msmarco-1004000.{settings["ranker"]}'),
+        #                      (f'{refiner_output}/msmarco.pred-1004000', f'{refiner_output}/msmarco.pred-1004000.{settings["ranker"]}'),
+        #                      (f'{refiner_output}/msmarco.paraphrase.pred-1004000',f'{refiner_output}/msmarco.paraphrase.pred-1004000.{settings["ranker"]}')]
+        #     # for (i, o) in query_changes: MsMarcoPsg.to_search(i, o, query_originals['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
+        #     #
+        #     # # originals search
+        #     # MsMarcoPsg.to_search_df(pd.DataFrame(query_originals['query']),
+        #     #                  f'{refiner_output}/msmarco.dev.small.{settings["ranker"]}',
+        #     #                  query_originals['qid'].values.tolist(), settings['ranker'],
+        #     #                  topk=settings['topk'], batch=settings['batch'])
+        #
+        #     # eval step
+        #     search_results = [(f'{refiner_output}/aol.title.pred.msmarco-1004000.{settings["ranker"]}',
+        #                        f'{refiner_output}/aol.title.pred.msmarco-1004000.{settings["ranker"]}."recip_rank.10"'),
+        #                       (f'{refiner_output}/aol.title.url.pred.msmarco-1004000.{settings["ranker"]}',
+        #                        f'{refiner_output}/aol.title.url.pred.msmarco-1004000.{settings["ranker"]}."recip_rank.10"'),
+        #                       (f'{refiner_output}/msmarco.pred-1004000.{settings["ranker"]}',
+        #                        f'{refiner_output}/msmarco.pred-1004000.{settings["ranker"]}."recip_rank.10"'),
+        #                       (f'{refiner_output}/msmarco.paraphrase.pred-1004000.{settings["ranker"]}',
+        #                        f'{refiner_output}/msmarco.paraphrase.pred-1004000.{settings["ranker"]}."recip_rank.10"'),
+        #                       (f'{refiner_output}/msmarco.dev.small.{settings["ranker"]}',
+        #                        f'{refiner_output}/msmarco.dev.small.{settings["ranker"]}."recip_rank.10"')
+        #                       ]
+        #     with multiprocessing.Pool(settings['ncore']) as p:
+        #         p.starmap(
+        #             partial(trecw.evaluate, qrels=f'{datapath}/qrels.dev.small.tsv', metric="recip_rank.10",
+        #                     lib=settings['treclib']), search_results)
+        if 'ds_split' in settings["cmd"]:
+            refiner.train_test_split(box_path)
+
+
 
     if 'aol' in domain_list:
         # AOL requires us to construct the Index, Qrels and Queries file from IR_dataset
@@ -131,7 +215,6 @@ def run(data_list, domain_list, output, settings):
         if not os.path.isdir(prep_output): os.makedirs(prep_output)
         in_type, out_type = settings['aol']['pairing'][1], settings['aol']['pairing'][2]
         tsv_path = {'train': f'{prep_output}/{in_type}.{out_type}.{index_item_str}.train.tsv', 'test': f'{prep_output}/{in_type}.{out_type}.{index_item_str}.test.tsv'}
-
         Aol.init('./../data/raw', param.settings['aol']['index_item'], param.settings['aol']['index'], param.settings['ncore'])
         # dangerous cleaning!
         # for d in os.listdir('./../data/raw/'):
@@ -181,7 +264,7 @@ def run(data_list, domain_list, output, settings):
 
             if not isfile(join(t5_output, f'original.{settings["ranker"]}')):
                 query_originals.to_csv(f'{t5_output}/original', columns=['query'], index=False, header=False)
-                Aol.to_search_df(pd.DataFrame(query_originals['query']), f'{t5_output}/original.{settings["ranker"]}', query_originals['qid'].values.tolist(), index_item, settings['ranker'], topk=settings['topk'], batch=settings['batch'])
+                Aol.to_search_df(pd.DataFrame(query_originals['query']), f'{t5_output}/original.{settings["ranker"]}', query_originals['qid'].values.tolist(), index_item_str, settings['ranker'], topk=settings['topk'], batch=settings['batch'])
 
         if 'eval' in settings['cmd']:
             from evl import trecw
@@ -205,14 +288,119 @@ def run(data_list, domain_list, output, settings):
         box_path = join(t5_output, f'{settings["ranker"]}.{settings["metric"]}.datasets')
         if 'box' in settings['cmd']:
             if not os.path.isdir(box_path): os.makedirs(box_path)
-            best_df = pd.read_csv(f'{t5_output}/{settings["ranker"]}.{settings["metric"]}.agg.best.tsv', sep='\t',
-                                  header=0)
-            qrels = pd.read_csv(f'{datapath}/qrels.tsv_', names=['qid', 'did', 'pid', 'rel'], sep='\t')
+            best_df = pd.read_csv(f'{t5_output}/{settings["ranker"]}.{settings["metric"]}.agg.best.tsv', encoding='utf-8', sep='\t',
+                                  header=0,index_col=False)
+            qrels = pd.read_csv(f'{datapath}/qrels.tsv_', names=['qid', 'did', 'pid', 'rel'], sep='\t', encoding='utf-8')
             Aol.box(best_df, qrels, box_path)
+        if 'stamp' in settings['cmd']:
+            print(f'Stamping diamond queries for {settings["ranker"]}."recip_rank.10" == 1 ...')
+            from evl import trecw
+            if not os.path.isdir(join(t5_output, 'runs')): os.makedirs(join(t5_output, 'runs'))
+
+            diamond_initial = pd.read_csv(f'{box_path}/diamond.original.tsv', sep='\t', encoding='utf-8',
+                                          index_col=False, header=None, names=['qid', 'query'], dtype={'qid': str})
+            diamond_initial.drop_duplicates(subset=['qid'],
+                                            inplace=True)  # See msmarco.boxing(): in case we store more than two golden changes with same metric value
+            if not isfile(f'{t5_output}/runs/diamond.original.{settings["ranker"]}'):
+                Aol.to_search_df(pd.DataFrame(diamond_initial['query']),
+                                        f'{t5_output}/runs/diamond.original.{settings["ranker"]}',
+                                        diamond_initial['qid'].values.tolist(), settings['ranker'],
+                                        topk=settings['topk'], batch=settings['batch'])
+            diamond_target = pd.read_csv(f'{box_path}/diamond.change.tsv', sep='\t', encoding='utf-8', index_col=False,
+                                         header=None, names=['qid', 'query'], dtype={'qid': str})
+            diamond_target.drop_duplicates(subset=['qid'],
+                                           inplace=True)  # See msmarco.boxing(): in case we store more than two golden changes with same metric value
+            if not isfile(f'{t5_output}/runs/diamond.change.{settings["ranker"]}'):
+                Aol.to_search_df(pd.DataFrame(diamond_target['query']),
+                                        f'{t5_output}/runs/diamond.change.{settings["ranker"]}',
+                                        diamond_target['qid'].values.tolist(), settings['ranker'],
+                                        topk=settings['topk'], batch=settings['batch'])
+
+            # platinum queries
+
+            platinum_initial = pd.read_csv(f'{box_path}/platinum.original.tsv', sep='\t', encoding='utf-8',
+                                           index_col=False, header=None, names=['qid', 'query'], dtype={'qid': str})
+            platinum_initial.drop_duplicates(subset=['qid'],
+                                             inplace=True)  # See msmarco.boxing(): in case we store more than two golden changes with same metric value
+            if not isfile(f'{t5_output}/runs/platinum.original.{settings["ranker"]}'):
+                Aol.to_search_df(pd.DataFrame(platinum_initial['query']),
+                                        f'{t5_output}/runs/platinum.original.{settings["ranker"]}',
+                                        platinum_initial['qid'].values.tolist(), settings['ranker'],
+                                        topk=settings['topk'], batch=settings['batch'])
+
+            platinum_target = pd.read_csv(f'{box_path}/platinum.change.tsv', sep='\t', encoding='utf-8',
+                                          index_col=False, header=None, names=['qid', 'query'], dtype={'qid': str})
+            platinum_target.drop_duplicates(subset=['qid'],
+                                            inplace=True)  # See msmarco.boxing(): in case we store more than two golden changes with same metric value
+            if not isfile(f'{t5_output}/runs/platinum.change.{settings["ranker"]}'):
+                Aol.to_search_df(pd.DataFrame(platinum_target['query']),
+                                        f'{t5_output}/runs/platinum.change.{settings["ranker"]}',
+                                        platinum_target['qid'].values.tolist(), settings['ranker'],
+                                        topk=settings['topk'], batch=settings['batch'])
+
+            # gold
+            gold_initial = pd.read_csv(f'{box_path}/gold.original.tsv', sep='\t', encoding='utf-8',
+                                       index_col=False, header=None, names=['qid', 'query'], dtype={'qid': str})
+            gold_initial.drop_duplicates(subset=['qid'],
+                                         inplace=True)  # See msmarco.boxing(): in case we store more than two golden changes with same metric value
+            if not isfile(f'{t5_output}/runs/gold.original.{settings["ranker"]}'):
+                Aol.to_search_df(pd.DataFrame(gold_initial['query']),
+                                        f'{t5_output}/runs/gold.original.{settings["ranker"]}',
+                                        gold_initial['qid'].values.tolist(), settings['ranker'],
+                                        topk=settings['topk'], batch=settings['batch'])
+            gold_target = pd.read_csv(f'{box_path}/gold.change.tsv', sep='\t', encoding='utf-8', index_col=False, header=None, names=['qid', 'query'], dtype={'qid': str})
+            gold_target.drop_duplicates(subset=['qid'], inplace=True)  # See msmarco.boxing(): in case we store more than two golden changes with same metric value
+            if not isfile(f'{t5_output}/runs/gold.change.{settings["ranker"]}'):
+                Aol.to_search_df(pd.DataFrame(gold_target['query']),
+                                        f'{t5_output}/runs/gold.change.{settings["ranker"]}',
+                                        gold_target['qid'].values.tolist(), settings['ranker'],
+                                        topk=settings['topk'], batch=settings['batch'])
+
+            evaluate_list = [(f'{t5_output}/runs/gold.change.{settings["ranker"]}', f'{t5_output}/runs/gold.change.{settings["ranker"]}."recip_rank.10"'),
+                             (f'{t5_output}/runs/gold.original.{settings["ranker"]}', f'{t5_output}/runs/gold.original.{settings["ranker"]}."recip_rank.10"'),
+                             (f'{t5_output}/runs/platinum.change.{settings["ranker"]}', f'{t5_output}/runs/platinum.change.{settings["ranker"]}."recip_rank.10"'),
+                             (f'{t5_output}/runs/platinum.original.{settings["ranker"]}', f'{t5_output}/runs/platinum.original.{settings["ranker"]}."recip_rank.10"'),
+                             (f'{t5_output}/runs/diamond.change.{settings["ranker"]}', f'{t5_output}/runs/diamond.change.{settings["ranker"]}."recip_rank.10"'),
+                             (f'{t5_output}/runs/diamond.original.{settings["ranker"]}', f'{t5_output}/runs/diamond.original.{settings["ranker"]}."recip_rank.10"')]
+            with multiprocessing.Pool(settings['ncore']) as p: p.starmap(partial(trecw.evaluate, qrels=f'{t5_output}/{settings["ranker"]}.map.datasets/gold.qrels.tsv_', metric="recip_rank.10", lib=settings['treclib']), evaluate_list)
 
 
+        if 'refiner' in settings['cmd']:
+            # search step
+            from evl import trecw
+            print(f'using t5 as a refiner for a sample collection of aol')
+            refiner_output = f'../output/t5-refinement'
+            query_originals_title = pd.read_csv(f'{prep_output}/aol.dev.title.tsv', sep='\t', names=['qid', 'query'], dtype={'qid': str})
+            query_originals_title_url = pd.read_csv(f'{prep_output}/aol.dev.title.url.tsv', sep='\t', names=['qid', 'query'], dtype={'qid': str})
+            query_changes_title = [(f'{refiner_output}/aol.title.pred-1004000', f'{refiner_output}/aol.title.pred-1004000.{settings["ranker"]}'),
+                                   (f'{refiner_output}/msmarco.pred.aol.title-1004000', f'{refiner_output}/msmarco.pred.aol.title-1004000.{settings["ranker"]}')]
+            query_changes_title_url = [(f'{refiner_output}/aol.title.url.pred-1004000', f'{refiner_output}/aol.title.url.pred-1004000.{settings["ranker"]}'),
+                (f'{refiner_output}/msmarco.pred.aol.title.url-1004000', f'{refiner_output}/msmarco.pred.aol.title.url-1004000.{settings["ranker"]}')]
+            # for (i, o) in query_changes_title: Aol.to_search(i, o, query_originals_title['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
+            # for (i, o) in query_changes_title_url: Aol.to_search(i, o, query_originals_title_url['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
+            # with multiprocessing.Pool(settings['ncore']) as p:
+            #
+            #     p.starmap(partial(Aol.to_search, qids=query_originals_title['qid'].values.tolist(), index_item='title', ranker=settings['ranker'], topk=settings['topk'], batch=settings['batch']), query_changes_title)
+            #     p.starmap(partial(Aol.to_search, qids=query_originals_title_url['qid'].values.tolist(), index_item=None, ranker=settings['ranker'], topk=settings['topk'], batch=settings['batch']), query_changes_title_url)
+
+            #originals search
+            # Aol.to_search_df(pd.DataFrame(query_originals_title['query']), f'{refiner_output}/aol.dev.title.{settings["ranker"]}', query_originals_title['qid'].values.tolist(), index_item_str, settings['ranker'], topk=settings['topk'], batch=settings['batch'])
+            # Aol.to_search_df(pd.DataFrame(query_originals_title_url['query']), f'{refiner_output}/aol.dev.title.url.{settings["ranker"]}', query_originals_title_url['qid'].values.tolist(), index_item_str, settings['ranker'], topk=settings['topk'], batch=settings['batch'])
+
+            # eval step
+            search_results = [(f'{refiner_output}/aol.title.pred-1004000.{settings["ranker"]}', f'{refiner_output}/aol.title.pred-1004000.{settings["ranker"]}."recip_rank.10"'),
+                                    (f'{refiner_output}/msmarco.pred.aol.title-1004000.{settings["ranker"]}', f'{refiner_output}/msmarco.pred.aol.title-1004000.{settings["ranker"]}."recip_rank.10"'),
+                                    (f'{refiner_output}/aol.title.url.pred-1004000.{settings["ranker"]}', f'{refiner_output}/aol.title.url.pred-1004000.{settings["ranker"]}."recip_rank.10"'),
+                                    (f'{refiner_output}/msmarco.pred.aol.title.url-1004000.{settings["ranker"]}', f'{refiner_output}/msmarco.pred.aol.title.url-1004000.{settings["ranker"]}."recip_rank.10"'),
+                                    (f'{refiner_output}/aol.dev.title.{settings["ranker"]}', f'{refiner_output}/aol.dev.title.{settings["ranker"]}."recip_rank.10"'),
+                                    (f'{refiner_output}/aol.dev.title.url.{settings["ranker"]}', f'{refiner_output}/aol.dev.title.url.{settings["ranker"]}."recip_rank.10"')]
+            with multiprocessing.Pool(settings['ncore']) as p: p.starmap(
+                partial(trecw.evaluate, qrels=f'{datapath}/qrels.tsv_', metric="recip_rank.10",
+                        lib=settings['treclib']), search_results)
+
+        if 'ds_split' in settings["cmd"]:
+            refiner.train_test_split(box_path)
     if ('yandex' in data_list): print('processing yandex...')
-
 
 def addargs(parser):
     dataset = parser.add_argument_group('dataset')
@@ -238,7 +426,7 @@ if __name__ == '__main__':
             settings=param.settings)
 
     # from itertools import product
-    # for ranker, metric in product(['bm25', 'qld'], ['map', 'ndcg', 'recip_rank']):
+    # for ranker, metric in product(['bm25'], ['map', 'recip_rank.10']):
     #     param.settings['ranker'] = ranker
     #     param.settings['metric'] = metric
     #     run(data_list=args.data_list,
