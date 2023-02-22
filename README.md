@@ -1,4 +1,4 @@
-# Personalized Query Refinement
+# RePair: Extensible and Configurable Toolkit for Query Refinement Gold Standard Generation
 Creating alternative queries, also known as query reformulation, has been shown to improve users' search experience.  Recently, neural transformers like `(* * * )` have shown increased effectiveness when applied for learning to reformulate an original query into effective alternate queries. Such methods however forgo incorporating user information. We investigate personalized query reformulation by incorporating user information on the performance of neural query reformulation methods compared to the lack thereof on `aol` and `yandex` query search logs. Our experiments demonstrate the synergistic effects of taking user information into account for query reformulation.
 
 
