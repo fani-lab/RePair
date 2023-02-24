@@ -11,7 +11,6 @@ def run(data_list, domain_list, output, settings):
     # 'qrels.train.tsv' => ,["qid","did","pid","relevancy"]
     # 'queries.train.tsv' => ["qid","query"]
 
-    # seems the LuceneSearcher cannot be shared in multiple processes! See dal.ds.py
     for domain in domain_list:
         if domain == 'msmarco.passage':
             from dal.msmarco import MsMarcoPsg
@@ -79,6 +78,7 @@ def run(data_list, domain_list, output, settings):
             # for (i, o) in query_changes: ds.search(i, o, query_originals['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
             # batch search:
             for (i, o) in query_changes: ds.search(i, o, query_originals['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
+            # seems the LuceneSearcher cannot be shared in multiple processes! See dal.ds.py
             # parallel on each file ==> Problem: starmap does not understand inherited Dataset.searcher attribute!
             # with mp.Pool(settings['ncore']) as p:
             #     p.starmap(partial(ds.search, qids=query_originals['qid'].values.tolist(), ranker=settings['ranker'], topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore']), query_changes)
