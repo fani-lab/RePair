@@ -12,22 +12,20 @@ def run(data_list, domain_list, output, settings):
     # 'queries.train.tsv' => ["qid","query"]
 
     for domain in domain_list:
-        if domain == 'msmarco.passage':
-            from dal.msmarco import MsMarcoPsg
-            ds = MsMarcoPsg
-        if domain == 'aol-ia':
-            from dal.aol import Aol
-            ds = Aol
-        if domain == 'yandex' in domain_list: raise ValueError('Yandex is yet to be added ...')
-
         datapath = data_list[domain_list.index(domain)]
         prep_output = f'./../data/preprocessed/{os.path.split(datapath)[-1]}'
         if not os.path.isdir(prep_output): os.makedirs(prep_output)
 
-        index_item_str = '.'.join(settings[domain]['index_item'])
-        ds.init('./../data/raw', param.settings[domain]['index_item'], param.settings[domain]['index'], param.settings['ncore'])
+        if domain == 'msmarco.passage':
+            from dal.msmarco import MsMarcoPsg
+            ds = MsMarcoPsg(param.settings[domain])
+        if domain == 'aol-ia':
+            from dal.aol import Aol
+            ds = Aol(param.settings[domain], datapath, param.settings['ncore'])
+        if domain == 'yandex' in domain_list: raise ValueError('Yandex is yet to be added ...')
 
-        in_type, out_type = settings[domain]['pairing'][1], settings['aol']['pairing'][2]
+        index_item_str = '.'.join(settings[domain]['index_item'])
+        in_type, out_type = settings[domain]['pairing'][1], settings[domain]['pairing'][2]
         tsv_path = {'train': f'{prep_output}/{in_type}.{out_type}.{index_item_str}.train.tsv', 'test': f'{prep_output}/{in_type}.{out_type}.{index_item_str}.test.tsv'}
 
         query_qrel_doc = None
@@ -48,13 +46,13 @@ def run(data_list, domain_list, output, settings):
         if {'finetune', 'predict'} & set(settings['cmd']):
             from mdl import mt5w
             if 'finetune' in settings['cmd']:
-                print(f"Finetuning {t5_model} for {settings['iter']} and storing the checkpoints at {t5_output} ...")
+                print(f"Finetuning {t5_model} for {settings['iter']} iterations and storing the checkpoints at {t5_output} ...")
                 mt5w.finetune(
                     tsv_path=tsv_path,
                     pretrained_dir=f'./../output/t5-data/pretrained_models/{t5_model.split(".")[0]}', #"gs://t5-data/pretrained_models/{"small", "base", "large", "3B", "11B"}
                     steps=settings['iter'],
-                    output=t5_output, task_name=f'{domain}_cf',
-                    lseq=settings['msmarco.passage']['lseq'],
+                    output=t5_output, task_name=f"{domain.replace('-', '')}_cf",#:DD Task name must match regex: ^[\w\d\.\:_]+$
+                    lseq=settings[domain]['lseq'],
                     nexamples=None, in_type=in_type, out_type=out_type, gcloud=False)
 
             if 'predict' in settings['cmd']:
@@ -114,7 +112,7 @@ def run(data_list, domain_list, output, settings):
             gold_df = pd.read_csv(f'{t5_output}/{settings["ranker"]}.{settings["metric"]}.agg.all.tsv', sep='\t', header=0)
             qrels = pd.read_csv(f'{datapath}/qrels.train.tsv_', names=['qid', 'did', 'pid', 'rel'], sep='\t')
 
-            checks = {'gold': 'changed_q_metric >= original_q_metric',
+            checks = {'gold': 'changed_q_metric >= original_q_metric and changed_q_metric > 0',
                       'platinum': 'changed_q_metric > original_q_metric',
                       'diamond': 'changed_q_metric > original_q_metric and changed_q_metric == 1'}
             ds.box(gold_df, qrels, box_path, checks)
@@ -154,6 +152,7 @@ if __name__ == '__main__':
     #         output=args.output,
     #         settings=param.settings)
 
+    #after finetuning and predict, we can benchmark on rankers and metrics
     from itertools import product
     for ranker, metric in product(['bm25', 'qld'], ['success.10', 'map', 'recip_rank.10']):
         param.settings['ranker'] = ranker

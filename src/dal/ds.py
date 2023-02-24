@@ -2,8 +2,20 @@ import json, pandas as pd
 from tqdm import tqdm
 from os.path import isfile,join
 
+from pyserini.search.lucene import LuceneSearcher
+
 class Dataset(object):
     searcher = None
+    settings = None
+
+    def __init__(self, settings):
+        Dataset.settings = settings
+        # https://github.com/castorini/pyserini/blob/master/docs/prebuilt-indexes.md
+        # searcher = LuceneSearcher.from_prebuilt_index('msmarco-v1-passage')
+        # sometimes we need to manually download the index ==> https://github.com/castorini/pyserini/blob/master/docs/usage-interactive-search.md#how-do-i-manually-download-indexes
+        # sometimes we need to manually build the index ==> Aol.init()
+        Dataset.searcher = LuceneSearcher(Dataset.settings['index'])
+        if not Dataset.searcher: raise ValueError(f'Lucene searcher cannot find/build msmarco.passage index at {Dataset.settings["index"]}!')
 
     @staticmethod
     def init(homedir, index_item, indexdir, ncore): pass
@@ -13,6 +25,7 @@ class Dataset(object):
         # The``docid`` is overloaded: if it is of type ``str``, it is treated as an external collection ``docid``;
         # if it is of type ``int``, it is treated as an internal Lucene``docid``. # stupid!!
         try:return json.loads(Dataset.searcher.doc(str(pid)).raw())['contents'].lower()
+        except AttributeError: return '' #if Dataset.searcher.doc(str(pid)) is None
         except Exception as e: raise e
 
     @staticmethod

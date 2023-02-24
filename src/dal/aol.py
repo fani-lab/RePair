@@ -5,43 +5,41 @@ tqdm.pandas()
 
 from pyserini.search.lucene import LuceneSearcher
 
-import param
 from dal.ds import Dataset
 
 class Aol(Dataset):
 
+    def __init__(self, settings, homedir, ncore):
+        try: super(Aol, self).__init__(settings=settings)
+        except ValueError: Aol.init(homedir, Dataset.settings['index_item'], Dataset.settings['index'], ncore)
+
     @staticmethod
-    def init(homedir, index_item, indexdir, ncore):
-        # AOL requires us to construct the Index, Qrels and Queries file from IR_dataset
-        try:
-            Dataset.searcher = LuceneSearcher(f"{param.settings['aol']['index']}/{'.'.join(param.settings['aol']['index_item'])}")
-        except:
-            print(f"No index found at {param.settings['aol']['index']}! Creating index from scratch using ir-dataset ...")
-            #https://github.com/allenai/ir_datasets
-            os.environ['IR_DATASETS_HOME'] = homedir
-            if not os.path.isdir(os.environ['IR_DATASETS_HOME']): os.makedirs(os.environ['IR_DATASETS_HOME'])
-            import ir_datasets
-            from cmn.lucenex import lucenex
+    def _build_index(homedir, index_item, indexdir, ncore):
+        print(f"Creating index from scratch using ir-dataset ...")
+        #https://github.com/allenai/ir_datasets
+        os.environ['IR_DATASETS_HOME'] = homedir
+        if not os.path.isdir(os.environ['IR_DATASETS_HOME']): os.makedirs(os.environ['IR_DATASETS_HOME'])
+        import ir_datasets
+        from cmn.lucenex import lucenex
 
-            print('Setting up aol corpos using ir-datasets ...')
-            aolia = ir_datasets.load("aol-ia")
-            print('Getting queries and qrels ...')
-            # the column order in the file is [qid, uid, did, uid]!!!! STUPID!!
-            qrels = pd.DataFrame.from_records(aolia.qrels_iter(), columns=['qid', 'did', 'rel', 'uid'], nrows=1)  # namedtuple<query_id, doc_id, relevance, iteration>
-            queries = pd.DataFrame.from_records(aolia.queries_iter(), columns=['qid', 'query'], nrows=1)# namedtuple<query_id, text>
+        print(f"Setting up aol corpos using ir-datasets at {homedir}...")
+        aolia = ir_datasets.load("aol-ia")
+        print('Getting queries and qrels ...')
+        # the column order in the file is [qid, uid, did, uid]!!!! STUPID!!
+        qrels = pd.DataFrame.from_records(aolia.qrels_iter(), columns=['qid', 'did', 'rel', 'uid'], nrows=1)  # namedtuple<query_id, doc_id, relevance, iteration>
+        queries = pd.DataFrame.from_records(aolia.queries_iter(), columns=['qid', 'query'], nrows=1)# namedtuple<query_id, text>
 
-            print('Creating jsonl collections for indexing ...')
-            print(f'Raw documents should be downloaded already at {homedir}/aol-ia/downloaded_docs/ as explained here: https://github.com/terrierteam/aolia-tools')
-            index_item_str = '.'.join(index_item)
-            Aol.create_jsonl(aolia, index_item, f'{homedir}/aol-ia/{index_item_str}')
-            lucenex(f'{homedir}/aol-ia/{index_item_str}/', f'{indexdir}/{index_item_str}/', ncore)
-            # do NOT rename qrel to qrel.tsv or anything else as aol-ia hardcoded it
-            # if os.path.isfile('./../data/raw/aol-ia/qrels'): os.rename('./../data/raw/aol-ia/qrels', '../data/raw/aol-ia/qrels')
-            Dataset.searcher = LuceneSearcher(f"{param.settings['aol']['index']}/{'.'.join(param.settings['aol']['index_item'])}")
-            if not Dataset.searcher: raise ValueError(f"Lucene searcher cannot find aol index at {param.settings['aol']['index']}/{'.'.join(param.settings['aol']['index_item'])}!")
-            # dangerous cleaning!
-            # for d in os.listdir('./../data/raw/'):
-            #     if not (d.find('aol-ia') > -1 or d.find('msmarco') > -1) and os.path.isdir(f'./../data/raw/{d}'): shutil.rmtree(f'./../data/raw/{d}')
+        print('Creating jsonl collections for indexing ...')
+        print(f'Raw documents should be downloaded already at {homedir}/aol-ia/downloaded_docs/ as explained here: https://github.com/terrierteam/aolia-tools')
+        index_item_str = '.'.join(index_item)
+        Aol.create_jsonl(aolia, index_item, f'{homedir}/aol-ia/{index_item_str}')
+        lucenex(f'{homedir}/aol-ia/{index_item_str}/', indexdir, ncore)
+        # do NOT rename qrel to qrel.tsv or anything else as aol-ia does not like it!!
+        # if os.path.isfile('./../data/raw/aol-ia/qrels'): os.rename('./../data/raw/aol-ia/qrels', '../data/raw/aol-ia/qrels')
+        return LuceneSearcher(indexdir)
+        # dangerous cleaning!
+        # for d in os.listdir('./../data/raw/'):
+        #     if not (d.find('aol-ia') > -1 or d.find('msmarco') > -1) and os.path.isdir(f'./../data/raw/{d}'): shutil.rmtree(f'./../data/raw/{d}')
 
     @staticmethod
     def create_jsonl(aolia, index_item, output):
@@ -75,14 +73,14 @@ class Aol(Dataset):
         del queries, qrels
         queries_qrels['ctx'] = ''
         queries_qrels = queries_qrels.astype('category')
-        queries_qrels[doccol] = queries_qrels['did'].progress_apply(Aol.to_txt)
+        queries_qrels[doccol] = queries_qrels['did'].progress_apply(Dataset._txt)
 
         # no uid for now + some cleansings ...
         queries_qrels.drop_duplicates(subset=['qid', 'did'], inplace=True)  # two users with same click for same query
         queries_qrels['uid'] = -1
         queries_qrels.dropna(inplace=True) #empty doctxt, query, ...
-        queries_qrels.drop(queries_qrels[queries_qrels['query'].str.strip().str.len() <= param.settings['aol']['filter']['minql']].index,inplace=True)
-        queries_qrels.drop(queries_qrels[queries_qrels[doccol].str.strip().str.len() < param.settings["aol"]["filter"]['mindocl']].index,inplace=True)  # remove qrels whose docs are less than mindocl
+        queries_qrels.drop(queries_qrels[queries_qrels['query'].str.strip().str.len() <= Dataset.settings['filter']['minql']].index,inplace=True)
+        queries_qrels.drop(queries_qrels[queries_qrels[doccol].str.strip().str.len() < Dataset.settings["filter"]['mindocl']].index,inplace=True)  # remove qrels whose docs are less than mindocl
         queries_qrels.to_csv(f'{input}/qrels.tsv_', index=False, sep='\t', header=False, columns=['qid', 'uid', 'did', 'rel'])
 
         if cat: queries_qrels = queries_qrels.groupby(['qid', 'query'], as_index=False, observed=True).agg({'uid': list, 'did': list, doccol: ' '.join})

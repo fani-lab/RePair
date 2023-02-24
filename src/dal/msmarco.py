@@ -4,18 +4,13 @@ import pandas as pd
 from tqdm import tqdm
 tqdm.pandas()
 
-from pyserini.search.lucene import LuceneSearcher
-
-import param
 from dal.ds import Dataset
 
 class MsMarcoPsg(Dataset):
 
-    # https://github.com/castorini/pyserini/blob/master/docs/prebuilt-indexes.md
-    # searcher = LuceneSearcher.from_prebuilt_index('msmarco-v1-passage')
-    # sometimes you need to manually download the index ==> https://github.com/castorini/pyserini/blob/master/docs/usage-interactive-search.md#how-do-i-manually-download-indexes
-    Dataset.searcher = LuceneSearcher(param.settings['msmarco.passage']['index'])
-    if not Dataset.searcher: raise ValueError(f'Lucene searcher cannot find/build msmarco.passage index at {param.settings["msmarco.passage"]["index"]}!')
+    def __init__(self, settings):
+        try: super(MsMarcoPsg, self).__init__(settings=settings)
+        except ValueError: MsMarcoPsg.init(None, None, None, None)
 
     @staticmethod
     def pair(input, output, cat=True):
