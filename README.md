@@ -55,17 +55,12 @@ We have used [`T5`](https://github.com/google-research/text-to-text-transfer-tra
 1. [local machine (cpu/gpu)(`linux`, `windows`)](https://github.com/fani-lab/personalized_query_refinement/blob/main/RUNT5.md#localhost-cpu-or-gpu)
 2. [`google cloud (tpu)`](https://github.com/fani-lab/personalized_query_refinement/blob/main/RUNT5.md#google-cloud-tpu)
 
-We store the finetuned transformer in [`./output/{domain name}/{transformer name}.{pairing strategy}`](./output/msmarco.passage/t5.small.local.docs.query) like for  [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) whose `small` version has been finetuned on a local machine for `msmarco.passage`, we save the model in [`msmarco.passage/t5.small.local.docs.query`](./output/msmarco.passage/t5.small.local.docs.query)
+We store the finetuned transformer in [`./output/{domain name}/{transformer name}.{pairing strategy}`](./output/toy.msmarco.passage/t5.small.local.docs.query) like for  [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) whose `small` version has been finetuned on a local machine for `toy.msmarco.passage`, we save the model in [`./output/toy.msmarco.passage/t5.small.local.docs.query`](./output/toy.msmarco.passage/t5.small.local.docs.query)
 
 ### [`['predict']`](./src/param.py#L16)
-Once a transformer has been finetuned, we feed input original queries w/ or w/o context to the model and whaterver the model generates is considered as a potential refined query. To have a collection of potential refined queries for the same original query, we used the [`top-k random sampling`](https://aclanthology.org/P18-1082/) as opposed to `beam search`, suggested by [`Nogueira and Lin`](https://cs.uwaterloo.ca/~jimmylin/publications/Nogueira_Lin_2019_docTTTTTquery-v2.pdf). So, we ran the transformer for [`nchanges`](./src/param.py#L16) times at inference and generate [`nchanges`](./src/param.py#L16) potential refined queries. We store the `i`-th potential refined query of original queries at 
+Once a transformer has been finetuned, we feed input original queries w/ or w/o context to the model and whaterver the model generates is considered as a potential refined query. To have a collection of potential refined queries for the same original query, we used the [`top-k random sampling`](https://aclanthology.org/P18-1082/) as opposed to `beam search`, suggested by [`Nogueira and Lin`](https://cs.uwaterloo.ca/~jimmylin/publications/Nogueira_Lin_2019_docTTTTTquery-v2.pdf). So, we ran the transformer for [`nchanges`](./src/param.py#L16) times at inference and generate [`nchanges`](./src/param.py#L16) potential refined queries. 
 
-1. `ctx.query.*/pred.{refinement index}-{model checkpoint}`: query
-2. `ctx.doc.*/pred.{refinement index}-{model checkpoint}`: relevant passages of a query 
-3. `ctx.querydoc.*/pred.{refinement index}-{model checkpoint}`: concatenation of query and its relevant passages
-
-We save the test file(s) as `{ctx.query.*, ctx.doc.*, ctx.querydoc.*}.test.tsv`.
-
+We store the `i`-th potential refined query of original queries at same folder as the finetuned model, i.e., [`./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}`](./output/toy.msmarco.passage/t5.small.local.docs.query) like [`./output/toy.msmarco.passage/t5.small.local.docs.query/pred.0-1000005`](./output/toy.msmarco.passage/t5.small.local.docs.query/pred.0-1000005)
 
 ## Results
 We calculate the retrieval power of each query refinement on both train and test sets using IR metrics like `map` or `ndcg` compared to the original query and see if the refinements are better.
