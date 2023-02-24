@@ -37,7 +37,7 @@ To perform fast IR tasks, we need to build the indexes of document corpora or us
 
 In case there is no prebuilt index, steps include collecting the corpus and building an index as we did for [aol-ia](https://dl.acm.org/doi/abs/10.1007/978-3-030-99736-6_42) using [`ir-datasets`](https://ir-datasets.com/aol-ia.html).
 
-## Quickstart
+## 2. Quickstart
 We use [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to train a model, that when given an input query (origianl query), generates refined (better) versions of the query in terms of retrieving more relevant documents at higher ranking positions. We fine-tune `T5` model on `msmarco.passage` (no context) and `aol` (w/o `userid`). For `yandex` dataset, we will train `T5` from scratch since the tokens are anonymized by random numbers. 
 
 ### [`['pair']`](./src/param.py#L25)
@@ -55,7 +55,8 @@ We have used [`T5`](https://github.com/google-research/text-to-text-transfer-tra
 1. [local machine (cpu/gpu)(`linux`, `windows`)](https://github.com/fani-lab/personalized_query_refinement/blob/main/RUNT5.md#localhost-cpu-or-gpu)
 2. [`google cloud (tpu)`](https://github.com/fani-lab/personalized_query_refinement/blob/main/RUNT5.md#google-cloud-tpu)
 
-Since our main purpose is to evaluate the retrieval power of refinements to the queries, we can input either of the following options w/ or w/o context and consider whaterver the model generates as a refinement to the query:
+## 3. [`['predict']`](./src/param.py#L16)
+Once a transformer has been finetuned, we feed input original queries w/ or w/o context to the model and whaterver the model generates is considered as a potential refined query. To have a collection of potential refined queries for the same original query, we used the [`top-k random sampling`](https://aclanthology.org/P18-1082/) as opposed to `beam search`, suggested by [`Nogueira and Lin`](https://cs.uwaterloo.ca/~jimmylin/publications/Nogueira_Lin_2019_docTTTTTquery-v2.pdf). So, we ran the transformer for [`nchanges`](./src/param.py#L16) times at inference and generate [`nchanges`](./src/param.py#L16) potential refined queries.
 
 1. `ctx.query.*/pred.{refinement index}-{model checkpoint}`: query
 2. `ctx.doc.*/pred.{refinement index}-{model checkpoint}`: relevant passages of a query 
@@ -63,7 +64,6 @@ Since our main purpose is to evaluate the retrieval power of refinements to the 
 
 We save the test file(s) as `{ctx.query.*, ctx.doc.*, ctx.querydoc.*}.test.tsv`.
 
-## Run
 
 ## Results
 We calculate the retrieval power of each query refinement on both train and test sets using IR metrics like `map` or `ndcg` compared to the original query and see if the refinements are better.
