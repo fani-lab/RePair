@@ -58,9 +58,22 @@ We have used [`T5`](https://github.com/google-research/text-to-text-transfer-tra
 We store the finetuned transformer in [`./output/{domain name}/{transformer name}.{pairing strategy}`](./output/toy.msmarco.passage/t5.small.local.docs.query) like for  [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) whose `small` version has been finetuned on a local machine for `toy.msmarco.passage`, we save the model in [`./output/toy.msmarco.passage/t5.small.local.docs.query`](./output/toy.msmarco.passage/t5.small.local.docs.query)
 
 ### [`['predict']`](./src/param.py#L16)
-Once a transformer has been finetuned, we feed input original queries w/ or w/o context to the model and whaterver the model generates is considered as a potential refined query. To have a collection of potential refined queries for the same original query, we used the [`top-k random sampling`](https://aclanthology.org/P18-1082/) as opposed to `beam search`, suggested by [`Nogueira and Lin`](https://cs.uwaterloo.ca/~jimmylin/publications/Nogueira_Lin_2019_docTTTTTquery-v2.pdf). So, we ran the transformer for [`nchanges`](./src/param.py#L16) times at inference and generate [`nchanges`](./src/param.py#L16) potential refined queries. 
+Once a transformer has been finetuned, we feed input original queries w/ or w/o context to the model and whaterver the model generates is considered as a `potential` refined query. To have a collection of potential refined queries for the same original query, we used the [`top-k random sampling`](https://aclanthology.org/P18-1082/) as opposed to `beam search`, suggested by [`Nogueira and Lin`](https://cs.uwaterloo.ca/~jimmylin/publications/Nogueira_Lin_2019_docTTTTTquery-v2.pdf). So, we ran the transformer for [`nchanges`](./src/param.py#L16) times at inference and generate [`nchanges`](./src/param.py#L16) potential refined queries. 
 
 We store the `i`-th potential refined query of original queries at same folder as the finetuned model, i.e., [`./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}`](./output/toy.msmarco.passage/t5.small.local.docs.query) like [`./output/toy.msmarco.passage/t5.small.local.docs.query/pred.0-1000005`](./output/toy.msmarco.passage/t5.small.local.docs.query/pred.0-1000005)
+
+### [`['search']`](./src/param.py#L17)
+We search the relevant documents for both the original query and each of the `potential` refined queries. We need to set an information retrieval method, called ranker, that retrieves relevant documents and ranks them based on relevance scores. We integrate [`pyserini`](https://github.com/castorini/pyserini), which provides efficient implementations of sparse and dense rankers, including `bm25` and `qld` (query likelihood with Dirichlet smoothing). 
+
+We store the result of search for the `i`-th potential refined query at same folder in files with names ending with ranker, i.e., [`./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}.{ranker name}`](./output/toy.msmarco.passage/t5.small.local.docs.query) like [`./output/toy.msmarco.passage/t5.small.local.docs.query/pred.0-1000005.bm25`](./output/toy.msmarco.passage/t5.small.local.docs.query/pred.0-1000005.bm25).
+
+### [`['eval']`](./src/param.py#L20)
+The search results of each potential refined queries are evaluated based on how they improve the performance with respect to an evaluation metric like `map` or `mrr`. 
+
+We store the result of evaluation for the `i`-th potential refined query at same folder in files with names ending with evaluation metric, i.e., [`./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}.{ranker name}.{metric name}`](./output/toy.msmarco.passage/t5.small.local.docs.query) like [`./output/toy.msmarco.passage/t5.small.local.docs.query/pred.0-1000005.bm25.map`](./output/toy.msmarco.passage/t5.small.local.docs.query/pred.0-1000005.bm25.map).
+
+### [`['agg, box']`](./src/param.py#L12)
+Finaly, we keep those potential refined queries whose performance (metric score) have been `refined_query_metric >= original_query_metric and refined_q_metric > 0`.
 
 ## Results
 We calculate the retrieval power of each query refinement on both train and test sets using IR metrics like `map` or `ndcg` compared to the original query and see if the refinements are better.
