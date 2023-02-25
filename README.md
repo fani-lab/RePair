@@ -70,7 +70,15 @@ The search results of each potential refined queries are evaluated based on how 
 We store the result of evaluation for the `i`-th potential refined query at same folder in files with names ending with evaluation metric, i.e., [`./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}.{ranker name}.{metric name}`](./output/toy.msmarco.passage/t5.small.local.docs.query) like [`./output/toy.msmarco.passage/t5.small.local.docs.query/pred.0-1000005.bm25.map`](./output/toy.msmarco.passage/t5.small.local.docs.query/pred.0-1000005.bm25.map).
 
 ### [`['agg, box']`](./src/param.py#L12)
-Finaly, we keep those potential refined queries whose performance (metric score) have been `refined_query_metric >= original_query_metric and refined_q_metric > 0`.
+Finaly, we keep those potential refined queries whose performance (metric score) have been better or equal compared to the original query, i.e., `refined_query_metric >= original_query_metric and refined_q_metric > 0`.
+
+For boxing, since we keep the performances for all the potential queries, we can change the condition and have a customized selection like having [`diamond`](https://dl.acm.org/doi/abs/10.1145/3459637.3482009) refined queries with maximum possible performance, i.e., `1` by setting the condition: `refined_query_metric >= original_query_metric and refined_q_metric == 1`. The boxing condition can be set at [`./src/param.py`](./src/param.py#L12). 
+
+```
+'box': {'gold':     'changed_q_metric >= original_q_metric and changed_q_metric > 0',
+        'platinum': 'changed_q_metric > original_q_metric',
+        'diamond':  'changed_q_metric > original_q_metric and changed_q_metric == 1'}
+```
 
 ## 3. Results
 We calculate the retrieval power of each query refinement on both train and test sets using IR metrics like `map` or `ndcg` compared to the original query and see if the refinements are better.
