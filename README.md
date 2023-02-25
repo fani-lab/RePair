@@ -5,12 +5,9 @@ Search engines have difficulty searching into knowledge repositories since they 
 
 1. [Setup](#1-setup)
 2. [Quickstart](#2-quickstart)
-3. [Features](#3-features)
-4. [Results](#4-results)
-5. [Acknowledgement](#5-acknowledgement)
-6. [License](#6-license)
-7. [Citation](#7-citation)
-8. [Awards](#8-awards)
+3. [Results](#3-results)
+4. [Acknowledgement](#4-acknowledgement)
+5. [License](#5-license)
 
 ## 1. Setup
 You need to have ``Python=3.8`` and install [`pyserini`](https://github.com/castorini/pyserini/) package (needs `Java`), among others listed in [``requirements.txt``](requirements.txt). We also suggest you to clone our repo with the `--recurse-submodules` (altenatively, use the `git submodule update --init` inside the cloned repository) to get the trec_eval metric evaluation tool:
@@ -75,14 +72,24 @@ We store the result of evaluation for the `i`-th potential refined query at same
 ### [`['agg, box']`](./src/param.py#L12)
 Finaly, we keep those potential refined queries whose performance (metric score) have been `refined_query_metric >= original_query_metric and refined_q_metric > 0`.
 
-## Results
+## 3. Results
 We calculate the retrieval power of each query refinement on both train and test sets using IR metrics like `map` or `ndcg` compared to the original query and see if the refinements are better.
 
 ### MSMarco
 
 ### AOL
--- With User ID as context
--- Without UserID 
+-- Without UserID as context
 
 ### Yandex
+
+## 4. Acknowledgement:
+We benefit from [``trec_eval``](https://github.com/usnistgov/trec_eval), [``pyserini``](https://github.com/castorini/pyserini), [``ir-dataset``](https://ir-datasets.com/), and other libraries. We would like to thank the authors of these libraries and helpful resources.
+  
+## 5. License:
+©2023. This work is licensed under a [CC BY-NC-SA 4.0](license.txt) license.
+
+Yogeswar Lakshmi Narayanan<sup>1</sup>, [Hossein Fani](https://hosseinfani.github.io/)<sup>1,2</sup> 
+
+<sup><sup>1</sup>School of Computer Science, Faculty of Science, University of Windsor, ON, Canada.</sup>
+<sup><sup>2</sup>[hfani@uwindsor.ca](mailto:hfani@uwindsor.ca)</sup>
 
