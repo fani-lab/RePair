@@ -39,30 +39,31 @@ class Dataset(object):
         return tf_txt.replace('b\'', '').replace('\'', '').replace('b\"', '').replace('\"', '')
 
     @classmethod
-    def search(cls, in_query, out_docids, qids, ranker='bm25', topk=100, batch=None, ncores=1):
+    def search(cls, in_query, out_docids, qids, ranker='bm25', topk=100, batch=None, ncores=1, index=None):
         print(f'Searching docs for {in_query} ...')
         # https://github.com/google-research/text-to-text-transfer-transformer/issues/322
         # with open(in_query, 'r', encoding='utf-8') as f: [to_docids(l) for l in f]
         queries = pd.read_csv(in_query, names=['query'], sep='\r', skip_blank_lines=False, engine='c')  # a query might be empty str (output of t5)!!
         assert len(queries) == len(qids)
-        cls.search_df(queries, out_docids, qids, ranker=ranker, topk=topk, batch=batch, ncores=ncores)
+        cls.search_df(queries, out_docids, qids, ranker=ranker, topk=topk, batch=batch, ncores=ncores, index=index)
 
     @classmethod
-    def search_df(cls, queries, out_docids, qids, ranker='bm25', topk=100, batch=None, ncores=1):
-        if ranker == 'bm25': Dataset.searcher.set_bm25(0.82, 0.68)
-        if ranker == 'qld': Dataset.searcher.set_qld()
+    def search_df(cls, queries, out_docids, qids, ranker='bm25', topk=100, batch=None, ncores=1, index=None):
+        if not cls.searcher: cls.searcher = LuceneSearcher(index) #for main.py's starmap
+        if ranker == 'bm25': cls.searcher.set_bm25(0.82, 0.68)
+        if ranker == 'qld': cls.searcher.set_qld()
         with open(out_docids, 'w', encoding='utf-8') as o:
             if batch:
                 for b in tqdm(range(0, len(queries), batch)):
                     # qids must be in list[str]!
-                    hits = Dataset.searcher.batch_search(queries.iloc[b: b + batch]['query'].values.tolist(), qids[b: b + batch], k=topk, threads=ncores)
+                    hits = cls.searcher.batch_search(queries.iloc[b: b + batch]['query'].values.tolist(), qids[b: b + batch], k=topk, threads=ncores)
                     for qid in hits.keys():
                         for i, h in enumerate(hits[qid]):  # hits are sorted desc based on score => required for trec_eval
                             o.write(f'{qid}\tQ0\t{h.docid:15}\t{i + 1:2}\t{h.score:.5f}\tPyserini Batch\n')
             else:
                 def _docids(row):
                     if pd.isna(row.query): return  # in the batch call, they do the same. Also, for '', both return [] with no exception
-                    hits = Dataset.searcher.search(row.query, k=topk, remove_dups=True)
+                    hits = cls.searcher.search(row.query, k=topk, remove_dups=True)
                     for i, h in enumerate(hits): o.write(f'{qids[row.name]}\tQ0\t{h.docid:7}\t{i + 1:2}\t{h.score:.5f}\tPyserini\n')
 
                 queries.progress_apply(_docids, axis=1)

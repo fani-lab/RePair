@@ -73,13 +73,13 @@ def run(data_list, domain_list, output, settings):
             #we use the file after panda.merge that create the training set so we make sure the mapping of qids
             query_originals = pd.read_csv(f'{prep_output}/queries.qrels.doc{"s" if "docs" in {in_type, out_type} else ""}.ctx.{index_item_str}.train.tsv', sep='\t', usecols=['qid', 'query'], dtype={'qid': str})
             query_changes = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["ranker"]}') for f in listdir(t5_output) if isfile(join(t5_output, f)) and f.startswith('pred.') and len(f.split('.')) == 2]
-            for (i, o) in query_changes: ds.search(i, o, query_originals['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
+            # for (i, o) in query_changes: ds.search(i, o, query_originals['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
             # batch search:
             # for (i, o) in query_changes: ds.search(i, o, query_originals['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
             # seems the LuceneSearcher cannot be shared in multiple processes! See dal.ds.py
             # parallel on each file ==> Problem: starmap does not understand inherited Dataset.searcher attribute!
-            # with mp.Pool(settings['ncore']) as p:
-            #     p.starmap(partial(ds.search, qids=query_originals['qid'].values.tolist(), ranker=settings['ranker'], topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore']), query_changes)
+            with mp.Pool(settings['ncore']) as p:
+                p.starmap(partial(ds.search, qids=query_originals['qid'].values.tolist(), ranker=settings['ranker'], topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'], index=ds.searcher.index_dir), query_changes)
 
             # we need to add the original queries as well
             if not isfile(join(t5_output, f'original.{settings["ranker"]}')):
