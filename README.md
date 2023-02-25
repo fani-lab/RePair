@@ -77,9 +77,9 @@ Finaly, we keep those potential refined queries whose performance (metric score)
 For boxing, since we keep the performances for all the potential queries, we can change the condition and have a customized selection like having [`diamond`](https://dl.acm.org/doi/abs/10.1145/3459637.3482009) refined queries with maximum possible performance, i.e., `1` by setting the condition: `refined_query_metric >= original_query_metric and refined_q_metric == 1`. The boxing condition can be set at [`./src/param.py`](./src/param.py#L12). 
 
 ```
-'box': {'gold':     'changed_q_metric >= original_q_metric and changed_q_metric > 0',
-        'platinum': 'changed_q_metric > original_q_metric',
-        'diamond':  'changed_q_metric > original_q_metric and changed_q_metric == 1'}
+'box': {'gold':     'refined_q_metric >= original_q_metric and refined_q_metric > 0',
+        'platinum': 'refined_q_metric > original_q_metric',
+        'diamond':  'refined_q_metric > original_q_metric and refined_q_metric == 1'}
 ```
 
 ## 3. Results
