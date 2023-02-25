@@ -31,6 +31,8 @@ class Aol(Dataset):
 
         print('Creating jsonl collections for indexing ...')
         print(f'Raw documents should be downloaded already at {homedir}/aol-ia/downloaded_docs/ as explained here: https://github.com/terrierteam/aolia-tools')
+        print(f'But it had bugs: https://github.com/allenai/ir_datasets/issues/222')
+        print(f'Sean MacAvaney provided us with the downloaded_docs.tar file. Thanks Sean!')
         index_item_str = '.'.join(index_item)
         Aol.create_jsonl(aolia, index_item, f'{homedir}/aol-ia/{index_item_str}')
         lucenex(f'{homedir}/aol-ia/{index_item_str}/', indexdir, ncore)
