@@ -81,14 +81,11 @@ For boxing, since we keep the performances for all the potential queries, we can
 ```
 
 ## 3. Results
-We calculate the retrieval power of each query refinement on both train and test sets using IR metrics like `map` or `ndcg` compared to the original query and see if the refinements are better.
-
-### MSMarco
-
-### AOL
--- Without UserID as context
-
-### Yandex
+| Query Set={q}   |    #q     |  Avg\|q\| | Avg `map`(q) |   #gold   | Avg \|q*\| |  %  | Avg `map`(q*) |    Δ%    | #diamond (ap=1)  | %q* |
+|-----------------|:---------:|:---------:|:------:|:---------:|:----------:|:---:|:------:|:--------:|:---------------:|:----------------:|
+| msmarco.passage |  502,939  |   5.9675  | 0.0862 |  414,337  |   7.4419   | 82% | 0.5704 |  +562 %  |     176,922     |        35%       |
+| aol-ia-title    | 4,459,613 |   3.5849  | 0.0252 | 2,583,023 |   3.1270   | 58% | 0.4175 | +1,556 % |     649,764     |        14%       |
+| aol-ia-url-title| 4,672,506 |   3.5817  | 0.0271 | 2,421,347 |   3.5354   | 52% | 0.3997 | +1,374 % |     591,001     |        13%       |
 
 ## 4. Acknowledgement:
 We benefit from [``trec_eval``](https://github.com/usnistgov/trec_eval), [``pyserini``](https://github.com/castorini/pyserini), [``ir-dataset``](https://ir-datasets.com/), and other libraries. We would like to thank the authors of these libraries and helpful resources.
