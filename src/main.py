@@ -99,7 +99,7 @@ def run(data_list, domain_list, output, settings):
                 p.starmap(partial(trecw.evaluate, qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'], lib=settings['treclib']), search_results)
 
         if 'agg' in settings['cmd']:
-            originals = pd.read_csv(f'{prep_output}/queries.qrels.doc{"s" if "docs" in {in_type, out_type} else ""}.ctx.train.tsv', sep='\t', usecols=['qid', 'query'], dtype={'qid': int})
+            originals = pd.read_csv(f'{prep_output}/queries.qrels.doc{"s" if "docs" in {in_type, out_type} else ""}.ctx.train.tsv', sep='\t', usecols=['qid', 'query'], dtype={'qid': str})
             original_metric_values = pd.read_csv(join(t5_output, f'original.{settings["ranker"]}.{settings["metric"]}'), sep='\t', usecols=[1,2], names=['qid', f'original.{settings["ranker"]}.{settings["metric"]}'], index_col=False, skipfooter=1)
             originals = originals.merge(original_metric_values, how='left', on='qid')
             originals[f'original.{settings["ranker"]}.{settings["metric"]}'].fillna(0, inplace=True)
@@ -109,8 +109,8 @@ def run(data_list, domain_list, output, settings):
         if 'box' in settings['cmd']:
             box_path = join(t5_output, f'{settings["ranker"]}.{settings["metric"]}.boxes')
             if not os.path.isdir(box_path): os.makedirs(box_path)
-            gold_df = pd.read_csv(f'{t5_output}/{settings["ranker"]}.{settings["metric"]}.agg.all.tsv', sep='\t', header=0)
-            qrels = pd.read_csv(f'{datapath}/qrels.train.tsv_', names=['qid', 'did', 'pid', 'rel'], sep='\t')
+            gold_df = pd.read_csv(f'{t5_output}/{settings["ranker"]}.{settings["metric"]}.agg.all.tsv', sep='\t', header=0, dtype={'qid': str})
+            qrels = pd.read_csv(f'{datapath}/qrels.train.tsv_', names=['qid', 'did', 'pid', 'rel'], sep='\t', dtype={'qid': str})
 
             checks = {'gold': 'changed_q_metric >= original_q_metric and changed_q_metric > 0',
                       'platinum': 'changed_q_metric > original_q_metric',

@@ -21,6 +21,9 @@ def evaluate(in_docids, out_metrics, qrels, metric, lib='trec'):#or 'pytrec'
     if lib == 'pytrec':
         raise NotImplementedError
     else:
+        # Trec_eval does not accept more than 2GB files!
+        # So, we need to break it into several files.
+
         cli_cmd = f'{lib} -q -m {metric} {qrels} {in_docids} > {out_metrics}'
         print(cli_cmd)
         stream = os.popen(cli_cmd)

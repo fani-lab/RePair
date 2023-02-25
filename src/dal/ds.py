@@ -120,7 +120,7 @@ class Dataset(object):
                         ds['query_'].append(group.iloc[i]['query'])
                         ds[f'{ranker}.{metric}_'].append(changed_q_metric)  # TODO: we can add golden queries with same metric value as a list here
 
-            df = pd.DataFrame.from_dict(ds)
+            df = pd.DataFrame.from_dict(ds).astype({'qid':str})
             # df.drop_duplicates(subset=['qid'], inplace=True)
             del ds
             df.to_csv(f'{output}/{c}.tsv', sep='\t', encoding='utf-8', index=False, header=False)

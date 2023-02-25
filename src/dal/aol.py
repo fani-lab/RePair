@@ -1,6 +1,6 @@
-import json, os, pandas as pd, shutil
-from os.path import isfile, join
+import json, os, pandas as pd
 from tqdm import tqdm
+from shutil import copyfile
 tqdm.pandas()
 
 from pyserini.search.lucene import LuceneSearcher
@@ -36,6 +36,8 @@ class Aol(Dataset):
         lucenex(f'{homedir}/aol-ia/{index_item_str}/', indexdir, ncore)
         # do NOT rename qrel to qrel.tsv or anything else as aol-ia does not like it!!
         # if os.path.isfile('./../data/raw/aol-ia/qrels'): os.rename('./../data/raw/aol-ia/qrels', '../data/raw/aol-ia/qrels')
+        if os.path.isfile('./../data/raw/aol-ia/qrels'): copyfile('./../data/raw/aol-ia/qrels', './../data/raw/aol-ia/qrels.train.tsv')
+        if os.path.isfile('./../data/raw/aol-ia/queries.tsv'): copyfile('./../data/raw/aol-ia/queries.tsv', './../data/raw/aol-ia/queries.train.tsv')
         return LuceneSearcher(indexdir)
         # dangerous cleaning!
         # for d in os.listdir('./../data/raw/'):
@@ -62,9 +64,9 @@ class Aol(Dataset):
 
     @classmethod
     def pair(cls, input, output, cat=True):
-        queries = pd.read_csv(f'{input}/queries.tsv', sep='\t', index_col=False, names=['qid', 'query'], converters={'query': str.lower}, header=None)
+        queries = pd.read_csv(f'{input}/queries.train.tsv', sep='\t', index_col=False, names=['qid', 'query'], converters={'query': str.lower}, header=None)
         # the column order in the file is [qid, uid, did, uid]!!!! STUPID!!
-        qrels = pd.read_csv(f'{input}/qrels', encoding='UTF-8', sep='\t', index_col=False, names=['qid', 'uid', 'did', 'rel'], header=None)
+        qrels = pd.read_csv(f'{input}/qrels.train.tsv', encoding='UTF-8', sep='\t', index_col=False, names=['qid', 'uid', 'did', 'rel'], header=None)
         #not considering uid
         # docid is a hash of the URL. qid is the a hash of the *noramlised query* ==> two uid may have same qid then, same docid.
         queries_qrels = pd.merge(queries, qrels, on='qid', how='inner', copy=False)
@@ -81,32 +83,8 @@ class Aol(Dataset):
         queries_qrels.dropna(inplace=True) #empty doctxt, query, ...
         queries_qrels.drop(queries_qrels[queries_qrels['query'].str.strip().str.len() <= Dataset.settings['filter']['minql']].index,inplace=True)
         queries_qrels.drop(queries_qrels[queries_qrels[doccol].str.strip().str.len() < Dataset.settings["filter"]['mindocl']].index,inplace=True)  # remove qrels whose docs are less than mindocl
-        queries_qrels.to_csv(f'{input}/qrels.tsv_', index=False, sep='\t', header=False, columns=['qid', 'uid', 'did', 'rel'])
+        queries_qrels.to_csv(f'{input}/qrels.train.tsv_', index=False, sep='\t', header=False, columns=['qid', 'uid', 'did', 'rel'])
 
         if cat: queries_qrels = queries_qrels.groupby(['qid', 'query'], as_index=False, observed=True).agg({'uid': list, 'did': list, doccol: ' '.join})
         queries_qrels.to_csv(output, sep='\t', encoding='utf-8', index=False)
         return queries_qrels
-
-    @classmethod
-    def search_df(cls, queries, out_docids, qids, ranker='bm25', topk=100, batch=None, ncores=1):
-        if ranker == 'bm25': Dataset.searcher.set_bm25(0.82, 0.68)
-        if ranker == 'qld': Dataset.searcher.set_qld()
-        assert len(queries) == len(qids)
-        if batch: raise ValueError('Trec_eval does not accept more than 2GB files! So, we need to break it into several files. No batch search then!')
-        else:
-            def to_docids(row, o):
-                if pd.isna(row.query): return
-                hits = Dataset.searcher.search(row.query, k=topk, remove_dups=True)
-                for i, h in enumerate(hits): o.write(f'{qids[row.name]}\tQ0\t{h.docid}\t{i + 1:2}\t{h.score:.5f}\tPyserini\n')
-
-            #queries.progress_apply(to_docids, axis=1)
-            max_docs_per_file = 400000
-            file_index = 0
-            for i, doc in tqdm(queries.iterrows(), total=len(queries)):
-                if i % max_docs_per_file == 0:
-                    if i > 0: out_file.close()
-                    output_path = out_docids.replace(ranker, f'{ranker}-split-{str(file_index)}')
-                    out_file = open(output_path, 'w', encoding='utf-8', newline='\n')
-                    file_index += 1
-                to_docids(doc, out_file)
-                if i % 100000 == 0: print(f'wrote {i} files to {out_docids.replace(ranker,"split_"+ str(file_index - 1) + "." + ranker)}')
