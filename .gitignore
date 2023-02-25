@@ -1,7 +1,6 @@
 .DS_Store
 Raw
 data/*/msmarco/
-output/*
 data/preprocessed
 __pycache__
 /.idea
