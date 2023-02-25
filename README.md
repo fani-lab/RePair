@@ -82,12 +82,28 @@ For boxing, since we keep the performances for all the potential queries, we can
         'diamond':  'refined_q_metric > original_q_metric and refined_q_metric == 1'}
 ```
 
-## 3. Results
-| Query Set={q}   |    #q     |  Avg\|q\| | Avg `map`(q) |   #gold   | Avg \|q*\| |  %  | Avg `map`(q*) |    Δ%    | #diamond (ap=1)  | %q* |
+## 3. Results 
+
+### `bm25`.`map`
+
+| query set={q}   |    #q     |  avg\|q\| | avg`map`(q) |   #gold   | avg\|q*\| |  %  | avg`map`(q*) |    Δ%    | #diamond (ap=1)  | %q* |
 |-----------------|:---------:|:---------:|:------:|:---------:|:----------:|:---:|:------:|:--------:|:---------------:|:----------------:|
 | msmarco.passage |  502,939  |   5.9675  | 0.0862 |  414,337  |   7.4419   | 82% | 0.5704 |  +562 %  |     176,922     |        35%       |
 | aol-ia-title    | 4,459,613 |   3.5849  | 0.0252 | 2,583,023 |   3.1270   | 58% | 0.4175 | +1,556 % |     649,764     |        14%       |
 | aol-ia-url-title| 4,672,506 |   3.5817  | 0.0271 | 2,421,347 |   3.5354   | 52% | 0.3997 | +1,374 % |     591,001     |        13%       |
+
+
+| query set  | qid | q | bm25_ap(q) | q* | bm25_ap(q*) |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| msmarco.passage | 76 | which type of viruses can be directly used for translation | 0.0455 | where does the gene from the cell transcribed from positive-sense rna goes | 1.0 |
+|  | 625043 | What do t rex eat | 0.1 | What kind of food do t rex eat | 0.5 |
+|  | 16 | the vitamin that prevents beriberi is 	 | 0.1111 | when will beriberi happen	 | 0.0104 |
+| aol-ia-title | 0cc411681d1441 | staple com | 0.037 | staple pubs | 1.0 |
+|  | 6cf7a0f56a6a34 | integrated real estate | 0.1483 | integrated real estate services inc	 | 0.527 |
+|  | d2d1e042f9c109 | us postal service jobs and careers | 0.0714 | jobs for postal employees	 | 0.0588 |
+| aol-ia-url-title | a7a0536f6ffbe8 | osceola county equalization | 0.25 | bakertown county court in osceola county michigan | 1.0 |
+|  | a516fdf7b2478c | american airlines discount code | 0.0733 | american airlines coupons	 | 0.1546 |
+|  | 4c240947b88f9b | perfume online | 0.0909 | electrospore perfume com	 | 0.0145 |
 
 ## 4. Acknowledgement:
 We benefit from [``trec_eval``](https://github.com/usnistgov/trec_eval), [``pyserini``](https://github.com/castorini/pyserini), [``ir-dataset``](https://ir-datasets.com/), and other libraries. We would like to thank the authors of these libraries and helpful resources.
