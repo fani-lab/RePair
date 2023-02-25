@@ -11,7 +11,7 @@ class Aol(Dataset):
 
     def __init__(self, settings, homedir, ncore):
         try: super(Aol, self).__init__(settings=settings)
-        except ValueError: self._build_index(homedir, Dataset.settings['index_item'], Dataset.settings['index'], ncore)
+        except: self._build_index(homedir, Dataset.settings['index_item'], Dataset.settings['index'], ncore)
 
     @classmethod
     def _build_index(cls, homedir, index_item, indexdir, ncore):
@@ -19,6 +19,7 @@ class Aol(Dataset):
         #https://github.com/allenai/ir_datasets
         os.environ['IR_DATASETS_HOME'] = homedir
         if not os.path.isdir(os.environ['IR_DATASETS_HOME']): os.makedirs(os.environ['IR_DATASETS_HOME'])
+        if not os.path.isdir(indexdir): os.makedirs(indexdir)
         import ir_datasets
         from cmn.lucenex import lucenex
 
@@ -35,15 +36,15 @@ class Aol(Dataset):
         print(f'Sean MacAvaney provided us with the downloaded_docs.tar file. Thanks Sean!')
         index_item_str = '.'.join(index_item)
         Aol.create_jsonl(aolia, index_item, f'{homedir}/aol-ia/{index_item_str}')
-        lucenex(f'{homedir}/aol-ia/{index_item_str}/', indexdir, ncore)
+        lucenex(f'{homedir}/aol-ia/{index_item_str}', indexdir, ncore)
         # do NOT rename qrel to qrel.tsv or anything else as aol-ia does not like it!!
-        # if os.path.isfile('./../data/raw/aol-ia/qrels'): os.rename('./../data/raw/aol-ia/qrels', '../data/raw/aol-ia/qrels')
-        if os.path.isfile('./../data/raw/aol-ia/qrels'): copyfile('./../data/raw/aol-ia/qrels', './../data/raw/aol-ia/qrels.train.tsv')
-        if os.path.isfile('./../data/raw/aol-ia/queries.tsv'): copyfile('./../data/raw/aol-ia/queries.tsv', './../data/raw/aol-ia/queries.train.tsv')
-        return LuceneSearcher(indexdir)
+        # if os.path.isfile(f'{homedir}/qrels'): os.rename(f'{homedir}/qrels', f'{homedir}/qrels')
+        if os.path.isfile(f'{homedir}/aol-ia/qrels'): copyfile(f'{homedir}/aol-ia/qrels', f'{homedir}/qrels.train.tsv')
+        if os.path.isfile(f'{homedir}/aol-ia/queries.tsv'): copyfile(f'{homedir}/aol-ia/queries.tsv', f'{homedir}/queries.train.tsv')
+        cls.searcher = LuceneSearcher(indexdir)
         # dangerous cleaning!
-        # for d in os.listdir('./../data/raw/'):
-        #     if not (d.find('aol-ia') > -1 or d.find('msmarco') > -1) and os.path.isdir(f'./../data/raw/{d}'): shutil.rmtree(f'./../data/raw/{d}')
+        # for d in os.listdir(homedir):
+        #     if not (d.find('aol-ia') > -1) and os.path.isdir(f'./../data/raw/{d}'): shutil.rmtree(f'./../data/raw/{d}')
 
     @classmethod
     def create_jsonl(cls, aolia, index_item, output):

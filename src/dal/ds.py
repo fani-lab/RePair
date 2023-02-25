@@ -75,7 +75,7 @@ class Dataset(object):
         for change, metric_value in changes:
             pred = pd.read_csv(join(output, change), sep='\r', skip_blank_lines=False, names=[change], engine='c', index_col=False, header=None)
             assert len(original['qid']) == len(pred[change])
-            pred_metric_values = pd.read_csv(join(output, metric_value), sep='\t', usecols=[1, 2], names=['qid', f'{change}.{ranker}.{metric}'], index_col=False, skipfooter=1)
+            pred_metric_values = pd.read_csv(join(output, metric_value), sep='\t', usecols=[1, 2], names=['qid', f'{change}.{ranker}.{metric}'], index_col=False, skipfooter=1, dtype={'qid': str})
             original[change] = pred  # to know the actual change
             original = original.merge(pred_metric_values, how='left', on='qid')  # to know the metric value of the change
             # original[f'{change}.{ranker}.{metric}'].fillna(0, inplace=True)
