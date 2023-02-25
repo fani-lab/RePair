@@ -112,11 +112,9 @@ def run(data_list, domain_list, output, settings):
             gold_df = pd.read_csv(f'{t5_output}/{settings["ranker"]}.{settings["metric"]}.agg.all.tsv', sep='\t', header=0, dtype={'qid': str})
             qrels = pd.read_csv(f'{datapath}/qrels.train.tsv_', names=['qid', 'did', 'pid', 'rel'], sep='\t', dtype={'qid': str})
 
-            checks = {'gold': 'changed_q_metric >= original_q_metric and changed_q_metric > 0',
-                      'platinum': 'changed_q_metric > original_q_metric',
-                      'diamond': 'changed_q_metric > original_q_metric and changed_q_metric == 1'}
-            ds.box(gold_df, qrels, box_path, checks)
-            for c in checks.keys():
+            box_condition = settings['box']
+            ds.box(gold_df, qrels, box_path, box_condition)
+            for c in box_condition.keys():
                 print(f'Stamping boxes for {settings["ranker"]}.{settings["metric"]} before and after refinements ...')
                 from evl import trecw
                 if not os.path.isdir(join(box_path, 'stamps')): os.makedirs(join(box_path, 'stamps'))
