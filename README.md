@@ -95,15 +95,15 @@ For boxing, since we keep the performances for all the potential queries, we can
 
 | query set  | qid | q | bm25_ap(q) | q* | bm25_ap(q*) |
 |:---:|:---:|:---:|:---:|:---:|:---:|
-| msmarco.passage | 76 | which type of viruses can be directly used for translation | 0.0455 | where does the gene from the cell transcribed from positive-sense rna goes | 1.0 |
-|  | 625043 | What do t rex eat | 0.1 | What kind of food do t rex eat | 0.5 |
-|  | 16 | the vitamin that prevents beriberi is 	 | 0.1111 | when will beriberi happen	 | 0.0104 |
-| aol-ia-title | 0cc411681d1441 | staple com | 0.037 | staple pubs | 1.0 |
-|  | 6cf7a0f56a6a34 | integrated real estate | 0.1483 | integrated real estate services inc	 | 0.527 |
-|  | d2d1e042f9c109 | us postal service jobs and careers | 0.0714 | jobs for postal employees	 | 0.0588 |
-| aol-ia-url-title | a7a0536f6ffbe8 | osceola county equalization | 0.25 | bakertown county court in osceola county michigan | 1.0 |
-|  | a516fdf7b2478c | american airlines discount code | 0.0733 | american airlines coupons	 | 0.1546 |
-|  | 4c240947b88f9b | perfume online | 0.0909 | electrospore perfume com	 | 0.0145 |
+| **msmarco.passage best** | **76** | **which type of viruses can be directly used for translation** | **0.0455** | **where does the gene from the cell transcribed from positive-sense rna goes** | **1.0** |
+| better | 625043 | What do t rex eat | 0.1 | What kind of food do t rex eat | 0.5 |
+| worse | 16 | the vitamin that prevents beriberi is 	 | 0.1111 | when will beriberi happen	 | 0.0104 |
+| **aol-ia-title best** | **0cc411681d1441** | **staple com** | **0.037** | **staple pubs** | **1.0** |
+| better | 6cf7a0f56a6a34 | integrated real estate | 0.1483 | integrated real estate services inc	 | 0.527 |
+| worse | d2d1e042f9c109 | us postal service jobs and careers | 0.0714 | jobs for postal employees	 | 0.0588 |
+| **aol-ia-url-title best** | **a7a0536f6ffbe8** | **osceola county equalization** | **0.25** | **bakertown county court in osceola county michigan** | **1.0** |
+| better | a516fdf7b2478c | american airlines discount code | 0.0733 | american airlines coupons	 | 0.1546 |
+| worse | 4c240947b88f9b | perfume online | 0.0909 | electrospore perfume com	 | 0.0145 |
 
 ## 4. Acknowledgement:
 We benefit from [``trec_eval``](https://github.com/usnistgov/trec_eval), [``pyserini``](https://github.com/castorini/pyserini), [``ir-dataset``](https://ir-datasets.com/), and other libraries. We would like to thank the authors of these libraries and helpful resources.
