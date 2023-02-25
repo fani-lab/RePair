@@ -17,38 +17,38 @@ class Dataset(object):
         Dataset.searcher = LuceneSearcher(Dataset.settings['index'])
         if not Dataset.searcher: raise ValueError(f'Lucene searcher cannot find/build msmarco.passage index at {Dataset.settings["index"]}!')
 
-    @staticmethod
-    def init(homedir, index_item, indexdir, ncore): pass
+    @classmethod
+    def init(cls, homedir, index_item, indexdir, ncore): pass
 
-    @staticmethod
-    def _txt(pid):
+    @classmethod
+    def _txt(cls, pid):
         # The``docid`` is overloaded: if it is of type ``str``, it is treated as an external collection ``docid``;
         # if it is of type ``int``, it is treated as an internal Lucene``docid``. # stupid!!
         try:return json.loads(Dataset.searcher.doc(str(pid)).raw())['contents'].lower()
         except AttributeError: return '' #if Dataset.searcher.doc(str(pid)) is None
         except Exception as e: raise e
 
-    @staticmethod
-    def pair(input, output, index_item, cat=True): pass
+    @classmethod
+    def pair(cls, input, output, index_item, cat=True): pass
 
     # gpu-based t5 generate the predictions in b'' format!!!
-    @staticmethod
-    def clean(tf_txt):
+    @classmethod
+    def clean(cls, tf_txt):
         # lambda x: x.replace('b\'', '').replace('\'', '') if in pandas' convertors
         # TODO: we need to clean the \\x chars also
         return tf_txt.replace('b\'', '').replace('\'', '').replace('b\"', '').replace('\"', '')
 
-    @staticmethod
-    def search(in_query, out_docids, qids, ranker='bm25', topk=100, batch=None, ncores=1):
+    @classmethod
+    def search(cls, in_query, out_docids, qids, ranker='bm25', topk=100, batch=None, ncores=1):
         print(f'Searching docs for {in_query} ...')
         # https://github.com/google-research/text-to-text-transfer-transformer/issues/322
         # with open(in_query, 'r', encoding='utf-8') as f: [to_docids(l) for l in f]
         queries = pd.read_csv(in_query, names=['query'], sep='\r', skip_blank_lines=False, engine='c')  # a query might be empty str (output of t5)!!
         assert len(queries) == len(qids)
-        Dataset.search_df(queries, out_docids, qids, ranker=ranker, topk=topk, batch=batch, ncores=ncores)
+        cls.search_df(queries, out_docids, qids, ranker=ranker, topk=topk, batch=batch, ncores=ncores)
 
-    @staticmethod
-    def search_df(queries, out_docids, qids, ranker='bm25', topk=100, batch=None, ncores=1):
+    @classmethod
+    def search_df(cls, queries, out_docids, qids, ranker='bm25', topk=100, batch=None, ncores=1):
         if ranker == 'bm25': Dataset.searcher.set_bm25(0.82, 0.68)
         if ranker == 'qld': Dataset.searcher.set_qld()
         with open(out_docids, 'w', encoding='utf-8') as o:

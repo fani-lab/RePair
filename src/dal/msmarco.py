@@ -12,8 +12,8 @@ class MsMarcoPsg(Dataset):
         try: super(MsMarcoPsg, self).__init__(settings=settings)
         except ValueError: MsMarcoPsg.init(None, None, None, None)
 
-    @staticmethod
-    def pair(input, output, cat=True):
+    @classmethod
+    def pair(cls, input, output, cat=True):
         queries = pd.read_csv(f'{input}/queries.train.tsv', sep='\t', index_col=False, names=['qid', 'query'], converters={'query': str.lower}, header=None)
         qrels = pd.read_csv(f'{input}/qrels.train.tsv', sep='\t', index_col=False, names=['qid', 'did', 'pid', 'relevancy'], header=None)
         qrels.drop_duplicates(subset=['qid', 'pid'], inplace=True)  # qrels have duplicates!!

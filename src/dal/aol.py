@@ -11,10 +11,10 @@ class Aol(Dataset):
 
     def __init__(self, settings, homedir, ncore):
         try: super(Aol, self).__init__(settings=settings)
-        except ValueError: Aol.init(homedir, Dataset.settings['index_item'], Dataset.settings['index'], ncore)
+        except ValueError: self._build_index(homedir, Dataset.settings['index_item'], Dataset.settings['index'], ncore)
 
-    @staticmethod
-    def _build_index(homedir, index_item, indexdir, ncore):
+    @classmethod
+    def _build_index(cls, homedir, index_item, indexdir, ncore):
         print(f"Creating index from scratch using ir-dataset ...")
         #https://github.com/allenai/ir_datasets
         os.environ['IR_DATASETS_HOME'] = homedir
@@ -41,8 +41,8 @@ class Aol(Dataset):
         # for d in os.listdir('./../data/raw/'):
         #     if not (d.find('aol-ia') > -1 or d.find('msmarco') > -1) and os.path.isdir(f'./../data/raw/{d}'): shutil.rmtree(f'./../data/raw/{d}')
 
-    @staticmethod
-    def create_jsonl(aolia, index_item, output):
+    @classmethod
+    def create_jsonl(cls, aolia, index_item, output):
         """
         https://github.com/castorini/anserini-tools/blob/7b84f773225b5973b4533dfa0aa18653409a6146/scripts/msmarco/convert_collection_to_jsonl.py
         :param index_item: defaults to title_and_text, use the params to create specified index
@@ -60,8 +60,8 @@ class Aol(Dataset):
             if i % 100000 == 0: print(f'Converted {i:,} docs, writing into file {output_jsonl_file.name} ...')
         output_jsonl_file.close()
 
-    @staticmethod
-    def pair(input, output, cat=True):
+    @classmethod
+    def pair(cls, input, output, cat=True):
         queries = pd.read_csv(f'{input}/queries.tsv', sep='\t', index_col=False, names=['qid', 'query'], converters={'query': str.lower}, header=None)
         # the column order in the file is [qid, uid, did, uid]!!!! STUPID!!
         qrels = pd.read_csv(f'{input}/qrels', encoding='UTF-8', sep='\t', index_col=False, names=['qid', 'uid', 'did', 'rel'], header=None)
@@ -87,8 +87,8 @@ class Aol(Dataset):
         queries_qrels.to_csv(output, sep='\t', encoding='utf-8', index=False)
         return queries_qrels
 
-    @staticmethod
-    def search_df(queries, out_docids, qids, index_item,ranker='bm25', topk=100, batch=None):
+    @classmethod
+    def search_df(cls, queries, out_docids, qids, ranker='bm25', topk=100, batch=None, ncores=1):
         if ranker == 'bm25': Dataset.searcher.set_bm25(0.82, 0.68)
         if ranker == 'qld': Dataset.searcher.set_qld()
         assert len(queries) == len(qids)
@@ -105,7 +105,7 @@ class Aol(Dataset):
             for i, doc in tqdm(queries.iterrows(), total=len(queries)):
                 if i % max_docs_per_file == 0:
                     if i > 0: out_file.close()
-                    output_path = join(f'{out_docids.replace(ranker,"split_"+str(file_index)+"."+ranker)}')
+                    output_path = out_docids.replace(ranker, f'{ranker}-split-{str(file_index)}')
                     out_file = open(output_path, 'w', encoding='utf-8', newline='\n')
                     file_index += 1
                 to_docids(doc, out_file)
