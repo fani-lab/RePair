@@ -68,13 +68,13 @@ class Dataset(object):
 
                 queries.progress_apply(_docids, axis=1)
 
-    @staticmethod
-    def aggregate(original, changes, output):
+    @classmethod
+    def aggregate(cls, original, changes, output):
         ranker = changes[0][1].split('.')[2]  # e.g., pred.0-1004000.bm25.success.10 => bm25
         metric = '.'.join(changes[0][1].split('.')[3:])  # e.g., pred.0-1004000.bm25.success.10 => success.10
 
         for change, metric_value in changes:
-            pred = pd.read_csv(join(output, change), sep='\r', skip_blank_lines=False, names=[change], engine='c', index_col=False, header=None)
+            pred = pd.read_csv(join(output, change), sep='\r', skip_blank_lines=False, names=[change], converters={change : cls.clean}, engine='c', index_col=False, header=None)
             assert len(original['qid']) == len(pred[change])
             pred_metric_values = pd.read_csv(join(output, metric_value), sep='\t', usecols=[1, 2], names=['qid', f'{change}.{ranker}.{metric}'], index_col=False, skipfooter=1, dtype={'qid': str})
             original[change] = pred  # to know the actual change
@@ -100,8 +100,8 @@ class Dataset(object):
                     if metric_value > 0 and metric_value >= row[f'original.{ranker}.{metric}']: agg_gold.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
 
 
-    @staticmethod
-    def box(input, qrels, output, checks):
+    @classmethod
+    def box(cls, input, qrels, output, checks):
         ranker = input.columns[-1].split('.')[0]  # e.g., bm25.success.10 => bm25
         metric = '.'.join(input.columns[-1].split('.')[1:])  # e.g., bm25.success.10 => success.10
         for c in checks.keys():
