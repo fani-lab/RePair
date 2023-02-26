@@ -49,11 +49,11 @@ We use [`T5`](https://github.com/google-research/text-to-text-transfer-transform
 We create training sets based on different pairings of queries and relevant passages in the [`./data/preprocessed/{domain name}/`](./data/preprocessed/) for each domain like [`./data/preprocessed/toy.msmarco.passage/`](./data/preprocessed/toy.msmarco.passage/) for `msmarco.passage`.
 
 1. `ctx.query.docs`: context: query -> _concatenated_ relevant documents (passages) 
-2. `ctx.docs.query`: context: _concatenated_ relevant documents (passages) -> query like in [docTTTTTTQuery](https://github.com/castorini/docTTTTTquery#learning-a-new-prediction-model-t5-training-with-tensorflow)
+2. `ctx.docs.query`: context: _concatenated_ relevant documents (passages) -> query, like in [docTTTTTTQuery](https://github.com/castorini/docTTTTTquery#learning-a-new-prediction-model-t5-training-with-tensorflow)
 3. `ctx.query.doc`: context: query -> relevant document (passage)
-4. `ctx.doc.query`: context: relevant documents (passages) -> query like in [docTTTTTTQuery](https://github.com/castorini/docTTTTTquery#learning-a-new-prediction-model-t5-training-with-tensorflow)
+4. `ctx.doc.query`: context: relevant documents (passages) -> query
 
-where the context will be `userid` (personalized) or empty (context free). For instance, for `msmarco.passage` which has no contextual information, we have [`docs.query`](./data/preprocessed/toy.msmarco.passage/docs.query.train.tsv) or [`query.docs`](./data/preprocessed/toy.msmarco.passage/query.docs.train.tsv) since there is no context. Further, if a query has more than one relevant documents, we can either concatenate all relevant documents into a single document, i.e., `doc`+`s` or duplicate the (query, doc) pairs for each relevant document, i.e., `doc`.
+where the context will be `userid` (personalized) or empty (context free). For instance, for `msmarco.passage` which has no contextual information, we have [`docs.query`](./data/preprocessed/toy.msmarco.passage/docs.query.passage.train.tsv) or [`query.docs`](./data/preprocessed/toy.msmarco.passage/query.docs.passage.train.tsv) since there is no context. Further, if a query has more than one relevant documents, we can either concatenate all relevant documents into a single document, i.e., `doc`+`s` or duplicate the (query, doc) pairs for each relevant document, i.e., `doc`.
 
 ### [`['finetune']`](./src/param.py#L14)
 We have used [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to generate the refinements to the original queries. We can run [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) on local machine (cpu/gpu), or on google cloud (tpu), which is the [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) pereferance,
