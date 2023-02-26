@@ -46,7 +46,7 @@ In case there is no prebuilt index, steps include collecting the corpus and buil
 We use [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to train a model, that when given an input query (origianl query), generates refined (better) versions of the query in terms of retrieving more relevant documents at higher ranking positions. We fine-tune `T5` model on `msmarco.passage` (no context) and `aol` (w/o `userid`). For `yandex` dataset, we will train `T5` from scratch since the tokens are anonymized by random numbers. 
 
 ### [`['pair']`](./src/param.py#L25)
-We create training sets based on different pairings of queries and relevant passages in the [`./data/preprocessed/{domain name}/`](./data/preprocessed/) for each domain like [`./data/preprocessed/msmarco.passage/`](./data/preprocessed/msmarco.passage/) for `msmarco.passage`.
+We create training sets based on different pairings of queries and relevant passages in the [`./data/preprocessed/{domain name}/`](./data/preprocessed/) for each domain like [`./data/preprocessed/toy.msmarco.passage/`](./data/preprocessed/toy.msmarco.passage/) for `msmarco.passage`.
 
 1. `ctx.query.docs`: context: query -> _concatenated_ relevant documents (passages) 
 2. `ctx.docs.query`: context: _concatenated_ relevant documents (passages) -> query like in [docTTTTTTQuery](https://github.com/castorini/docTTTTTquery#learning-a-new-prediction-model-t5-training-with-tensorflow)
