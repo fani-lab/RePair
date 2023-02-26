@@ -11,6 +11,8 @@ dependencies:
   - pandas
   - pip:
       - ir_datasets
+      - faiss-cpu
+      - faiss-gpu
       - pyserini==0.19.1
       - t5
       - filesplit
