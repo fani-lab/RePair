@@ -5,7 +5,7 @@ Search engines have difficulty searching into knowledge repositories since they 
 
 1. [Setup](#1-setup)
 2. [Quickstart](#2-quickstart)
-3. [Results](#3-results)
+3. [Gold Standard Datasets](#3-gold-standard-datasets)
 4. [Acknowledgement](#4-acknowledgement)
 5. [License](#5-license)
 
@@ -124,9 +124,42 @@ For boxing, since we keep the performances for all the potential queries, we can
 
 
 
-## 3. Results 
+## 3. Gold Standard Datasets 
 
-### `bm25`.`map`
+#### [`./data/preprocessed/msmarco.passage`](), [`./output/msmarco.passage/t5.base.gc.docs.query.passage.bm25.map`]()
+#### [`./data/preprocessed/aol-ia`](), [`./output/aol-ia/t5.base.gc.docs.query.bm25.title.map`]()
+#### [`./data/preprocessed/aol-ia`](), [`./output/aol-ia/t5.base.gc.docs.query.bm25.url.title.map`]()
+
+`RePair` has generated gold standard query refinement datasets for `msmarco.passage` and `aol-ia` query sets using `t5.base` transformer on google cloud's tpus (`gc`) with `docs.query` pairing strategy for `bm25` ranker and `map` evaluation metric. The golden datasets along with all the artifacts including preprocessed `docs.query` pairs, model checkpoint, predicted refined queries, their search results and evaluation metric values are available at the above links. The running settings were (also available at [`./output/msmarco.passage/t5.small.local.docs.query/param.py`]() and [`/output/aol-ia/t5.small.local.docs.query/param.py`]()):
+
+```
+settings = {
+    't5model': 'base.gc'
+    'iter': 4000,       # number of finetuning iteration for t5
+    'nchanges': 10,     # number of changes to a query
+    'ranker': 'bm25',   
+    'batch': 100,       # search per batch of queries using pyserini, if None, search per query
+    'topk': 100,        # number of retrieved documents for a query
+    'metric': 'map',    # any valid trec_eval.9.0.4 metric like map, ndcg, recip_rank, ...
+    'box': {'gold':     'refined_q_metric >= original_q_metric and refined_q_metric > 0',
+            'platinum': 'refined_q_metric > original_q_metric',
+            'diamond':  'refined_q_metric > original_q_metric and refined_q_metric == 1'},
+    'msmarco.passage': {
+        'index': '../data/raw/msmarco.passage/lucene-index.msmarco-v1-passage.20220131.9ea315/',
+        'pairing': [None, 'docs', 'query'],     # input=doc(s), output=query, s means concat of relevant docs
+        'lseq':{"inputs": 32, "targets": 256},  # query length and doc length for t5 model,
+    },
+    'aol-ia': {
+        'index_item': ['title'], # ['url'], ['title', 'url'], ['title', 'url', 'text']
+        'index': '../data/raw/aol-ia/lucene-index/title/',
+        'pairing': [None, 'docs', 'query'], #input=doc(s) output=query
+        'lseq':{"inputs": 32, "targets": 256},  # query length and doc length for t5 model,
+        'filter': {'minql': 1, 'mindocl': 10}.  # [min query length, min doc length], after merge queries with relevant 'index_item', if |query| <= minql drop the row, if |'index_item'| < mindocl, drop row
+    }
+}
+```
+
+### Stats
 
 | query set={q}   |    #q     |  avg\|q\| | avg`map`(q) |   #gold   | avg\|q*\| |  %  | avg`map`(q*) |    Δ%    | #diamond (ap=1)  | %q* |
 |-----------------|:---------:|:---------:|:------:|:---------:|:----------:|:---:|:------:|:--------:|:---------------:|:----------------:|
@@ -134,6 +167,7 @@ For boxing, since we keep the performances for all the potential queries, we can
 | aol-ia-title    | 4,459,613 |   3.5849  | 0.0252 | 2,583,023 |   3.1270   | 58% | 0.4175 | +1,556 % |     649,764     |        14%       |
 | aol-ia-url-title| 4,672,506 |   3.5817  | 0.0271 | 2,421,347 |   3.5354   | 52% | 0.3997 | +1,374 % |     591,001     |        13%       |
 
+### Samples
 
 | query set  | qid | q | bm25_ap(q) | q* | bm25_ap(q*) |
 |:---:|:---:|:---:|:---:|:---:|:---:|
