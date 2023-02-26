@@ -51,7 +51,7 @@ As seen in the above [`workflow`](./misc/workflow.png), `RePair` has four pipeli
 > 3. Performance Evaluation: [`search`, `eval`]
 > 4. Dataset Curation: [`agg`, `box`]
 
-To run `RePair` pipeline, we need to set the required parameters of each step in [`./src/param.py`](./src/param.py) such as pairing strategy ([`pairing`](https://github.com/fani-lab/RePair/src/param.py#L28)) for a query set, the choice of transformer ([`t5model`](https://github.com/fani-lab/RePair/src/param.py#L14), and etc. Then, the pipeline can be run by its driver at [`./src/main.py`](./src/main.py):
+To run `RePair` pipeline, we need to set the required parameters of each step in [`./src/param.py`](./src/param.py) such as pairing strategy ([`pairing`](./src/param.py#L28)) for a query set, the choice of transformer ([`t5model`](./src/param.py#L14)), and etc. Then, the pipeline can be run by its driver at [`./src/main.py`](./src/main.py):
 
 ```sh
 python -u main.py -data ../data/raw/toy.msmarco.passage -domain msmarco.passage
