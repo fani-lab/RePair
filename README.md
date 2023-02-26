@@ -43,7 +43,25 @@ To perform fast IR tasks, we need to build the indexes of document corpora or us
 In case there is no prebuilt index, steps include collecting the corpus and building an index as we did for [aol-ia](https://dl.acm.org/doi/abs/10.1007/978-3-030-99736-6_42) using [`ir-datasets`](https://ir-datasets.com/aol-ia.html).
 
 ## 2. Quickstart
-We use [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to train a model, that when given an input query (origianl query), generates refined (better) versions of the query in terms of retrieving more relevant documents at higher ranking positions. We fine-tune [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) model on `msmarco.passage` (no context) and `aol` (w/o `userid`). For `yandex` dataset, we will train `T5` from scratch since the tokens are anonymized by random numbers. 
+We use [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to train a model, that when given an input query (origianl query), generates refined (better) versions of the query in terms of retrieving more relevant documents at higher ranking positions. Currently, we finetuned [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) model on `msmarco.passage` (no context) and `aol` (w/o `userid`). For `yandex` dataset, we will train `T5` from scratch since the tokens are anonymized by random numbers. 
+
+As seen in the above [`workflow`](./misc/workflow.png), `RePair` has four pipelined steps: 
+> 1. Transformer Finetuning: [`pair`, `finetune`]
+> 2. Refined Query Prediction: [`predict`]
+> 3. Performance Evaluation: [`search`, `eval`]
+> 4. Dataset Curation: [`agg`, `box`]
+
+To run `RePair` pipeline, we need to set the required parameters of each step in [`./src/param.py`](./src/param.py) such as pairing strategy ([`pairing`](https://github.com/fani-lab/RePair/src/param.py#L28)) for a query set, the choice of transformer ([`t5model`](https://github.com/fani-lab/RePair/src/param.py#L14), and etc. Then, the pipeline can be run by its driver at [`./src/main.py`](./src/main.py):
+
+```sh
+python -u main.py -data ../data/raw/toy.msmarco.passage -domain msmarco.passage
+```
+```sh
+python -u main.py -data ../data/raw/toy.aol-ia -domain aol-ia
+```
+```sh
+python -u main.py -data ../data/raw/toy.msmarco.passage ../data/raw/toy.aol-ia -domain msmarco.passage aol-ia
+```
 
 ### [`['pair']`](./src/param.py#L25)
 We create training sets based on different pairings of queries and relevant passages in the [`./data/preprocessed/{domain name}/`](./data/preprocessed/) for each domain like [`./data/preprocessed/toy.msmarco.passage/`](./data/preprocessed/toy.msmarco.passage/) for `msmarco.passage`.
