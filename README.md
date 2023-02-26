@@ -31,9 +31,9 @@ conda activate repair
 ```
 _Note: When installing `Java`, remember to set `JAVA_HOME` in Windows's environment variables._
 
-### [`trec_eval`](https://github.com/usnistgov/trec_eval)
+For [`trec_eval`](https://github.com/usnistgov/trec_eval):
 ```sh
-cd src/trec_eval.9.0.4.9.0.4
+cd src/trec_eval.9.0.4
 make 
 ```
 
