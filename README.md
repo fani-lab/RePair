@@ -40,10 +40,10 @@ make
 ### Lucene Indexes
 To perform fast IR tasks, we need to build the indexes of document corpora or use the [`prebuilt-indexes`](https://github.com/castorini/pyserini/blob/master/docs/prebuilt-indexes.md) like [`msmarco.passage`](https://rgw.cs.uwaterloo.ca/JIMMYLIN-bucket0/pyserini-indexes/lucene-index.msmarco-v1-passage.20220131.9ea315.tar.gz). The path to the index need to be set in [`./src/param.py`](./src/param.py) like [`param.settings['msmarco.passage']['index']`](./src/param.py#L24).
 
-In case there is no prebuilt index, steps include collecting the corpus and building an index as we did for [aol-ia](https://dl.acm.org/doi/abs/10.1007/978-3-030-99736-6_42) using [`ir-datasets`](https://ir-datasets.com/aol-ia.html).
+In case there is no prebuilt index, steps include collecting the corpus and building an index as we did for [`aol-ia`](https://dl.acm.org/doi/abs/10.1007/978-3-030-99736-6_42) using [`ir-datasets`](https://ir-datasets.com/aol-ia.html).
 
 ## 2. Quickstart
-We use [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to train a model, that when given an input query (origianl query), generates refined (better) versions of the query in terms of retrieving more relevant documents at higher ranking positions. Currently, we finetuned [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) model on `msmarco.passage` (no context) and `aol` (w/o `userid`). For `yandex` dataset, we will train `T5` from scratch since the tokens are anonymized by random numbers. 
+We use [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to train a model, that when given an input query (origianl query), generates refined (better) versions of the query in terms of retrieving more relevant documents at higher ranking positions. Currently, we finetuned [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) model on `msmarco.passage` (no context) and `aol` (w/o `userid`). For `yandex` dataset, we will train [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) from scratch since the tokens are anonymized by random numbers. 
 
 As seen in the above [`workflow`](./misc/workflow.png), `RePair` has four pipelined steps: 
 > 1. Transformer Finetuning: [`pair`, `finetune`]
@@ -78,22 +78,22 @@ We have used [`T5`](https://github.com/google-research/text-to-text-transfer-tra
 > - [`local machine (cpu, gpu)(linux, windows)`](https://github.com/fani-lab/personalized_query_refinement/blob/main/RUNT5.md#localhost-cpu-or-gpu)
 > - [`google cloud (tpu)`](https://github.com/fani-lab/personalized_query_refinement/blob/main/RUNT5.md#google-cloud-tpu)
 
-We store the finetuned transformer in [`./output/{domain name}/{transformer name}.{pairing strategy}`](./output/toy.msmarco.passage/t5.small.local.docs.query) like for  [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) whose `small` version has been finetuned on a local machine for `toy.msmarco.passage`, we save the model in [`./output/toy.msmarco.passage/t5.small.local.docs.query`](./output/toy.msmarco.passage/t5.small.local.docs.query)
+We store the finetuned transformer in `./output/{domain name}/{transformer name}.{pairing strategy}`. For instance, for  [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) whose `small` version has been finetuned on a local machine for `toy.msmarco.passage`, we save the model in [`./output/toy.msmarco.passage/t5.small.local.docs.query.passage`](./output/toy.msmarco.passage/t5.small.local.docs.query)
 
 ### [`['predict']`](./src/param.py#L16)
 Once a transformer has been finetuned, we feed input original queries w/ or w/o context to the model and whaterver the model generates is considered as a `potential` refined query. To have a collection of potential refined queries for the same original query, we used the [`top-k random sampling`](https://aclanthology.org/P18-1082/) as opposed to `beam search`, suggested by [`Nogueira and Lin`](https://cs.uwaterloo.ca/~jimmylin/publications/Nogueira_Lin_2019_docTTTTTquery-v2.pdf). So, we ran the transformer for [`nchanges`](./src/param.py#L16) times at inference and generate [`nchanges`](./src/param.py#L16) potential refined queries. 
 
-We store the `i`-th potential refined query of original queries at same folder as the finetuned model, i.e., [`./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}`](./output/toy.msmarco.passage/t5.small.local.docs.query) like [`./output/toy.msmarco.passage/t5.small.local.docs.query/pred.0-1000005`](./output/toy.msmarco.passage/t5.small.local.docs.query/pred.0-1000005)
+We store the `i`-th potential refined query of original queries at same folder as the finetuned model, i.e., `./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}` like [`./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005)
 
 ### [`['search']`](./src/param.py#L17)
 We search the relevant documents for both the original query and each of the `potential` refined queries. We need to set an information retrieval method, called ranker, that retrieves relevant documents and ranks them based on relevance scores. We integrate [`pyserini`](https://github.com/castorini/pyserini), which provides efficient implementations of sparse and dense rankers, including `bm25` and `qld` (query likelihood with Dirichlet smoothing). 
 
-We store the result of search for the `i`-th potential refined query at same folder in files with names ending with ranker, i.e., [`./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}.{ranker name}`](./output/toy.msmarco.passage/t5.small.local.docs.query) like [`./output/toy.msmarco.passage/t5.small.local.docs.query/pred.0-1000005.bm25`](./output/toy.msmarco.passage/t5.small.local.docs.query/pred.0-1000005.bm25).
+We store the result of search for the `i`-th potential refined query at same folder in files with names ending with ranker, i.e., `./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}.{ranker name}` like [`./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005.bm25`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005.bm25).
 
 ### [`['eval']`](./src/param.py#L20)
 The search results of each potential refined queries are evaluated based on how they improve the performance with respect to an evaluation metric like `map` or `mrr`. 
 
-We store the result of evaluation for the `i`-th potential refined query at same folder in files with names ending with evaluation metric, i.e., [`./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}.{ranker name}.{metric name}`](./output/toy.msmarco.passage/t5.small.local.docs.query) like [`./output/toy.msmarco.passage/t5.small.local.docs.query/pred.0-1000005.bm25.map`](./output/toy.msmarco.passage/t5.small.local.docs.query/pred.0-1000005.bm25.map).
+We store the result of evaluation for the `i`-th potential refined query at same folder in files with names ending with evaluation metric, i.e., `./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}.{ranker name}.{metric name}` like [`./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005.bm25.map`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005.bm25.map).
 
 ### [`['agg', 'box']`](./src/param.py#L12)
 Finaly, we keep those potential refined queries whose performance (metric score) have been better or equal compared to the original query, i.e., `refined_query_metric >= original_query_metric and refined_q_metric > 0`.
@@ -104,15 +104,15 @@ We keep two main datasets as the final outcome of the `RePair` pipeline:
 
 > 2. `./output/{input query set}/{transformer name}.{pairing strategy}/{ranker}.{metric}.agg.all.tsv`: contains the original queries and `all` their predicted refined queries along with the performance metric values
 
-For instance, for `toy` query sets of `msmarco.passage` and `aol-ia`, here are the files:
+For instance, for `toy` query sets of `msmarco.passage` and `aol-ia.title`, here are the files:
 
-[`./output/toy.aol-ia/t5.small.local.docs.query/bm25.map.agg.gold.tsv`](./output/toy.aol-ia/t5.small.local.docs.query/bm25.map.agg.gold.tsv)
+[`./output/toy.msmarco.passage/t5.small.local.docs.query.passage/bm25.map.agg.gold.tsv`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/bm25.map.agg.gold.tsv)
 
-[`./output/toy.aol-ia/t5.small.local.docs.query/bm25.map.agg.all.tsv`](./output/toy.aol-ia/t5.small.local.docs.query/bm25.map.agg.all.tsv)
+[`./output/toy.msmarco.passage/t5.small.local.docs.query.passage/bm25.map.agg.all.tsv`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/bm25.map.agg.all.tsv)
 
-[`./output/toy.msmarco.passage/t5.small.local.docs.query/bm25.map.agg.gold.tsv`](./output/toy.msmarco.passage/t5.small.local.docs.query/bm25.map.agg.gold.tsv)
+[`./output/toy.aol-ia/t5.small.local.docs.query.title/bm25.map.agg.gold.tsv`](./output/toy.aol-ia/t5.small.local.docs.query.title/bm25.map.agg.gold.tsv)
 
-[`./output/toy.msmarco.passage/t5.small.local.docs.query/bm25.map.agg.all.tsv`](./output/toy.msmarco.passage/t5.small.local.docs.query/bm25.map.agg.all.tsv)
+[`./output/toy.aol-ia/t5.small.local.docs.query.title/bm25.map.agg.all.tsv`](./output/toy.aol-ia/t5.small.local.docs.query.title/bm25.map.agg.all.tsv)
 
 For boxing, since we keep the performances for all the potential queries, we can change the condition and have a customized selection like having [`diamond`](https://dl.acm.org/doi/abs/10.1145/3459637.3482009) refined queries with maximum possible performance, i.e., `1` by setting the condition: `refined_query_metric >= original_query_metric and refined_q_metric == 1`. The boxing condition can be set at [`./src/param.py`](./src/param.py#L12). 
 
@@ -126,9 +126,9 @@ For boxing, since we keep the performances for all the potential queries, we can
 
 ## 3. Gold Standard Datasets 
 
-#### [`./data/preprocessed/msmarco.passage`](), [`./output/msmarco.passage/t5.base.gc.docs.query.passage.bm25.map`]()
-#### [`./data/preprocessed/aol-ia`](), [`./output/aol-ia/t5.base.gc.docs.query.bm25.title.map`]()
-#### [`./data/preprocessed/aol-ia`](), [`./output/aol-ia/t5.base.gc.docs.query.bm25.url.title.map`]()
+#### [`./data/preprocessed/msmarco.passage`](), [`./output/msmarco.passage/t5.base.gc.docs.query.passage/bm25.map.agg.gold.tsv`]()
+#### [`./data/preprocessed/aol-ia`](), [`./output/aol-ia/t5.base.gc.docs.query.title/bm25.map.agg.gold.tsv`]()
+#### [`./data/preprocessed/aol-ia`](), [`./output/aol-ia/t5.base.gc.docs.query.url.title/bm25.map.agg.gold.tsv`]()
 
 `RePair` has generated gold standard query refinement datasets for `msmarco.passage` and `aol-ia` query sets using `t5.base` transformer on google cloud's tpus (`gc`) with `docs.query` pairing strategy for `bm25` ranker and `map` evaluation metric. The golden datasets along with all the artifacts including preprocessed `docs.query` pairs, model checkpoint, predicted refined queries, their search results and evaluation metric values are available at the above links. The running settings were (also available at [`./output/msmarco.passage/t5.small.local.docs.query/param.py`]() and [`/output/aol-ia/t5.small.local.docs.query/param.py`]()):
 
