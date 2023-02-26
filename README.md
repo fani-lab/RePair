@@ -98,6 +98,22 @@ We store the result of evaluation for the `i`-th potential refined query at same
 ### [`['agg', 'box']`](./src/param.py#L12)
 Finaly, we keep those potential refined queries whose performance (metric score) have been better or equal compared to the original query, i.e., `refined_query_metric >= original_query_metric and refined_q_metric > 0`.
 
+We keep two main datasets as the final outcome of the `RePair` pipeline:
+
+> 1. `./output/{input query set}/{transformer name}.{pairing strategy}/{ranker}.{metric}.agg.gold.tsv`: contains the original queries and their refined queries that garanteed the `better` performance along with the performance metric values
+
+> 2. `./output/{input query set}/{transformer name}.{pairing strategy}/{ranker}.{metric}.agg.all.tsv`: contains the original queries and `all` their predicted refined queries along with the performance metric values
+
+For instance, for `toy` query sets of `msmarco.passage` and `aol-ia`, here are the files:
+
+[`./output/toy.aol-ia/t5.small.local.docs.query/bm25.map.agg.gold.tsv`](./output/toy.aol-ia/t5.small.local.docs.query/bm25.map.agg.gold.tsv)
+
+[`./output/toy.aol-ia/t5.small.local.docs.query/bm25.map.agg.all.tsv`](./output/toy.aol-ia/t5.small.local.docs.query/bm25.map.agg.all.tsv)
+
+[`./output/toy.msmarco.passage/t5.small.local.docs.query/bm25.map.agg.gold.tsv`](./output/toy.msmarco.passage/t5.small.local.docs.query/bm25.map.agg.gold.tsv)
+
+[`./output/toy.msmarco.passage/t5.small.local.docs.query/bm25.map.agg.all.tsv`](./output/toy.msmarco.passage/t5.small.local.docs.query/bm25.map.agg.all.tsv)
+
 For boxing, since we keep the performances for all the potential queries, we can change the condition and have a customized selection like having [`diamond`](https://dl.acm.org/doi/abs/10.1145/3459637.3482009) refined queries with maximum possible performance, i.e., `1` by setting the condition: `refined_query_metric >= original_query_metric and refined_q_metric == 1`. The boxing condition can be set at [`./src/param.py`](./src/param.py#L12). 
 
 ```
@@ -105,6 +121,8 @@ For boxing, since we keep the performances for all the potential queries, we can
         'platinum': 'refined_q_metric > original_q_metric',
         'diamond':  'refined_q_metric > original_q_metric and refined_q_metric == 1'}
 ```
+
+
 
 ## 3. Results 
 
