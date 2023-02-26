@@ -1,9 +1,9 @@
 #python<=3.9
 ftfy
-faiss-gpu #faiss-cpu is also an option
 rich
 pyserini
-t5 #also use our fork
+t5 #also use our fork for bash/batch run at https://github.com/fani-lab/text-to-text-transfer-transformer
 pandas
 pyserini
 ir_datasets
+filesplit

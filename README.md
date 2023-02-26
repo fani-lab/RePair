@@ -12,11 +12,11 @@ Search engines have difficulty searching into knowledge repositories since they 
 <p align="center"><img src='./misc/workflow.png' width="400" ></p>
 
 ## 1. Setup
-You need to have ``Python=3.8`` and install [`pyserini`](https://github.com/castorini/pyserini/) package (needs `Java`), among others listed in [``requirements.txt``](requirements.txt). We also suggest you to clone our repo with the `--recurse-submodules` (altenatively, use the `git submodule update --init` inside the cloned repository) to get the trec_eval metric evaluation tool:
+You need to have ``Python=3.8`` and install [`pyserini`](https://github.com/castorini/pyserini/) package (needs `Java`), among others listed in [``requirements.txt``](requirements.txt). We also suggest you to clone our repo with the `--recurse-submodules` (altenatively, use the `git submodule update --init` inside the cloned repository) to get the [`trec_eval`](https://github.com/usnistgov/trec_eval) metric evaluation tool:
 
 By ``pip``, clone the codebase and install the required packages:
 ```sh
-git clone https://github.com/Fani-Lab/RePair
+git clone https://github.com/Fani-Lab/RePair --recurse-submodules
 cd RePair
 pip install -r requirements.txt
 ```
@@ -24,12 +24,18 @@ pip install -r requirements.txt
 By [``conda``](https://www.anaconda.com/products/individual):
 
 ```sh
-git clone https://github.com/Fani-Lab/RePair
+git clone https://github.com/Fani-Lab/RePair --recurse-submodules
 cd RePair
 conda env create -f environment.yml
 conda activate repair
 ```
 _Note: When installing `Java`, remember to set `JAVA_HOME` in Windows's environment variables._
+
+### [`trec_eval`](https://github.com/usnistgov/trec_eval)
+```sh
+cd src/trec_eval.9.0.4.9.0.4
+make 
+```
 
 ### Lucene Indexes
 To perform fast IR tasks, we need to build the indexes of document corpora or use the [`prebuilt-indexes`](https://github.com/castorini/pyserini/blob/master/docs/prebuilt-indexes.md) like [`msmarco.passage`](https://rgw.cs.uwaterloo.ca/JIMMYLIN-bucket0/pyserini-indexes/lucene-index.msmarco-v1-passage.20220131.9ea315.tar.gz). The path to the index need to be set in [`./src/param.py`](./src/param.py) like [`param.settings['msmarco.passage']['index']`](./src/param.py#L24).

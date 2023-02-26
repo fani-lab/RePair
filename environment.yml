@@ -3,14 +3,14 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - pytorch
   - python=3.8 #nmslib in pyserini only works python <= 3.9
   - pip
+  - pytorch
   - ftfy
-  - faiss-gpu #faiss-cpu is also an option
   - rich
   - pandas
   - pip:
       - ir_datasets
       - pyserini==0.19.1
-      - t5 #also use our fork
+      - t5
+      - filesplit

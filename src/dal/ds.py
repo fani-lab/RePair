@@ -58,7 +58,7 @@ class Dataset(object):
                     # qids must be in list[str]!
                     hits = cls.searcher.batch_search(queries.iloc[b: b + batch]['query'].values.tolist(), qids[b: b + batch], k=topk, threads=ncores)
                     for qid in hits.keys():
-                        for i, h in enumerate(hits[qid]):  # hits are sorted desc based on score => required for trec_eval
+                        for i, h in enumerate(hits[qid]):  # hits are sorted desc based on score => required for trec_eval.9.0.4
                             o.write(f'{qid}\tQ0\t{h.docid:15}\t{i + 1:2}\t{h.score:.5f}\tPyserini Batch\n')
             else:
                 def _docids(row):
