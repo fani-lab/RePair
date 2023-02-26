@@ -3,21 +3,9 @@ Search engines have difficulty searching into knowledge repositories since they 
 
 **Future Work**: We are investigating `contexual` query refinement by incorporating query session information like user or time information of queries on the performance of neural query refinement methods compared to the lack thereof.
 
-<style>
-table {
-    border-collapse: collapse;
-}
-table, th, td {
-   border: 0px transparent;
-}
-blockquote {
-    border-left: solid blue;
-    padding-left: 10px;
-}
-</style>
-<table>
+<table align="center" border=0>
 <tr>
-<td>
+<td colspan=2>
 
 1. [Setup](#1-setup)
 2. [Quickstart](#2-quickstart)
@@ -25,7 +13,7 @@ blockquote {
 4. [Acknowledgement](#4-acknowledgement)
 5. [License](#5-license)  
 </td>
-<td><img src='./misc/workflow.png' width="380" /></td>
+<td ><img src='./misc/workflow.png' width="100%" /></td>
 </tr>
 </table>
 
