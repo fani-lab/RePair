@@ -1,6 +1,8 @@
 #python<=3.9
 ftfy
 rich
+faiss-cpu
+faiss-gpu
 pyserini
 t5 #also use our fork for bash/batch run at https://github.com/fani-lab/text-to-text-transfer-transformer
 pandas
