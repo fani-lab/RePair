@@ -181,10 +181,10 @@ settings = {
 | better | a516fdf7b2478c | american airlines discount code | 0.0733 | american airlines coupons	 | 0.1546 |
 | worse | 4c240947b88f9b | perfume online | 0.0909 | electrospore perfume com	 | 0.0145 |
 
-## 4. Acknowledgement:
+## 4. Acknowledgement
 We benefit from [``trec_eval``](https://github.com/usnistgov/trec_eval), [``pyserini``](https://github.com/castorini/pyserini), [``ir-dataset``](https://ir-datasets.com/), and other libraries. We would like to thank the authors of these libraries and helpful resources.
   
-## 5. License:
+## 5. License
 ©2023. This work is licensed under a [CC BY-NC-SA 4.0](license.txt) license.
 
 Yogeswar Lakshmi Narayanan<sup>1</sup>, [Hossein Fani](https://hosseinfani.github.io/)<sup>1,2</sup> 
