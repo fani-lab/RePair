@@ -40,7 +40,7 @@ def run(data_list, domain_list, output, settings):
             query_qrel_doc.to_csv(tsv_path['test'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
 
         t5_model = settings['t5model']  # {"small", "base", "large", "3B", "11B"} cross {"local", "gc"}
-        t5_output = f'../output/{os.path.split(datapath)[-1]}/t5.{t5_model}.{in_type}.{out_type}'
+        t5_output = f'../output/{os.path.split(datapath)[-1]}/t5.{t5_model}.{in_type}.{out_type}.{index_item_str}'
         if not os.path.isdir(t5_output): os.makedirs(t5_output)
         copyfile('./param.py', f'{t5_output}/param.py')
         if {'finetune', 'predict'} & set(settings['cmd']):
