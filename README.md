@@ -3,13 +3,31 @@ Search engines have difficulty searching into knowledge repositories since they 
 
 **Future Work**: We are investigating `contexual` query refinement by incorporating query session information like user or time information of queries on the performance of neural query refinement methods compared to the lack thereof.
 
+<style>
+table {
+    border-collapse: collapse;
+}
+table, th, td {
+   border: 0px transparent;
+}
+blockquote {
+    border-left: solid blue;
+    padding-left: 10px;
+}
+</style>
+<table>
+<tr>
+<td>
+
 1. [Setup](#1-setup)
 2. [Quickstart](#2-quickstart)
 3. [Gold Standard Datasets](#3-gold-standard-datasets)
 4. [Acknowledgement](#4-acknowledgement)
-5. [License](#5-license)
-
-<p align="center"><img src='./misc/workflow.png' width="400" ></p>
+5. [License](#5-license)  
+</td>
+<td><img src='./misc/workflow.png' width="380" /></td>
+</tr>
+</table>
 
 ## 1. Setup
 You need to have ``Python=3.8`` and install [`pyserini`](https://github.com/castorini/pyserini/) package (needs `Java`), among others listed in [``requirements.txt``](requirements.txt). We also suggest you to clone our repo with the `--recurse-submodules` (altenatively, use the `git submodule update --init` inside the cloned repository) to get the [`trec_eval`](https://github.com/usnistgov/trec_eval) metric evaluation tool:

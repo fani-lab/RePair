@@ -2,6 +2,8 @@
 Raw
 data/*/msmarco/
 data/preprocessed
+output/*/
+!output/toy*
 __pycache__
 /.idea
 /lightning_logs
