@@ -111,15 +111,15 @@ class Dataset(object):
             for _, group in tqdm(groups, total=len(groups)):
                 if len(group) >= 2:
                     original_q, original_q_metric = group.iloc[0], group.iloc[0][f'{ranker}.{metric}']
-                    changed_q, changed_q_metric = group.iloc[1], group.iloc[1][f'{ranker}.{metric}']
+                    refined_q, refined_q_metric = group.iloc[1], group.iloc[1][f'{ranker}.{metric}']
                     for i in range(1,2):  # len(group)): #IMPORTANT: We can have more than one golden query with SAME metric value. Here we skip them so the qid will NOT be replicated!
-                        if (group.iloc[i][f'{ranker}.{metric}'] < changed_q[f'{ranker}.{metric}']): break
+                        if (group.iloc[i][f'{ranker}.{metric}'] < refined_q[f'{ranker}.{metric}']): break
                         if not eval(checks[c]): break  # for gold this is always true since we put >= metric values in *.agg.best.tsv
                         ds['qid'].append(original_q['qid'])
                         ds['query'].append(original_q['query'])
                         ds[f'{ranker}.{metric}'].append(original_q_metric)
                         ds['query_'].append(group.iloc[i]['query'])
-                        ds[f'{ranker}.{metric}_'].append(changed_q_metric)  # TODO: we can add golden queries with same metric value as a list here
+                        ds[f'{ranker}.{metric}_'].append(refined_q_metric)  # TODO: we can add golden queries with same metric value as a list here
 
             df = pd.DataFrame.from_dict(ds).astype({'qid':str})
             # df.drop_duplicates(subset=['qid'], inplace=True)
