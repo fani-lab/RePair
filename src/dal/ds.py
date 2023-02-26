@@ -114,7 +114,7 @@ class Dataset(object):
                     refined_q, refined_q_metric = group.iloc[1], group.iloc[1][f'{ranker}.{metric}']
                     for i in range(1,2):  # len(group)): #IMPORTANT: We can have more than one golden query with SAME metric value. Here we skip them so the qid will NOT be replicated!
                         if (group.iloc[i][f'{ranker}.{metric}'] < refined_q[f'{ranker}.{metric}']): break
-                        if not eval(checks[c]): break  # for gold this is always true since we put >= metric values in *.agg.best.tsv
+                        if not eval(checks[c]): break
                         ds['qid'].append(original_q['qid'])
                         ds['query'].append(original_q['query'])
                         ds[f'{ranker}.{metric}'].append(original_q_metric)
