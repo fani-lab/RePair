@@ -9,6 +9,7 @@ dependencies:
   - ftfy
   - rich
   - pandas
+  - tqdm
   - pip:
       - ir_datasets
       - faiss-cpu

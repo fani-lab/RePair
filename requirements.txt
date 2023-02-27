@@ -1,6 +1,7 @@
 #python<=3.9
 ftfy
 rich
+tqdm
 faiss-cpu
 faiss-gpu
 pyserini

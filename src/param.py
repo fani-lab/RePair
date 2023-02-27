@@ -19,6 +19,9 @@ settings = {
     'topk': 10,                 # number of retrieved documents for a query
     'metric': 'map',            # any valid trec_eval.9.0.4 metric like map, ndcg, recip_rank, ...
     'treclib': f'"./trec_eval.9.0.4/trec_eval{extension}"',#in non-windows, remove .exe, also for pytrec_eval, 'pytrec'
+    'box': {'gold': 'refined_q_metric >= original_q_metric and refined_q_metric > 0',
+            'platinum': 'refined_q_metric > original_q_metric',
+            'diamond': 'refined_q_metric > original_q_metric and refined_q_metric == 1'},
     'msmarco.passage': {
         'index_item': ['passage'],
         'index': '../data/raw/msmarco.passage/lucene-index.msmarco-v1-passage.20220131.9ea315/',

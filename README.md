@@ -41,6 +41,7 @@ For [`trec_eval`](https://github.com/usnistgov/trec_eval):
 ```sh
 cd src/trec_eval.9.0.4
 make 
+cd ..
 ```
 
 ### Lucene Indexes
