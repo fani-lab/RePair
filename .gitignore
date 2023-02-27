@@ -1,9 +1,10 @@
 .DS_Store
-Raw
+raw
 data/*/msmarco/
 data/preprocessed
 output/*/
 !output/toy*
+!data/**/readme.md
 __pycache__
 /.idea
 /lightning_logs
