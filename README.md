@@ -13,7 +13,8 @@ Search engines have difficulty searching into knowledge repositories since they 
 4. [Acknowledgement](#4-acknowledgement)
 5. [License](#5-license)  
 </td>
-<td ><img src='./misc/workflow.png' width="100%" /></td>
+<td ><img src='./misc/workflow.png' width="80%" /></td>
+<td ><img src='./misc/class.png' width="80%" /></td>
 </tr>
 </table>
 
