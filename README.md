@@ -138,6 +138,28 @@ For boxing, since we keep the performances for all the potential queries, we can
 | `aol-ia.titlte` | [`./data/raw/aol-ia`](https://uwin365-my.sharepoint.com/personal/lakshmiy_uwindsor_ca/_layouts/15/onedrive.aspx?ga=1&id=%2Fpersonal%2Flakshmiy%5Fuwindsor%5Fca%2FDocuments%2FRePair%5Fdata%2Fdata%2Fraw%2Faoli%2Dia) <br>[`./data/preprocessed/aol-ia`](https://uwin365-my.sharepoint.com/personal/lakshmiy_uwindsor_ca/_layouts/15/onedrive.aspx?ga=1&id=%2Fpersonal%2Flakshmiy%5Fuwindsor%5Fca%2FDocuments%2FRePair%5Fdata%2Fdata%2Fpreprocessed%2Faol%2Dia) | [`./output/aol-ia/t5.base.gc.docs.query.title/`](https://uwin365-my.sharepoint.com/personal/lakshmiy_uwindsor_ca/_layouts/15/onedrive.aspx?ga=1&id=%2Fpersonal%2Flakshmiy%5Fuwindsor%5Fca%2FDocuments%2FRePair%5Fdata%2Foutput%2Faol%2Dia%2Ft5%2Ebase%2Egc%2Etitle%2Edocs%2Equery) | [`./output/aol-ia/t5.base.gc.docs.query.title/bm25.map.agg.gold.tsv`](https://uwin365-my.sharepoint.com/personal/lakshmiy_uwindsor_ca/_layouts/15/onedrive.aspx?ga=1&id=%2Fpersonal%2Flakshmiy%5Fuwindsor%5Fca%2FDocuments%2FRePair%5Fdata%2Foutput%2Faol%2Dia%2Ft5%2Ebase%2Egc%2Etitle%2Edocs%2Equery%2Fbm25%2Emap%2Eagg%2Egold%2Etsv&parent=%2Fpersonal%2Flakshmiy%5Fuwindsor%5Fca%2FDocuments%2FRePair%5Fdata%2Foutput%2Faol%2Dia%2Ft5%2Ebase%2Egc%2Etitle%2Edocs%2Equery) |
 | `aol-ia.url.title` | [`./data/raw/aol-ia`](https://uwin365-my.sharepoint.com/personal/lakshmiy_uwindsor_ca/_layouts/15/onedrive.aspx?ga=1&id=%2Fpersonal%2Flakshmiy%5Fuwindsor%5Fca%2FDocuments%2FRePair%5Fdata%2Fdata%2Fraw%2Faoli%2Dia) <br>[`./data/preprocessed/aol-ia`](https://uwin365-my.sharepoint.com/personal/lakshmiy_uwindsor_ca/_layouts/15/onedrive.aspx?ga=1&id=%2Fpersonal%2Flakshmiy%5Fuwindsor%5Fca%2FDocuments%2FRePair%5Fdata%2Fdata%2Fpreprocessed%2Faol%2Dia) | [`./output/aol-ia/t5.base.gc.docs.query.url.title/`](https://uwin365-my.sharepoint.com/personal/lakshmiy_uwindsor_ca/_layouts/15/onedrive.aspx?ga=1&id=%2Fpersonal%2Flakshmiy%5Fuwindsor%5Fca%2FDocuments%2FRePair%5Fdata%2Foutput%2Faol%2Dia%2Ft5%2Ebase%2Egc%2Etitle%2Eurl%2Edocs%2Equery) | [`./output/aol-ia/t5.base.gc.docs.query.url.title/bm25.map.agg.gold.tsv`](https://uwin365-my.sharepoint.com/personal/lakshmiy_uwindsor_ca/_layouts/15/onedrive.aspx?ga=1&id=%2Fpersonal%2Flakshmiy%5Fuwindsor%5Fca%2FDocuments%2FRePair%5Fdata%2Foutput%2Faol%2Dia%2Ft5%2Ebase%2Egc%2Etitle%2Eurl%2Edocs%2Equery%2Fbm25%2Emap%2Eagg%2Egold%2Etsv&parent=%2Fpersonal%2Flakshmiy%5Fuwindsor%5Fca%2FDocuments%2FRePair%5Fdata%2Foutput%2Faol%2Dia%2Ft5%2Ebase%2Egc%2Etitle%2Eurl%2Edocs%2Equery) |
 
+### File Structure
+Here is the refined queries for the two original queries in [`./output/aol-ia/t5.base.gc.docs.query.title/bm25.map.agg.gold.tsv`](https://uwin365-my.sharepoint.com/personal/lakshmiy_uwindsor_ca/_layouts/15/onedrive.aspx?ga=1&id=%2Fpersonal%2Flakshmiy%5Fuwindsor%5Fca%2FDocuments%2FRePair%5Fdata%2Foutput%2Faol%2Dia%2Ft5%2Ebase%2Egc%2Etitle%2Edocs%2Equery%2Fbm25%2Emap%2Eagg%2Egold%2Etsv&parent=%2Fpersonal%2Flakshmiy%5Fuwindsor%5Fca%2FDocuments%2FRePair%5Fdata%2Foutput%2Faol%2Dia%2Ft5%2Ebase%2Egc%2Etitle%2Edocs%2Equery):
+
+```
+qid	        order	query	                        bm25.map
+8c418e7c9e5993	-1	rentdirect com	                0.0
+8c418e7c9e5993	pred.9	hurston apartments	        0.0556
+8c418e7c9e5993	pred.4	rental apartments	        0.0357
+8c418e7c9e5993	pred.8	apartments nyc	                0.0312
+8c418e7c9e5993	pred.6	first class apartments in nyc	0.0135
+8c418e7c9e5993	pred.2	apartments and new york	        0.0068
+0cc411681d1441	-1	staple com	                0.037
+0cc411681d1441	pred.8	staple pubs	                1.0
+0cc411681d1441	pred.7	staple england pub	        0.5
+0cc411681d1441	pred.1	staple east of england	        0.1
+0cc411681d1441	pred.10	staple	                        0.0385
+0cc411681d1441	pred.3	staple england	                0.0385
+0cc411681d1441	pred.4	staple england	                0.0385
+0cc411681d1441	pred.6	staple england	                0.0385
+```
+As seen, `order: -1` shows the original query with its retrieval preformance. For the rest, it shows the refined queries in decreasing retrieval performance. For instance, for the original query `query: staple com`, the retrieval performance is `bm25.map: 0.037` while the best refined query could imporove it to `bm25.map: 1.0`! 
+
 `RePair` has generated gold standard query refinement datasets for `msmarco.passage` and `aol-ia` query sets using `t5.base` transformer on google cloud's tpus (`gc`) with `docs.query` pairing strategy for `bm25` ranker and `map` evaluation metric. The golden datasets along with all the artifacts including preprocessed `docs.query` pairs, model checkpoint, predicted refined queries, their search results and evaluation metric values are available at the above links. The running settings were (also available at [`./output/msmarco.passage/t5.small.local.docs.query/param.py`]() and [`/output/aol-ia/t5.small.local.docs.query/param.py`]()):
 
 ```
