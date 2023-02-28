@@ -134,9 +134,9 @@ For boxing, since we keep the performances for all the potential queries, we can
 
 ## 3. Gold Standard Datasets 
 
-#### [`./data/preprocessed/msmarco.passage`](), [`./output/msmarco.passage/t5.base.gc.docs.query.passage/bm25.map.agg.gold.tsv`]()
-#### [`./data/preprocessed/aol-ia`](), [`./output/aol-ia/t5.base.gc.docs.query.title/bm25.map.agg.gold.tsv`]()
-#### [`./data/preprocessed/aol-ia`](), [`./output/aol-ia/t5.base.gc.docs.query.url.title/bm25.map.agg.gold.tsv`]()
+#### [`./data/preprocessed/msmarco.passage`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EiVkfCxTjydKlpr3_VX-oo4B6o468rvnAQUq0VMkuUJL1Q?e=gGQvh4), [`./output/msmarco.passage/t5.base.gc.docs.query.passage/bm25.map.agg.gold.tsv`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EiVkfCxTjydKlpr3_VX-oo4B6o468rvnAQUq0VMkuUJL1Q?e=gGQvh4)
+#### [`./data/preprocessed/aol-ia`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EiVkfCxTjydKlpr3_VX-oo4B6o468rvnAQUq0VMkuUJL1Q?e=gGQvh4), [`./output/aol-ia/t5.base.gc.docs.query.title/bm25.map.agg.gold.tsv`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EiVkfCxTjydKlpr3_VX-oo4B6o468rvnAQUq0VMkuUJL1Q?e=gGQvh4)
+#### [`./data/preprocessed/aol-ia`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EiVkfCxTjydKlpr3_VX-oo4B6o468rvnAQUq0VMkuUJL1Q?e=gGQvh4), [`./output/aol-ia/t5.base.gc.docs.query.url.title/bm25.map.agg.gold.tsv`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EiVkfCxTjydKlpr3_VX-oo4B6o468rvnAQUq0VMkuUJL1Q?e=gGQvh4)
 
 `RePair` has generated gold standard query refinement datasets for `msmarco.passage` and `aol-ia` query sets using `t5.base` transformer on google cloud's tpus (`gc`) with `docs.query` pairing strategy for `bm25` ranker and `map` evaluation metric. The golden datasets along with all the artifacts including preprocessed `docs.query` pairs, model checkpoint, predicted refined queries, their search results and evaluation metric values are available at the above links. The running settings were (also available at [`./output/msmarco.passage/t5.small.local.docs.query/param.py`]() and [`/output/aol-ia/t5.small.local.docs.query/param.py`]()):
 
