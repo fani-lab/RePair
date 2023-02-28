@@ -1,4 +1,4 @@
-## Localhost (cpu or gpu)
+## Localhost (`cpu` or `gpu`)
 
 ### Unix-based
 
@@ -24,7 +24,7 @@ The solution is either:
 DEFAULT_SPM_PATH = './output/t5/vocabs/cc_all.32000/sentencepiece.model'  # Local
 ```
 
-## Google Cloud (tpu)
+## Google Cloud (`tpu`)
 To proceed, we need a google cloud platform account and an active project. We need to push the dataset to cloud storage bucket created in the google cloud storage:
 
 ```sh
