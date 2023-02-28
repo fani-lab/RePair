@@ -26,11 +26,11 @@ A brief sample of our output structure.
 
 Every Dataset is stored under a common configuration for every ranker and metric that is computed upon it.
 
-An example would be: [msmarco.passage](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EiVkfCxTjydKlpr3_VX-oo4B6o468rvnAQUq0VMkuUJL1Q?e=gGQvh4)
+An example would be: [msmarco.passage](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/Entk7IW8GfhGoIHkZrXI3J0ByxXJ_ZFYb2Za2dO8_oKGIg)
 
-- [`msmarco.passage ->t5.base.gc.docs.query`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EiVkfCxTjydKlpr3_VX-oo4B6o468rvnAQUq0VMkuUJL1Q?e=gGQvh4): describes we are using the `t5 base` as our model and config, `gc-> google cloud` as our platform, `docs.query` are the pairings.
-- `t5.base.gc.docs.query -> bm25.map.agg.all.tsv` : this file contains every `bm25` ranker with a metric `map` for all predictions.
-- `t5.base.gc.docs.query -> bm25.map.agg.gold.tsv`: this file contains all the best refined queries calculated by using `bm25` as ranker with a metric `map`
+- [`msmarco.passage -> t5.base.gc.docs.query`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/Enf3gIQZIeBNlgmyWXqob1EBgY7zVZpYagWTFX8JrGe98g): describes we are using the `t5 base` as our model and config, `gc -> google cloud` as our platform, `docs.query` are the pairings.
+- [`t5.base.gc.docs.query -> bm25.map.agg.all.tsv`](https://uwin365-my.sharepoint.com/:u:/g/personal/lakshmiy_uwindsor_ca/EcsV1UBGfVpDgJeaI_KSGNUB_V6tFvrS8mIhDKdGEvkO_g?e=uyhwZ1) : this file contains every `bm25` ranker with a metric `map` for all predictions.
+- [`t5.base.gc.docs.query -> bm25.map.agg.gold.tsv`](https://uwin365-my.sharepoint.com/:u:/g/personal/lakshmiy_uwindsor_ca/EeMQjTbagV9GplPakERqywYBZqBB6xkJzCXfmYQnS5FABw): this file contains all the best refined queries calculated by using `bm25` as ranker with a metric `map`
 
 
 **some known issues:**
