@@ -68,10 +68,11 @@ t5_mesh_transformer  \
   --gin_param="tsv_dataset_fn.filename = 'gs://{bucket_name}/data/{pairing strategy}.train.tsv'" \
   --gin_file="learning_rate_schedules/constant_0_001.gin" \
   --gin_param="run.train_steps = 1004000" \
+  --gin_param="utils.run.sequence_length = {'inputs': 32, 'targets': 256}" \
   --gin_param="tokens_per_batch = 131072" \
   --gin_param="utils.tpu_mesh_shape.tpu_topology ='v3-8'"
 ```
-You should change `project_id`, and `bucket_name` accordingly. This will fine-tune the pretrained `gs://t5-data/pretrained_models/base/model.ckpt-999900` model on `gs://{bucket_name}/data/{pairing strategy}.train.tsv` and save its checkpoints in the `gs://{bucket_name}/models/` folder of our storage bucket. 
+Change `project_id`, and `bucket_name` accordingly. This will fine-tune the pretrained `gs://t5-data/pretrained_models/base/model.ckpt-999900` model on `gs://{bucket_name}/data/{pairing strategy}.train.tsv` and save its checkpoints in the `gs://{bucket_name}/models/` folder of our storage bucket. 
 
 **To produce the query refinements** (equivalently, to test the model), we ask the trained [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to generate `n` outputs for each instance in the test file `gs://{bucket_name}/data/{pairing strategy}.test.tsv` and save them in `gs://{bucket_name}/data/{pairing strategy}.test.pred.tsv`:
 ```
@@ -84,7 +85,7 @@ t5_mesh_transformer \
   --gin_file="infer.gin" \
   --gin_file="sample_decode.gin" \
   --gin_param="infer_checkpoint_step = 1004000" \
-  --gin_param="utils.run.sequence_length = {'inputs': 512, 'targets': 64}" \
+  --gin_param="utils.run.sequence_length = {'inputs': 32, 'targets': 256}" \
   --gin_param="Bitransformer.decode.max_decode_length = 64" \
   --gin_param="input_filename = 'gs://{bucket_name}/data/{pairing strategy}.test.tsv'" \
   --gin_param="output_filename = 'gs://{bucket_name}/data/{pairing strategy}.pred.tsv'" \
