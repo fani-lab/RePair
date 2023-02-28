@@ -1,5 +1,5 @@
 # OUTPUTS
-All our outputs for `aol-ia` and `msmarco.passage` can be obtained from [here](https://uwin365-my.sharepoint.com/personal/lakshmiy_uwindsor_ca/_layouts/15/onedrive.aspx?ga=1&id=%2Fpersonal%2Flakshmiy%5Fuwindsor%5Fca%2FDocuments%2FRePair%5Fdata%2Foutput](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EiVkfCxTjydKlpr3_VX-oo4B6o468rvnAQUq0VMkuUJL1Q?e=gGQvh4)
+All our outputs for `aol-ia` and `msmarco.passage` can be obtained from [here](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EiVkfCxTjydKlpr3_VX-oo4B6o468rvnAQUq0VMkuUJL1Q?e=gGQvh4)
 ## Output Structure 
 A brief sample of our output structure.  
 ```
@@ -26,7 +26,7 @@ A brief sample of our output structure.
 
 Every Dataset is stored under a common configuration for every ranker and metric that is computed upon it.
 
-An example would be:[msmarco.passage](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EiVkfCxTjydKlpr3_VX-oo4B6o468rvnAQUq0VMkuUJL1Q?e=gGQvh4)
+An example would be: [msmarco.passage](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EiVkfCxTjydKlpr3_VX-oo4B6o468rvnAQUq0VMkuUJL1Q?e=gGQvh4)
 
 - [`msmarco.passage ->t5.base.gc.docs.query`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EiVkfCxTjydKlpr3_VX-oo4B6o468rvnAQUq0VMkuUJL1Q?e=gGQvh4): describes we are using the `t5 base` as our model and config, `gc-> google cloud` as our platform, `docs.query` are the pairings.
 - `t5.base.gc.docs.query -> bm25.map.agg.all.tsv` : this file contains every `bm25` ranker with a metric `map` for all predictions.
