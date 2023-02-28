@@ -160,7 +160,9 @@ qid	        order	query	                        bm25.map
 ```
 As seen, `order: -1` shows the original query with its retrieval preformance. For the rest, it shows the refined queries in decreasing retrieval performance. For instance, for the original query `query: staple com`, the retrieval performance is `bm25.map: 0.037` while the best refined query could imporove it to `bm25.map: 1.0`! 
 
-`RePair` has generated gold standard query refinement datasets for `msmarco.passage` and `aol-ia` query sets using `t5.base` transformer on google cloud's tpus (`gc`) with `docs.query` pairing strategy for `bm25` ranker and `map` evaluation metric. The golden datasets along with all the artifacts including preprocessed `docs.query` pairs, model checkpoint, predicted refined queries, their search results and evaluation metric values are available at the above links. The running settings were (also available at [`./output/msmarco.passage/t5.small.local.docs.query/param.py`]() and [`/output/aol-ia/t5.small.local.docs.query/param.py`]()):
+### Settings
+
+`RePair` has generated gold standard query refinement datasets for `msmarco.passage` and `aol-ia` query sets using `t5.base` transformer on google cloud's tpus (`gc`) with `docs.query` pairing strategy for `bm25` ranker and `map` evaluation metric. The golden datasets along with all the artifacts including preprocessed `docs.query` pairs, model checkpoint, predicted refined queries, their search results and evaluation metric values are available at the above links. The running settings were (also available at [`./output/msmarco.passage/t5.base.gc.docs.query.passage/param.py`](), [`/output/aol-ia/t5.base.gc.docs.query.title/param.py`](), and [`/output/aol-ia/t5.base.gc.docs.query.url.title/param.py`]()):
 
 ```
 settings = {
