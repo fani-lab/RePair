@@ -8,9 +8,7 @@ from dal.ds import Dataset
 
 class MsMarcoPsg(Dataset):
 
-    def __init__(self, settings):
-        try: super(MsMarcoPsg, self).__init__(settings=settings)
-        except ValueError: MsMarcoPsg.init(None, None, None, None)
+    def __init__(self, settings): super(MsMarcoPsg, self).__init__(settings=settings)
 
     @classmethod
     def pair(cls, input, output, cat=True):

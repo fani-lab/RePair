@@ -15,10 +15,7 @@ class Dataset(object):
         # sometimes we need to manually download the index ==> https://github.com/castorini/pyserini/blob/master/docs/usage-interactive-search.md#how-do-i-manually-download-indexes
         # sometimes we need to manually build the index ==> Aol.init()
         Dataset.searcher = LuceneSearcher(Dataset.settings['index'])
-        if not Dataset.searcher: raise ValueError(f'Lucene searcher cannot find/build msmarco.passage index at {Dataset.settings["index"]}!')
-
-    @classmethod
-    def init(cls, homedir, index_item, indexdir, ncore): pass
+        if not Dataset.searcher: raise ValueError(f'Lucene searcher cannot find/build index at {Dataset.settings["index"]}!')
 
     @classmethod
     def _txt(cls, pid):
