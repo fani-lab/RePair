@@ -34,5 +34,7 @@ An example would be: [msmarco.passage](https://uwin365-my.sharepoint.com/:f:/g/p
 
 
 **some known issues:**
-[T5 finetuning and prediction issue](https://github.com/fani-lab/RePair/issues/6):For some documents, T5 could not predict a query. This would inturn give us an assertion error 
-[retrieval models throwing nan error](https://github.com/fani-lab/RePair/issues/8)
+
+- [T5 finetuning and prediction issue](https://github.com/fani-lab/RePair/issues/6):For some documents, T5 could not predict a query. This would inturn give us an assertion error 
+
+- [retrieval models throwing nan error](https://github.com/fani-lab/RePair/issues/8)
