@@ -20,7 +20,7 @@ def evaluate(in_docids, out_metrics, qrels, metric, lib, mean=False):
     if 'trec_eval' in lib:
         # trec_eval.9.0.4 does not accept more than 2GB files!
         # So, we need to break it into several files.
-
+        ranker = in_docids.split('.')[-1]
         size = os.path.getsize(in_docids)
         in_docids_list = [(in_docids, out_metrics)]
         if int(size / (2 * 2 ** 30)): #greater that 2GB
@@ -34,7 +34,7 @@ def evaluate(in_docids, out_metrics, qrels, metric, lib, mean=False):
             split.splitdelimiter = '.'
             split.bylinecount(2*2**20)#each split 2MB lines of 1K char
             # split.bylinecount(100)
-            in_docids_list = [(f'{splitdir}{d}', f'{splitdir}{d}.{metric}') for d in os.listdir(splitdir) if len(d.split('.')) == 3]
+            in_docids_list = [(f'{splitdir}{d}', f'{splitdir}{d}.{metric}') for d in os.listdir(splitdir) if ranker in d]
 
         for i, o in in_docids_list:
             cli_cmd = f'{lib} {"-n" if not mean else ""} -q -m {metric} {qrels} {i} > {o}'
