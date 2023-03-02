@@ -17,13 +17,13 @@ class Aol(Dataset):
     def _build_index(cls, homedir, index_item, indexdir, ncore):
         print(f"Creating index from scratch using ir-dataset ...")
         #https://github.com/allenai/ir_datasets
-        os.environ['IR_DATASETS_HOME'] = homedir
+        os.environ['IR_DATASETS_HOME'] = '/'.join(homedir.split('/')[:-1])
         if not os.path.isdir(os.environ['IR_DATASETS_HOME']): os.makedirs(os.environ['IR_DATASETS_HOME'])
         if not os.path.isdir(indexdir): os.makedirs(indexdir)
         import ir_datasets
         from cmn.lucenex import lucenex
 
-        print(f"Setting up aol corpos using ir-datasets at {homedir}...")
+        print(f"Setting up aol corpus using ir-datasets at {homedir}...")
         aolia = ir_datasets.load("aol-ia")
         print('Getting queries and qrels ...')
         # the column order in the file is [qid, uid, did, uid]!!!! STUPID!!
@@ -35,13 +35,14 @@ class Aol(Dataset):
         print(f'But it had bugs: https://github.com/allenai/ir_datasets/issues/222')
         print(f'Sean MacAvaney provided us with the downloaded_docs.tar file. Thanks Sean!')
         index_item_str = '.'.join(index_item)
-        Aol.create_jsonl(aolia, index_item, f'{homedir}/aol-ia/{index_item_str}')
-        lucenex(f'{homedir}/aol-ia/{index_item_str}', indexdir, ncore)
+        Aol.create_jsonl(aolia, index_item, f'{homedir}/{index_item_str}')
+        if len(os.listdir(f'{indexdir}/{index_item_str}')) == 0:
+            lucenex(f'{homedir}/{index_item_str}', f'{indexdir}/{index_item_str}', ncore)
         # do NOT rename qrel to qrel.tsv or anything else as aol-ia does not like it!!
         # if os.path.isfile(f'{homedir}/qrels'): os.rename(f'{homedir}/qrels', f'{homedir}/qrels')
-        if os.path.isfile(f'{homedir}/aol-ia/qrels'): copyfile(f'{homedir}/aol-ia/qrels', f'{homedir}/qrels.train.tsv')
-        if os.path.isfile(f'{homedir}/aol-ia/queries.tsv'): copyfile(f'{homedir}/aol-ia/queries.tsv', f'{homedir}/queries.train.tsv')
-        cls.searcher = LuceneSearcher(indexdir)
+        if os.path.isfile(f'{homedir}/qrels'): copyfile(f'{homedir}/qrels', f'{homedir}/qrels.train.tsv')
+        if os.path.isfile(f'{homedir}/queries.tsv'): copyfile(f'{homedir}/queries.tsv', f'{homedir}/queries.train.tsv')
+        cls.searcher = LuceneSearcher(f'{indexdir}/{index_item_str}')
         # dangerous cleaning!
         # for d in os.listdir(homedir):
         #     if not (d.find('aol-ia') > -1) and os.path.isdir(f'./../data/raw/{d}'): shutil.rmtree(f'./../data/raw/{d}')
@@ -54,20 +55,21 @@ class Aol(Dataset):
         :param output: folder name to create docs
         :return: list of docids that have empty body based on the index_item
         """
-        print(f'Converting aol docs into jsonl collection for {index_item}')
         if not os.path.isdir(output): os.makedirs(output)
-        output_jsonl_file = open(f'{output}/docs.json', 'w', encoding='utf-8', newline='\n')
-        for i, doc in enumerate(aolia.docs_iter()):  # doc returns doc_id, title, text, url, ia_url
-            did = doc.doc_id
-            doc = {'title': doc.title, 'url': doc.url, 'text': doc.text}
-            doc = ' '.join([doc[item] for item in index_item])
-            output_jsonl_file.write(json.dumps({'id': did, 'contents': doc}) + '\n')
-            if i % 100000 == 0: print(f'Converted {i:,} docs, writing into file {output_jsonl_file.name} ...')
-        output_jsonl_file.close()
+        if not os.path.isfile(f'{output}/docs.json'):
+            print(f'Converting aol docs into jsonl collection for {index_item}')
+            output_jsonl_file = open(f'{output}/docs.json', 'w', encoding='utf-8', newline='\n')
+            for i, doc in enumerate(aolia.docs_iter()):  # doc returns doc_id, title, text, url, ia_url
+                did = doc.doc_id
+                doc = {'title': doc.title, 'url': doc.url, 'text': doc.text}
+                doc = ' '.join([doc[item] for item in index_item])
+                output_jsonl_file.write(json.dumps({'id': did, 'contents': doc}) + '\n')
+                if i % 100000 == 0: print(f'Converted {i:,} docs, writing into file {output_jsonl_file.name} ...')
+            output_jsonl_file.close()
 
     @classmethod
     def pair(cls, input, output, cat=True):
-        queries = pd.read_csv(f'{input}/queries.train.tsv', sep='\t', index_col=False, names=['qid', 'query'], converters={'query': str.lower}, header=None)
+        queries = pd.read_csv(f'{input}/queries.train.tsv', encoding='UTF-8', sep='\t', index_col=False, names=['qid', 'query'], converters={'query': str.lower}, header=None)
         # the column order in the file is [qid, uid, did, uid]!!!! STUPID!!
         qrels = pd.read_csv(f'{input}/qrels.train.tsv', encoding='UTF-8', sep='\t', index_col=False, names=['qid', 'uid', 'did', 'rel'], header=None)
         #not considering uid
@@ -78,7 +80,7 @@ class Aol(Dataset):
         del queries, qrels
         queries_qrels['ctx'] = ''
         queries_qrels = queries_qrels.astype('category')
-        queries_qrels[doccol] = queries_qrels['did'].progress_apply(Dataset._txt)
+        queries_qrels[doccol] = queries_qrels['did'].progress_apply(cls._txt)
 
         # no uid for now + some cleansings ...
         queries_qrels.drop_duplicates(subset=['qid', 'did'], inplace=True)  # two users with same click for same query

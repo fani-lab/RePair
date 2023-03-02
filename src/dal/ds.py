@@ -21,7 +21,7 @@ class Dataset(object):
     def _txt(cls, pid):
         # The``docid`` is overloaded: if it is of type ``str``, it is treated as an external collection ``docid``;
         # if it is of type ``int``, it is treated as an internal Lucene``docid``. # stupid!!
-        try:return json.loads(Dataset.searcher.doc(str(pid)).raw())['contents'].lower()
+        try:return json.loads(cls.searcher.doc(str(pid)).raw())['contents'].lower()
         except AttributeError: return '' #if Dataset.searcher.doc(str(pid)) is None
         except Exception as e: raise e
 
