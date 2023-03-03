@@ -87,8 +87,8 @@ class Dataset(object):
             agg_gold.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
             agg_all.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
             for index, row in tqdm(original.iterrows(), total=original.shape[0]):
-                agg_gold.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\n')
-                agg_all.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\n')
+                agg_gold.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.-1.{ranker}.{metric}"]}\n')
+                agg_all.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.-1.{ranker}.{metric}"]}\n')
                 all = list()
                 for change, metric_value in changes: all.append((row[change], row[f'{change}.{ranker}.{metric}'], change))
                 all = sorted(all, key=lambda x: x[1], reverse=True)
