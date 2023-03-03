@@ -82,9 +82,9 @@ def run(data_list, domain_list, output, settings):
                 p.starmap(partial(ds.search, qids=query_originals['qid'].values.tolist(), ranker=settings['ranker'], topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'], index=ds.searcher.index_dir), query_changes)
 
             # we need to add the original queries as well
-            if not isfile(join(t5_output, f'original.{settings["ranker"]}')):
-                query_originals.to_csv(f'{t5_output}/original', columns=['query'], index=False, header=False)
-                ds.search_df(pd.DataFrame(query_originals['query']), f'{t5_output}/original.{settings["ranker"]}', query_originals['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'])
+            if not isfile(join(t5_output, f'original.-1.{settings["ranker"]}')):
+                query_originals.to_csv(f'{t5_output}/original.-1', columns=['query'], index=False, header=False)
+                ds.search_df(pd.DataFrame(query_originals['query']), f'{t5_output}/original.-1.{settings["ranker"]}', query_originals['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'])
 
         if 'eval' in settings['cmd']:
             from evl import trecw
@@ -94,16 +94,16 @@ def run(data_list, domain_list, output, settings):
                 qrels = pd.read_csv(f'{datapath}/qrels.train.tsv', sep='\t', index_col=False, names=['qid', 'did', 'pid', 'relevancy'], header=None)
                 qrels.drop_duplicates(subset=['qid', 'pid'], inplace=True)  # qrels have duplicates!!
                 qrels.to_csv(f'{datapath}/qrels.train.tsv_', index=False, sep='\t', header=False)  # trec_eval.9.0.4 does not accept duplicate rows!!
-            # for (i, o) in search_results: trecw.evaluate(i, o, qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'], lib=settings['treclib'])
+            # for (i, o) in search_results: trecw.evaluate(i, o, qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'], lib=settings['treclib'], topk=settings['topk'])
             with mp.Pool(settings['ncore']) as p:
-                p.starmap(partial(trecw.evaluate, qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'], lib=settings['treclib']), search_results)
+                p.starmap(partial(trecw.evaluate, qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'], lib=settings['treclib'], topk=settings['topk'] ), search_results)
 
         if 'agg' in settings['cmd']:
             originals = pd.read_csv(f'{prep_output}/queries.qrels.doc{"s" if "docs" in {in_type, out_type} else ""}.ctx.{index_item_str}.train.tsv', sep='\t', usecols=['qid', 'query'], dtype={'qid': str})
-            original_metric_values = pd.read_csv(join(t5_output, f'original.{settings["ranker"]}.{settings["metric"]}'), sep='\t', usecols=[1,2], names=['qid', f'original.{settings["ranker"]}.{settings["metric"]}'], index_col=False, dtype={'qid': str})
+            original_metric_values = pd.read_csv(join(t5_output, f'original.-1.{settings["ranker"]}.{settings["metric"]}'), sep='\t', usecols=[1,2], names=['qid', f'original.-1.{settings["ranker"]}.{settings["metric"]}'], index_col=False, dtype={'qid': str})
             originals = originals.merge(original_metric_values, how='left', on='qid')
-            originals[f'original.{settings["ranker"]}.{settings["metric"]}'].fillna(0, inplace=True)
-            changes = [('.'.join(f.split('.')[0:2]), f) for f in os.listdir(t5_output) if f.endswith(f'{settings["ranker"]}.{settings["metric"]}') and 'original' not in f]
+            originals[f'original.-1.{settings["ranker"]}.{settings["metric"]}'].fillna(0, inplace=True)
+            changes = [('.'.join(f.split('.')[0:2]), f) for f in os.listdir(t5_output) if f.endswith(f'{settings["ranker"]}.{settings["metric"]}') and 'original.-1' not in f]
             ds.aggregate(originals, changes, t5_output)
 
         if 'box' in settings['cmd']:
@@ -122,9 +122,9 @@ def run(data_list, domain_list, output, settings):
                 df = pd.read_csv(f'{box_path}/{c}.tsv', sep='\t', encoding='utf-8', index_col=False, header=None, names=['qid', 'query', 'metric', 'query_', 'metric_'], dtype={'qid': str})
                 df.drop_duplicates(subset=['qid'], inplace=True)#See ds.boxing(): in case we store more than two changes with the same metric value
                 ds.search_df(df['query'].to_frame(), f'{box_path}/stamps/{c}.original.{settings["ranker"]}', df['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'])
-                trecw.evaluate(f'{box_path}/stamps/{c}.original.{settings["ranker"]}', f'{box_path}/stamps/{c}.original.{settings["ranker"]}.{settings["metric"]}', qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'], lib=settings['treclib'], mean=True)
+                trecw.evaluate(f'{box_path}/stamps/{c}.original.{settings["ranker"]}', f'{box_path}/stamps/{c}.original.{settings["ranker"]}.{settings["metric"]}', qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'], lib=settings['treclib'], mean=True, topk=settings['topk'])
                 ds.search_df(df['query_'].to_frame().rename(columns={'query_': 'query'}), f'{box_path}/stamps/{c}.change.{settings["ranker"]}', df['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'])
-                trecw.evaluate(f'{box_path}/stamps/{c}.change.{settings["ranker"]}', f'{box_path}/stamps/{c}.change.{settings["ranker"]}.{settings["metric"]}', qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'], lib=settings['treclib'], mean=True)
+                trecw.evaluate(f'{box_path}/stamps/{c}.change.{settings["ranker"]}', f'{box_path}/stamps/{c}.change.{settings["ranker"]}.{settings["metric"]}', qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'], lib=settings['treclib'], mean=True, topk=settings['topk'])
 
 def addargs(parser):
     dataset = parser.add_argument_group('dataset')
@@ -145,17 +145,17 @@ if __name__ == '__main__':
     addargs(parser)
     args = parser.parse_args()
 
-    # run(data_list=args.data_list,
-    #         domain_list=args.domain_list,
-    #         output=args.output,
-    #         settings=param.settings)
-
-    #after finetuning and predict, we can benchmark on rankers and metrics
-    from itertools import product
-    for ranker, metric in product(['bm25', 'qld'], ['success.10', 'map', 'recip_rank.10']):
-        param.settings['ranker'] = ranker
-        param.settings['metric'] = metric
-        run(data_list=args.data_list,
+    run(data_list=args.data_list,
             domain_list=args.domain_list,
             output=args.output,
             settings=param.settings)
+
+    #after finetuning and predict, we can benchmark on rankers and metrics
+    # from itertools import product
+    # for ranker, metric in product(['bm25', 'qld'], ['success.10', 'map', 'recip_rank.10']):
+    #     param.settings['ranker'] = ranker
+    #     param.settings['metric'] = metric
+    #     run(data_list=args.data_list,
+    #         domain_list=args.domain_list,
+    #         output=args.output,
+    #         settings=param.settings)
