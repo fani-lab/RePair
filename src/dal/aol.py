@@ -1,4 +1,4 @@
-import json, os, pandas as pd
+import json, os, pandas as pd,numpy as np
 from tqdm import tqdm
 from shutil import copyfile
 tqdm.pandas()
@@ -77,7 +77,7 @@ class Aol(Dataset):
         queries_qrels = pd.merge(queries, qrels, on='qid', how='inner', copy=False)
 
         doccol = 'docs' if cat else 'doc'
-        del queries, qrels
+        del queries
         queries_qrels['ctx'] = ''
         queries_qrels = queries_qrels.astype('category')
         queries_qrels[doccol] = queries_qrels['did'].progress_apply(cls._txt)
@@ -92,4 +92,13 @@ class Aol(Dataset):
 
         if cat: queries_qrels = queries_qrels.groupby(['qid', 'query'], as_index=False, observed=True).agg({'uid': list, 'did': list, doccol: ' '.join})
         queries_qrels.to_csv(output, sep='\t', encoding='utf-8', index=False)
+        batch_size = 1000000  # need to make this dynamic
+        if len(queries_qrels) > batch_size:
+            for _, chunk in queries_qrels.groupby(np.arange(queries_qrels.shape[0]) // batch_size):
+                chunk.to_csv(f'../output/aol-ia/t5.base.gc.docs.query.title.url/original_test_queries/original.{_}.tsv',
+                             sep='\t', encoding='utf-8', index=False, columns=['query'], header=False)
+                qrels = chunk.merge(qrels, on='qid', how='inner')
+                qrels.to_csv(f'../output/aol-ia/t5.base.gc.docs.query.title.url/qrels/qrels.splits.{_}.tsv_', sep='\t',
+                             encoding='utf-8', index=False, header=False, columns=['qid', 'uid', 'did', 'rel'])
         return queries_qrels
+

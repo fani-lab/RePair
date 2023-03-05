@@ -40,7 +40,7 @@ class Dataset(object):
         print(f'Searching docs for {in_query} ...')
         # https://github.com/google-research/text-to-text-transfer-transformer/issues/322
         # with open(in_query, 'r', encoding='utf-8') as f: [to_docids(l) for l in f]
-        queries = pd.read_csv(in_query, names=['query'], sep='\r', skip_blank_lines=False, engine='c')  # a query might be empty str (output of t5)!!
+        queries = pd.read_csv(in_query, names=['query'], sep='\r\r', skip_blank_lines=False, engine='python')  # a query might be empty str (output of t5)!!
         assert len(queries) == len(qids)
         cls.search_df(queries, out_docids, qids, ranker=ranker, topk=topk, batch=batch, ncores=ncores, index=index)
 
