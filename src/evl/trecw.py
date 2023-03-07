@@ -18,14 +18,14 @@ def evaluate(in_docids, out_metrics, qrels, metric, lib, mean=False, topk=10):
 
     print(f'Evaluating retrieved docs for {in_docids} with {metric} ...')
     if 'trec_eval' in lib:
-        # trec_eval.9.0.4 does not accept more than 2GB files!
-        # So, we need to break it into several files.
+
+        #we need to break it into several files for usage in low memory computers
         ranker = in_docids.split('.')[-1]
         size = os.path.getsize(in_docids)
         in_docids_list = [(in_docids, out_metrics)]
         if int(size / (2 * 2 ** 30)): #greater that 2GB
             from filesplit.split import Split
-            print(f'trec_eval does not accept more than 2GB files! Breaking input file {in_docids} into several splits ...')
+            print(f'Breaking input file {in_docids} into several splits for usage in low memory computers ...')
             mean = False # since for each split we gonna have the result, it's challenging to merge the means
             splitdir = f'{in_docids}.splits/'
             if not os.path.isdir(splitdir): os.makedirs(splitdir)
