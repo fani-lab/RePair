@@ -7,11 +7,23 @@ Search engines have difficulty searching into knowledge repositories since they 
 <tr>
 <td colspan=2>
 
-1. [Setup](#1-setup)
-2. [Quickstart](#2-quickstart)
-3. [Gold Standard Datasets](#3-gold-standard-datasets)
-4. [Acknowledgement](#4-acknowledgement)
-5. [License](#5-license)  
+- [1. Setup](#1-setup)
+  * [Lucene Indexes](#lucene-indexes)
+- [2. Quickstart](#2-quickstart)
+  * [`pair`](#pair)
+  * [`finetune`](#finetune)
+  * [`predict`](#predict)
+  * [`search`](#search)
+  * [`eval`](#eval)
+  * [`agg, box`](#agg-box)
+- [3. Gold Standard Datasets](#3-gold-standard-datasets)
+  * [File Structure](#file-structure)
+  * [Settings](#settings)
+  * [Stats](#stats)
+  * [Samples](#samples)
+- [4. Acknowledgement](#4-acknowledgement)
+- [5. License](#5-license)
+
 </td>
 <td ><img src='./misc/workflow.png' width="80%" /></td>
 <td ><img src='./misc/class.png' width="80%" /></td>
