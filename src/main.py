@@ -92,7 +92,7 @@ def run(data_list, domain_list, output, settings):
             else:
                 query_changes = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["ranker"]}') for f in
                                  listdir(t5_output) if
-                                 isfile(join(t5_output, f)) and f.startswith('pred.') and len(f.split('.')) == 2]
+                                 isfile(join(t5_output, f)) and f.startswith('pred.') and len(f.split('.')) == 2 and f'{f}.{settings["ranker"]}' not in listdir(t5_output)]
 
                 # for (i, o) in query_changes: ds.search(i, o, query_originals['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
                 # batch search:
@@ -102,7 +102,7 @@ def run(data_list, domain_list, output, settings):
                 with mp.Pool(settings['ncore']) as p:
                     p.starmap(partial(ds.search, qids=query_originals['qid'].values.tolist(), ranker=settings['ranker'],
                                       topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'],
-                                      index=ds.searcher.index_dir), query_changes)
+                                      index=None), query_changes)
 
                 # we need to add the original queries as well
                 if not isfile(join(t5_output, f'original.{settings["ranker"]}')):
@@ -123,8 +123,35 @@ def run(data_list, domain_list, output, settings):
                 search_results = list(itertools.chain(*search_results))
                 with mp.Pool(settings['ncore']) as p:
                     p.starmap(partial(trecw.evaluate, metric=settings['metric'], lib=settings['treclib']), search_results)
+
+                #merge after results
+                original_metrics_results_list = list()
+
+                #original merge
+                for i in [file for file in os.listdir(f'{t5_output}/original') if file.endswith(f'{settings["ranker"]}.{settings["metric"]}')]:
+                    print(f'appending query and metric for original, iteration {i} ')
+                    original_metrics_results_list.append(pd.read_csv(f'{t5_output}/original/{i}', sep='\t', names=['metric_name', 'qid', 'metric'], index_col=False, dtype={'qid': str}))
+                original_metrics_results_list = pd.concat(original_metrics_results_list)
+                original_metrics_results_list.to_csv(f'{t5_output}/original.{settings["ranker"]}.{settings["metric"]}', sep='\t', index=False, header=False)
+
+                # changes merge
+                for i in range(1, 11):
+                    metrics_query_list = list()
+                    metrics_results_list = list()
+                    print(f'appending query and metric split files for pred.{i}')
+                    for change in [file for file in os.listdir(f'{t5_output}/pred{i}') if len(file.split('.')) == 2]:
+                        metrics_query_list.append(pd.read_csv(f'{t5_output}/pred{i}/{change}',
+                                        skip_blank_lines=False, names=['query'], sep='\r\r', index_col=False,
+                                        engine='python', encoding='utf-8', dtype={'query': str}))
+                        metrics_results_list.append(pd.read_csv(f'{t5_output}/pred{i}/{change}.{settings["ranker"]}.{settings["metric"]}',
+                            names=['metric_name', 'qid', 'metric'], sep='\t', index_col=False, dtype={'qid': str}))
+                    metrics_query_list = pd.concat(metrics_query_list)
+                    metrics_results_list = pd.concat(metrics_results_list)
+                    metrics_query_list.to_csv(f'{t5_output}/pred.{i}', sep='\t',index=False, header=False)
+                    metrics_results_list.to_csv(f'{t5_output}/pred.{i}.{settings["ranker"]}.{settings["metric"]}', sep='\t',index=False, header=False)
+                    print('all files are merged and ready for aggregation')
             else:
-                search_results = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["metric"]}') for f in listdir(t5_output) if f.endswith(settings['ranker'])]
+                search_results = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["metric"]}') for f in listdir(t5_output) if f.endswith(settings['ranker'] and f'{f}.{settings["ranker"].settings["metric"]}' not in listdir(t5_output))]
                 if not isfile(f'{datapath}/qrels.train.tsv_'):
                     qrels = pd.read_csv(f'{datapath}/qrels.train.tsv', sep='\t', index_col=False, names=['qid', 'did', 'pid', 'relevancy'], header=None)
                     qrels.drop_duplicates(subset=['qid', 'pid'], inplace=True)  # qrels have duplicates!!
@@ -139,7 +166,7 @@ def run(data_list, domain_list, output, settings):
             originals = originals.merge(original_metric_values, how='left', on='qid')
             originals[f'original.{settings["ranker"]}.{settings["metric"]}'].fillna(0, inplace=True)
             changes = [('.'.join(f.split('.')[0:2]), f) for f in os.listdir(t5_output) if f.endswith(f'{settings["ranker"]}.{settings["metric"]}') and 'original' not in f]
-            ds.aggregate(originals, changes, t5_output)
+            ds.aggregate(originals, changes, t5_output, settings["large_ds"])
 
         if 'box' in settings['cmd']:
             box_path = join(t5_output, f'{settings["ranker"]}.{settings["metric"]}.boxes')

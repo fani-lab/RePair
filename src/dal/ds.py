@@ -3,6 +3,7 @@ from tqdm import tqdm
 from os.path import isfile,join
 
 from pyserini.search.lucene import LuceneSearcher
+from pyserini.search.faiss import FaissSearcher, TctColBertQueryEncoder
 
 class Dataset(object):
     searcher = None
@@ -46,7 +47,13 @@ class Dataset(object):
 
     @classmethod
     def search_df(cls, queries, out_docids, qids, ranker='bm25', topk=100, batch=None, ncores=1, index=None):
-        if not cls.searcher: cls.searcher = LuceneSearcher(index) #for main.py's starmap
+        if not cls.searcher:
+            if ranker == 'tct_colbert-hnsw':
+                cls.encoder = TctColBertQueryEncoder('castorini/tct_colbert-msmarco')
+                cls.searcher = FaissSearcher.from_prebuilt_index('msmarco-passage-tct_colbert-hnsw', cls.encoder)
+            else:
+                cls.searcher = LuceneSearcher(index)  # for main.py's starmap
+
         if ranker == 'bm25': cls.searcher.set_bm25(0.82, 0.68)
         if ranker == 'qld': cls.searcher.set_qld()
         with open(out_docids, 'w', encoding='utf-8') as o:
@@ -60,23 +67,26 @@ class Dataset(object):
             else:
                 def _docids(row):
                     if pd.isna(row.query): return  # in the batch call, they do the same. Also, for '', both return [] with no exception
-                    hits = cls.searcher.search(row.query, k=topk, remove_dups=True)
+                    hits = cls.searcher.search(row.query, k=topk)
                     for i, h in enumerate(hits): o.write(f'{qids[row.name]}\tQ0\t{h.docid:7}\t{i + 1:2}\t{h.score:.5f}\tPyserini\n')
 
                 queries.progress_apply(_docids, axis=1)
 
     @classmethod
-    def aggregate(cls, original, changes, output):
+    def aggregate(cls, original, changes, output, is_large_ds=False):
         ranker = changes[0][1].split('.')[2]  # e.g., pred.0-1004000.bm25.success.10 => bm25
         metric = '.'.join(changes[0][1].split('.')[3:])  # e.g., pred.0-1004000.bm25.success.10 => success.10
 
         for change, metric_value in changes:
-            pred = pd.read_csv(join(output, change), sep='\r', skip_blank_lines=False, names=[change], converters={change : cls.clean}, engine='c', index_col=False, header=None)
+            pred = pd.read_csv(join(output, change), sep='\r\r', skip_blank_lines=False, names=[change], converters={change: cls.clean}, engine='python', index_col=False, header=None)
             assert len(original['qid']) == len(pred[change])
-            pred_metric_values = pd.read_csv(join(output, metric_value), sep='\t', usecols=[1, 2], names=['qid', f'{change}.{ranker}.{metric}'], index_col=False, skipfooter=1, dtype={'qid': str})
+            if is_large_ds:
+                pred_metric_values = pd.read_csv(join(output, metric_value), sep='\t', usecols=[1, 2], names=['qid', f'{change}.{ranker}.{metric}'], index_col=False, dtype={'qid': str})
+            else:
+                pred_metric_values = pd.read_csv(join(output, metric_value), sep='\t', usecols=[1, 2], names=['qid', f'{change}.{ranker}.{metric}'], index_col=False,skipfooter=1, dtype={'qid': str})
             original[change] = pred  # to know the actual change
             original = original.merge(pred_metric_values, how='left', on='qid')  # to know the metric value of the change
-            # original[f'{change}.{ranker}.{metric}'].fillna(0, inplace=True)
+            original[f'{change}.{ranker}.{metric}'].fillna(0, inplace=True)
 
         print(f'Saving original queries, all their changes, and their {metric} values based on {ranker} ...')
         original.to_csv(f'{output}/{ranker}.{metric}.agg.all_.tsv', sep='\t', encoding='UTF-8', index=False)
@@ -87,8 +97,8 @@ class Dataset(object):
             agg_gold.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
             agg_all.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
             for index, row in tqdm(original.iterrows(), total=original.shape[0]):
-                agg_gold.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.-1.{ranker}.{metric}"]}\n')
-                agg_all.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.-1.{ranker}.{metric}"]}\n')
+                agg_gold.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\n')
+                agg_all.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\n')
                 all = list()
                 for change, metric_value in changes: all.append((row[change], row[f'{change}.{ranker}.{metric}'], change))
                 all = sorted(all, key=lambda x: x[1], reverse=True)

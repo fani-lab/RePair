@@ -18,7 +18,7 @@ def evaluate(in_docids, out_metrics, qrels, metric, lib, mean=False, topk=10):
 
     print(f'Evaluating retrieved docs for {in_docids} with {metric} ...')
     if 'trec_eval' in lib:
-        cli_cmd = f'{lib} {"-n" if not mean else ""} -q -m {metric} {qrels} {i} > {o}'
+        cli_cmd = f'{lib} {"-n" if not mean else ""} -q -m {metric} {qrels} {in_docids} > {out_metrics}'
         print(cli_cmd)
         stream = os.popen(cli_cmd)
         print(stream.read())
