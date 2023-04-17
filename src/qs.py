@@ -64,7 +64,7 @@ def tsv2json(df, output, topn=1):
 
                 fds.write(json.dumps(obj) + '\n')
 
-                choice = numpy.random.choice(3, 1, p=[0.7, 0.15, 0.15])[0]
+                choice = numpy.random.choice(3, 1, p=[0.9, 0.05, 0.05])[0]
                 if choice == 0:
                     ftrain.write(json.dumps(obj) + '\n')
                 elif choice == 1:
@@ -95,7 +95,7 @@ def call_cair_run(data_dir, epochs):
     #the models config are in QueStion\qs\cair\neuroir\hyparam.py
     #only hredqs can be unidirectional! all other models are in bidirectional mode
     df = pd.DataFrame(columns=['model', 'epoch', 'rouge', 'bleu', 'bleu_list', 'exact_match', 'f1', 'elapsed_time'])
-    for baseline in ['seq2seq', 'acg', 'hredqs']:
+    for baseline in ['seq2seq']:
         for epoch in epochs:
             print(epoch)
             start_time = time.time()
@@ -150,11 +150,13 @@ if __name__=='__main__':
                 # create the test, develop, and train splits
                 if corpus == 'msmarco.passage':
                     df = pd.read_csv(f'{ReQue["input"]}/{corpus}/t5.base.gc.docs.query/diamond.tsv', sep='\t', names=['qid', 'query', 'map', 'query_', 'map_'])
-                    # tsv2json(df, f'{ReQue["input"]}/{corpus}/t5.base.gc.docs.query/', topn)
-
-                data_dir = f'{ReQue["input"]}/{corpus}/t5.base.gc.docs.query/'
+                    tsv2json(df, f'{ReQue["input"]}/{corpus}/t5.base.gc.docs.query/boxes/qs-diamond/', topn)
+                if corpus == 'aol-ia':
+                    df = pd.read_csv(f'{ReQue["input"]}/{corpus}/t5.base.gc.docs.query.title.url/boxes/gold.tsv', sep='\t', names=['qid', 'query', 'map', 'query_', 'map_'])
+                    tsv2json(df, f'{ReQue["input"]}/{corpus}/t5.base.gc.docs.query.title.url/boxes/qs-gold', topn)
+                data_dir = f'{ReQue["input"]}/{corpus}/t5.base.gc.docs.query/boxes/qs-diamond'
                 print('INFO: MAIN: Calling cair for {}'.format(data_dir))
                 #call_cair_run(data_dir, epochs=[e for e in range(1, 10)] + [e * 10 for e in range(1, 21)])
-                call_cair_run(data_dir, epochs=[100])
+                call_cair_run(data_dir, epochs=[10])
 
     aggregate(ReQue['output'] + '/')
