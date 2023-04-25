@@ -187,6 +187,32 @@ def run(data_list, domain_list, output, settings):
                 trecw.evaluate(f'{box_path}/stamps/{c}.original.{settings["ranker"]}', f'{box_path}/stamps/{c}.original.{settings["ranker"]}.{settings["metric"]}', qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'], lib=settings['treclib'], mean=True)
                 ds.search_df(df['query_'].to_frame().rename(columns={'query_': 'query'}), f'{box_path}/stamps/{c}.change.{settings["ranker"]}', df['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'])
                 trecw.evaluate(f'{box_path}/stamps/{c}.change.{settings["ranker"]}', f'{box_path}/stamps/{c}.change.{settings["ranker"]}.{settings["metric"]}', qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'], lib=settings['treclib'], mean=True)
+        if 'dense_retrieve' in settings['cmd']:
+            from tqdm import tqdm
+            agg_df = pd.read_csv(f'{t5_output}/{settings["ranker"]}.{settings["metric"]}.agg.all.tsv', sep='\t', header=0, dtype={'qid': str})
+            changes = [(f, f'{f}.{settings["ranker"]}.{settings["metric"]}') for f in os.listdir(output) if f.startswith('pred') and len(f.split('.')) == 2]
+            # creates a new file for poor performing queries
+            with open(f'{output}/{settings["ranker"]}.{settings["metric"]}.agg.poor_perf.tsv', mode='w', encoding='UTF-8') as agg_poor_perf:
+                agg_poor_perf.write(f'qid\tquery\t{settings["ranker"]}.{settings["metric"]}\t\tquery_\t{settings["ranker"]}.{settings["metric"]}\n')
+                for index, row in tqdm(agg_df.iterrows(), total=agg_df.shape[0]):
+                    all = list()
+                    for change, metric_value in changes: all.append((row[change], row[f'{change}.{settings["ranker"]}.{settings["metric"]}'], change))
+                    all = sorted(all, key=lambda x: x[1], reverse=True)
+                    if row[f'original.{settings["ranker"]}.{settings["metric"]}'] == 0 and all[0][1] <= 0.1:
+                        agg_poor_perf.write(f'{row.qid}\t{row.query}\t{row[f"original.{settings.ranker}.{settings.metric}"]}\t{all[0][0]}\t{all[0][1]}\n')
+            original = pd.read_csv(f'{output}/{settings["ranker"]}.{settings["metric"]}.agg.poor_perf.tsv', sep='\t', encoding="utf-8",
+                                   names=["qid", "query", "map", "query_", "map_"], dtype={'qid': str})
+            pred = pd.DataFrame()
+            pred["query"] = original["query_"]
+            search_list = [(pd.DataFrame(original['query']), f'{output}/original.poor_perf.bm25'),
+                           (pd.DataFrame(pred['query']), f'{output}/pred.poor_perf.bm25')]
+            search_results = [(f'{output}/original.poor_perf.bm25', f'{output}/original.poor_perf.bm25.recip_rank.10'),
+                              (f'{output}/pred.poor_perf.bm25', f'{output}/pred.poor_perf.bm25.recip_rank.10')]
+            with mp.Pool(settings['ncore']) as p:
+                p.starmap(partial(ds.search_df, qids=original['qid'].values.tolist(), ranker='tct_colbert', topk=100, batch=None,
+                                  ncores=settings['ncore'],index=settings['dense_index'],encoder=settings['dense_encoder']), search_list)
+                p.starmap(partial(trecw.evaluate,  qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'],
+                            lib=settings['treclib']), search_results)
 
 def addargs(parser):
     dataset = parser.add_argument_group('dataset')
