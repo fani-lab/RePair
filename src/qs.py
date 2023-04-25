@@ -95,7 +95,7 @@ def call_cair_run(data_dir, epochs):
     #the models config are in QueStion\qs\cair\neuroir\hyparam.py
     #only hredqs can be unidirectional! all other models are in bidirectional mode
     df = pd.DataFrame(columns=['model', 'epoch', 'rouge', 'bleu', 'bleu_list', 'exact_match', 'f1', 'elapsed_time'])
-    for baseline in ['seq2seq']:
+    for baseline in ['hredqs']:
         for epoch in epochs:
             print(epoch)
             start_time = time.time()
@@ -137,7 +137,7 @@ if __name__=='__main__':
     topn = int(sys.argv[1])
     corpora = sys.argv[2:]
     if not corpora:
-        corpora = ['msmarco.passage']
+        corpora = ['aol-ia']
     if not topn:
         topn = 1
 
@@ -148,13 +148,10 @@ if __name__=='__main__':
             ranker = ranker.replace('-', '').replace(' ', '.')
             for metric in metrics:
                 # create the test, develop, and train splits
-                if corpus == 'msmarco.passage':
-                    df = pd.read_csv(f'{ReQue["input"]}/{corpus}/t5.base.gc.docs.query/diamond.tsv', sep='\t', names=['qid', 'query', 'map', 'query_', 'map_'])
-                    tsv2json(df, f'{ReQue["input"]}/{corpus}/t5.base.gc.docs.query/boxes/qs-diamond/', topn)
                 if corpus == 'aol-ia':
                     df = pd.read_csv(f'{ReQue["input"]}/{corpus}/t5.base.gc.docs.query.title.url/boxes/gold.tsv', sep='\t', names=['qid', 'query', 'map', 'query_', 'map_'])
-                    tsv2json(df, f'{ReQue["input"]}/{corpus}/t5.base.gc.docs.query.title.url/boxes/qs-gold', topn)
-                data_dir = f'{ReQue["input"]}/{corpus}/t5.base.gc.docs.query/boxes/qs-diamond'
+                    tsv2json(df, f'{ReQue["input"]}/{corpus}/t5.base.gc.docs.query.title.url/boxes/qs-gold/', topn)
+                data_dir = f'{ReQue["input"]}/{corpus}/t5.base.gc.docs.query.title.url/boxes/qs-gold'
                 print('INFO: MAIN: Calling cair for {}'.format(data_dir))
                 #call_cair_run(data_dir, epochs=[e for e in range(1, 10)] + [e * 10 for e in range(1, 21)])
                 call_cair_run(data_dir, epochs=[10])
