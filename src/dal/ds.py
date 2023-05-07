@@ -47,10 +47,14 @@ class Dataset(object):
 
     @classmethod
     def search_df(cls, queries, out_docids, qids, ranker='bm25', topk=100, batch=None, ncores=1, index=None,encoder=None):
+
         if not cls.searcher:
             if ranker == 'tct_colbert':
                 cls.encoder = TctColBertQueryEncoder(encoder)
-                cls.searcher = FaissSearcher.from_prebuilt_index(index, cls.encoder)
+                if 'msmarco.passage' in out_docids.split('/'):
+                    cls.searcher = FaissSearcher.from_prebuilt_index(index, cls.encoder)
+                else:
+                    cls.searcher = FaissSearcher(index, cls.encoder)
             else:
                 cls.searcher = LuceneSearcher(index)
 
@@ -67,11 +71,19 @@ class Dataset(object):
             else:
                 def _docids(row):
                     if pd.isna(row.query): return  # in the batch call, they do the same. Also, for '', both return [] with no exception
-                    if ranker=='tct_colbert':
+                    if ranker == 'tct_colbert':
                         hits = cls.searcher.search(row.query, k=topk)
+                        unique_docids = set()
+                        for i, h in enumerate(hits):
+                            if h.docid not in unique_docids:
+                                unique_docids.add(h.docid)
+                                o.write(f'{qids[row.name]}\tQ0\t{h.docid:7}\t{i + 1:2}\t{h.score:.5f}\tPyserini\n')
+                        if len(unique_docids) < topk:
+                            print(f'unique docids fetched less than {topk}')
                     else:
-                        hits = cls.searcher.search(row.query,k=topk,remove_dups=True)
-                    for i, h in enumerate(hits): o.write(f'{qids[row.name]}\tQ0\t{h.docid:7}\t{i + 1:2}\t{h.score:.5f}\tPyserini\n')
+                        hits = cls.searcher.search(row.query, k=topk, remove_dups=True)
+                        for i, h in enumerate(hits): o.write(f'{qids[row.name]}\tQ0\t{h.docid:7}\t{i + 1:2}\t{h.score:.5f}\tPyserini\n')
+
 
                 queries.progress_apply(_docids, axis=1)
 

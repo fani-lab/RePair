@@ -188,31 +188,59 @@ def run(data_list, domain_list, output, settings):
                 ds.search_df(df['query_'].to_frame().rename(columns={'query_': 'query'}), f'{box_path}/stamps/{c}.change.{settings["ranker"]}', df['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'])
                 trecw.evaluate(f'{box_path}/stamps/{c}.change.{settings["ranker"]}', f'{box_path}/stamps/{c}.change.{settings["ranker"]}.{settings["metric"]}', qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'], lib=settings['treclib'], mean=True)
         if 'dense_retrieve' in settings['cmd']:
+            from evl import trecw
             from tqdm import tqdm
-            agg_df = pd.read_csv(f'{t5_output}/{settings["ranker"]}.{settings["metric"]}.agg.all.tsv', sep='\t', header=0, dtype={'qid': str})
-            changes = [(f, f'{f}.{settings["ranker"]}.{settings["metric"]}') for f in os.listdir(output) if f.startswith('pred') and len(f.split('.')) == 2]
-            # creates a new file for poor performing queries
-            with open(f'{output}/{settings["ranker"]}.{settings["metric"]}.agg.poor_perf.tsv', mode='w', encoding='UTF-8') as agg_poor_perf:
-                agg_poor_perf.write(f'qid\tquery\t{settings["ranker"]}.{settings["metric"]}\t\tquery_\t{settings["ranker"]}.{settings["metric"]}\n')
-                for index, row in tqdm(agg_df.iterrows(), total=agg_df.shape[0]):
-                    all = list()
-                    for change, metric_value in changes: all.append((row[change], row[f'{change}.{settings["ranker"]}.{settings["metric"]}'], change))
-                    all = sorted(all, key=lambda x: x[1], reverse=True)
-                    if row[f'original.{settings["ranker"]}.{settings["metric"]}'] == 0 and all[0][1] <= 0.1:
-                        agg_poor_perf.write(f'{row.qid}\t{row.query}\t{row[f"original.{settings.ranker}.{settings.metric}"]}\t{all[0][0]}\t{all[0][1]}\n')
-            original = pd.read_csv(f'{output}/{settings["ranker"]}.{settings["metric"]}.agg.poor_perf.tsv', sep='\t', encoding="utf-8",
-                                   names=["qid", "query", "map", "query_", "map_"], dtype={'qid': str})
+            ranker = settings["ranker"]
+            metric = settings["metric"]
+            condition = 'no_pred'
+            if not isfile(join(t5_output, f'{ranker}.{metric}.agg.{condition}.tsv')):
+                agg_df = pd.read_csv(f'{t5_output}/{ranker}.{metric}.agg.all_.tsv', sep='\t', header=0, dtype={'qid': str})
+                changes = [(f, f'{f}.{ranker}.{metric}') for f in os.listdir(t5_output) if f.startswith('pred') and len(f.split('.')) == 2]
+                # creates a new file for poor performing/no prediction queries
+                with open(f'{t5_output}/{ranker}.{metric}.agg.{condition}.tsv', mode='w', encoding='UTF-8') as agg_poor_perf:
+                    agg_poor_perf.write(f'qid\tquery\t{ranker}.{metric}\t\tquery_\t{ranker}.{metric}_\n')
+                    for index, row in tqdm(agg_df.iterrows(), total=agg_df.shape[0]):
+                        all = list()
+                        for change, metric_value in changes: all.append((row[change], row[f'{change}.{ranker}.{metric}'], change))
+                        all = sorted(all, key=lambda x: x[1], reverse=True)
+                        # if row[f'original.{ranker}.{metric}'] == 0 and all[0][1] <= 0.1: #poor perf
+                        if row[f'original.{ranker}.{metric}'] > all[0][1] and row[f'original.{ranker}.{metric}'] <= 1: # no prediction
+                            agg_poor_perf.write(f'{row.qid}\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\t{all[0][0]}\t{all[0][1]}\n')
+            original = pd.read_csv(f'{t5_output}/{ranker}.{metric}.agg.{condition}.tsv', sep='\t', encoding="utf-8",
+                                   header=0, index_col=False, names=['qid', 'query', f'{ranker}.{metric}', 'query_', f'{ranker}.{metric}_'], dtype={'qid': str})
+            if domain == 'aol-ia': original = original[:16230]
+            print(original.shape[0])
             pred = pd.DataFrame()
             pred["query"] = original["query_"]
-            search_list = [(pd.DataFrame(original['query']), f'{output}/original.poor_perf.bm25'),
-                           (pd.DataFrame(pred['query']), f'{output}/pred.poor_perf.bm25')]
-            search_results = [(f'{output}/original.poor_perf.bm25', f'{output}/original.poor_perf.bm25.recip_rank.10'),
-                              (f'{output}/pred.poor_perf.bm25', f'{output}/pred.poor_perf.bm25.recip_rank.10')]
+            search_list = [(pd.DataFrame(original['query']), f'{t5_output}/original.{condition}.tct_colbert'),
+                           (pd.DataFrame(pred['query']), f'{t5_output}/pred.{condition}.tct_colbert')]
+            search_results = [(f'{t5_output}/original.{condition}.tct_colbert', f'{t5_output}/original.{condition}.tct_colbert.{metric}'),
+                              (f'{t5_output}/pred.{condition}.tct_colbert', f'{t5_output}/pred.{condition}.tct_colbert.{metric}')]
             with mp.Pool(settings['ncore']) as p:
                 p.starmap(partial(ds.search_df, qids=original['qid'].values.tolist(), ranker='tct_colbert', topk=100, batch=None,
-                                  ncores=settings['ncore'],index=settings['dense_index'],encoder=settings['dense_encoder']), search_list)
+                                  ncores=settings['ncore'], index=settings[f'{domain}']["dense_index"], encoder=settings[f'{domain}']['dense_encoder']), search_list)
                 p.starmap(partial(trecw.evaluate,  qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'],
                             lib=settings['treclib']), search_results)
+
+            # aggregate colbert results and compare with bm25 results
+            original_dense = pd.read_csv(f'{t5_output}/original.{condition}.tct_colbert.{metric}', sep='\t', usecols=[1, 2],
+                                   names=['qid', f'{metric}'])
+            pred_dense = pd.read_csv(f'{t5_output}/pred.{condition}.tct_colbert.{metric}', sep='\t', usecols=[1, 2],
+                               names=['qid', f'{metric}'])
+            agg_df = original_dense.merge(pred_dense, on='qid', suffixes=('', '_'), how='outer')
+            print(f"total queries: {agg_df.shape[0]}")
+            print(f"pred greater than original with 0 :{agg_df[(agg_df[f'{metric}'] == 0) & (agg_df[f'{metric}_'] > 0)].shape[0]}")  # where original = 0 and pred > original
+            print(f"pred greater than original {agg_df[agg_df[f'{metric}_'] > agg_df[f'{metric}']].shape[0]}")  # pred > original
+            print(f"pred less than original {agg_df[agg_df[f'{metric}_'] < agg_df[f'{metric}']].shape[0]}")  # pred < original
+
+            print(f"original sparse:{original[f'{ranker}.{metric}'].mean()}\n")
+            print(f"original dense:{agg_df[f'{metric}'].mean()}\n")
+            print(f"pred sparse:{original[f'{ranker}.{metric}_'].mean()}")
+            print(f"pred dense:{agg_df[f'{metric}_'].mean()}\n")
+            # colbert improvements
+            agg_df['original_sparse'] = original[f'{ranker}.{metric}']
+            agg_df['pred_sparse'] = original[f'{ranker}.{metric}_']
+            agg_df.to_csv(f'{t5_output}/colbert.comparison.{condition}.{metric}.tsv', sep="\t", index=None)
 
 def addargs(parser):
     dataset = parser.add_argument_group('dataset')
