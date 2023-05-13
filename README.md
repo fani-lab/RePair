@@ -130,6 +130,51 @@ For boxing, since we keep the performances for all the potential queries, we can
         'diamond':  'refined_q_metric > original_q_metric and refined_q_metric == 1'}
 ```
 
+### [`['dense_retrieve']`](./src/param.py#L17)
+
+It is imperative for us to support dense retrieval as a ranker method for which we choose to explore `tct_colbert` the current `state-of-the-art` method.
+
+`tct colbert` is supported directly by `pyserini` , which allows us to index and search.
+
+We explain in detail how to do this for any dataset and release our dense index for `aol.title` and `aol.title.url`, for `msmarco.passage`, we used [the prebuild index](https://github.com/castorini/pyserini/blob/master/docs/experiments-tct_colbert-v2.md) provided by pyserini 
+
+**Indexing**:
+Before building a dense index, we need to encode the passages either in faiss format or jsonl format. We provide a sample command that indexes `aol.title` :
+```
+python -m pyserini.encode \
+  input   --corpus  data/raw/aol-ia/title\
+          --fields text \  
+          --delimiter "\n" \
+          --shard-id 0 \   
+          --shard-num 1 \  
+  output  --embeddings data/raw/aol-ia/dense-encoder/tct_colbert.title \
+          --to-faiss \
+  encoder --encoder castorini/tct_colbert-v2-hnp-msmarco \
+          --fields text \  
+          --batch 32 
+```
+Now once the encoding is done, we need to index this, This indexing will take about 24 hours:
+```
+    python -m pyserini.index.faiss \
+  --input  data/raw/aol-ia/dense-encoder/tct_colbert.title \  
+  --output data/raw/aol-ia/dense-index/tct_colbert.title \
+  --hnsw
+```
+We chose to go with the HNSW file structure,you can explore more about it [here](https://faiss.ai/cpp_api/struct/structfaiss_1_1IndexHNSW.html#struct-faiss-indexhnsw)
+
+[**Searching**:](./src/dal/ds.py#L53)
+We added the searching to our pipeline, since it's very similar as searching in a sparse index. 
+```python
+from pyserini.search.faiss import TctColBertQueryEncoder, FaissSearcher
+encoder = TctColBertQueryEncoder('./data/raw/aol-ia/dense-encoder/tct_colbert.title')
+searcher = FaissSearcher('./data/raw/aol-ia/dense-index/tct_colbert.title',encoder)
+```
+We do not apply `tct_colbert` to our whole dataset instead we attempt to improve our predicted queries which does not meet a certain condition:
+``` 
+original_q_metric > refined_q_metric and 0 >= original_q_metric >= 1
+```
+
+
 ## 3. Gold Standard Datasets 
 
 | query set | final gold standard dataset | data folder (raw and preprocessed) | output folder (model, predictions, ...) | 
