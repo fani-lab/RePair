@@ -34,8 +34,8 @@ def run(data_list, domain_list, output, settings):
             cat = True if 'docs' in {in_type, out_type} else False
             query_qrel_doc = ds.pair(datapath, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item_str}.train.tsv', cat=cat)
             print(f'Pairing queries and relevant passages for test set ...')
-            # TODO: query_qrel_doc = pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.{index_item_str}.test.tsv')
-            # query_qrel_doc = ds.pair(datapath, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item_str}.test.tsv', cat=cat)
+            #TODO: query_qrel_doc = pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.{index_item_str}.test.tsv')
+            query_qrel_doc = ds.pair(datapath, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item_str}.test.tsv', cat=cat)
             query_qrel_doc.to_csv(tsv_path['train'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
             query_qrel_doc.to_csv(tsv_path['test'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
 
@@ -263,21 +263,17 @@ if __name__ == '__main__':
     addargs(parser)
     args = parser.parse_args()
 
-    run(data_list=args.data_list,
-            domain_list=args.domain_list,
-            output=args.output,
-            settings=param.settings)
-
-    #after finetuning and predict, we can benchmark on rankers and metrics
-    from itertools import product
-    # for ranker, metric in product(['bm25'], ['recip_rank.10']):
-    #     param.settings['ranker'] = ranker
-    #     param.settings['metric'] = metric
-    #     run(data_list=args.data_list,
+    # run(data_list=args.data_list,
     #         domain_list=args.domain_list,
     #         output=args.output,
     #         settings=param.settings)
- # if one predicted queries has map 1 and the original query map is not 1.
- #if one predicted query is > original that is platinum
 
- #if one predicted query >= original that is gold.
+    #after finetuning and predict, we can benchmark on rankers and metrics
+    from itertools import product
+    for ranker, metric in product(['bm25', 'qld'], ['success.10', 'map', 'recip_rank.10']):
+        param.settings['ranker'] = ranker
+        param.settings['metric'] = metric
+        run(data_list=args.data_list,
+            domain_list=args.domain_list,
+            output=args.output,
+            settings=param.settings)
