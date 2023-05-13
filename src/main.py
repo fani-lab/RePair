@@ -207,8 +207,10 @@ def run(data_list, domain_list, output, settings):
                         if row[f'original.{ranker}.{metric}'] > all[0][1] and row[f'original.{ranker}.{metric}'] <= 1: # no prediction
                             agg_poor_perf.write(f'{row.qid}\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\t{all[0][0]}\t{all[0][1]}\n')
             original = pd.read_csv(f'{t5_output}/{ranker}.{metric}.agg.{condition}.tsv', sep='\t', encoding="utf-8",
-                                   header=0, index_col=False, names=['qid', 'query', f'{ranker}.{metric}', 'query_', f'{ranker}.{metric}_'], dtype={'qid': str})
-            if domain == 'aol-ia': original = original[:16230]
+                                   header=0, index_col=False, names=['qid', 'query', f'{ranker}.{metric}', 'query_', f'{ranker}.{metric}_'])
+            if domain == 'aol-ia':
+                original['pid'] = original['pid'].astype('str')
+                original = original[:16230]
             print(original.shape[0])
             pred = pd.DataFrame()
             pred["query"] = original["query_"]
