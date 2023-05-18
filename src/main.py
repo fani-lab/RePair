@@ -26,21 +26,21 @@ def run(data_list, domain_list, output, settings):
 
         index_item_str = '.'.join(settings[domain]['index_item'])
         in_type, out_type = settings[domain]['pairing'][1], settings[domain]['pairing'][2]
-        tsv_path = {'train': f'{prep_output}/{in_type}.{out_type}.{index_item_str}.train.tsv', 'test': f'{prep_output}/{in_type}.{out_type}.{index_item_str}.test.tsv'}
+        tsv_path = {'train': f'{prep_output}/{ds.user_pairing}{in_type}.{out_type}.{index_item_str}.train.tsv', 'test': f'{prep_output}/{ds.user_pairing}{in_type}.{out_type}.{index_item_str}.test.tsv'}
 
         query_qrel_doc = None
         if 'pair' in settings['cmd']:
             print(f'Pairing queries and relevant passages for training set ...')
             cat = True if 'docs' in {in_type, out_type} else False
-            query_qrel_doc = ds.pair(datapath, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item_str}.train.tsv', cat=cat)
-            print(f'Pairing queries and relevant passages for test set ...')
+            query_qrel_doc = ds.pair(datapath, f'{prep_output}/{ds.user_pairing}queries.qrels.doc{"s" if cat else ""}.ctx.{index_item_str}.train.tsv', cat=cat)
+            # print(f'Pairing queries and relevant passages for test set ...')
             #TODO: query_qrel_doc = pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.{index_item_str}.test.tsv')
-            query_qrel_doc = ds.pair(datapath, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item_str}.test.tsv', cat=cat)
+            #query_qrel_doc = ds.pair(datapath, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item_str}.test.tsv', cat=cat)
             query_qrel_doc.to_csv(tsv_path['train'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
             query_qrel_doc.to_csv(tsv_path['test'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
 
         t5_model = settings['t5model']  # {"small", "base", "large", "3B", "11B"} cross {"local", "gc"}
-        t5_output = f'../output/{os.path.split(datapath)[-1]}/t5.{t5_model}.{in_type}.{out_type}.{index_item_str}'
+        t5_output = f'../output/{os.path.split(datapath)[-1]}/{ds.user_pairing}t5.{t5_model}.{in_type}.{out_type}.{index_item_str}'
         if not os.path.isdir(t5_output): os.makedirs(t5_output)
         copyfile('./param.py', f'{t5_output}/param.py')
         if {'finetune', 'predict'} & set(settings['cmd']):
@@ -151,14 +151,14 @@ def run(data_list, domain_list, output, settings):
                     metrics_results_list.to_csv(f'{t5_output}/pred.{i}.{settings["ranker"]}.{settings["metric"]}', sep='\t',index=False, header=False)
                     print('all files are merged and ready for aggregation')
             else:
-                search_results = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["metric"]}') for f in listdir(t5_output) if f.endswith(settings['ranker'] and f'{f}.{settings["ranker"].settings["metric"]}' not in listdir(t5_output))]
-                if not isfile(f'{datapath}/qrels.train.tsv_'):
-                    qrels = pd.read_csv(f'{datapath}/qrels.train.tsv', sep='\t', index_col=False, names=['qid', 'did', 'pid', 'relevancy'], header=None)
+                search_results = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["metric"]}') for f in listdir(t5_output) if f.endswith(settings["ranker"]) and f'{f}.{settings["ranker"]}.{settings["metric"]}' not in listdir(t5_output)]
+                if not isfile(f'{datapath}/{ds.user_pairing}qrels.train.tsv_'):
+                    qrels = pd.read_csv(f'{datapath}/{ds.user_pairing}qrels.train.tsv', sep='\t', index_col=False, names=['qid', 'did', 'pid', 'relevancy'], header=None)
                     qrels.drop_duplicates(subset=['qid', 'pid'], inplace=True)  # qrels have duplicates!!
                     qrels.to_csv(f'{datapath}/qrels.train.tsv_', index=False, sep='\t', header=False)  # trec_eval.9.0.4 does not accept duplicate rows!!
                 # for (i, o) in search_results: trecw.evaluate(i, o, qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'], lib=settings['treclib'])
                 with mp.Pool(settings['ncore']) as p:
-                    p.starmap(partial(trecw.evaluate, qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'], lib=settings['treclib']), search_results)
+                    p.starmap(partial(trecw.evaluate, qrels=f'{datapath}/{ds.user_pairing}qrels.train.tsv_', metric=settings['metric'], lib=settings['treclib'], mean=not settings['large_ds']), search_results)
 
         if 'agg' in settings['cmd']:
             originals = pd.read_csv(f'{prep_output}/queries.qrels.doc{"s" if "docs" in {in_type, out_type} else ""}.ctx.{index_item_str}.train.tsv', sep='\t', usecols=['qid', 'query'], dtype={'qid': str})
@@ -263,17 +263,17 @@ if __name__ == '__main__':
     addargs(parser)
     args = parser.parse_args()
 
-    # run(data_list=args.data_list,
-    #         domain_list=args.domain_list,
-    #         output=args.output,
-    #         settings=param.settings)
-
-    #after finetuning and predict, we can benchmark on rankers and metrics
-    from itertools import product
-    for ranker, metric in product(['bm25', 'qld'], ['success.10', 'map', 'recip_rank.10']):
-        param.settings['ranker'] = ranker
-        param.settings['metric'] = metric
-        run(data_list=args.data_list,
+    run(data_list=args.data_list,
             domain_list=args.domain_list,
             output=args.output,
             settings=param.settings)
+
+    #after finetuning and predict, we can benchmark on rankers and metrics
+    # from itertools import product
+    # for ranker, metric in product(['bm25', 'qld'], ['success.10', 'map', 'recip_rank.10']):
+    #     param.settings['ranker'] = ranker
+    #     param.settings['metric'] = metric
+    #     run(data_list=args.data_list,
+    #         domain_list=args.domain_list,
+    #         output=args.output,
+    #         settings=param.settings)
