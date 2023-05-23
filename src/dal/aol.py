@@ -74,7 +74,6 @@ class Aol(Dataset):
         queries = pd.read_csv(f'{input}/queries.train.tsv', encoding='UTF-8', sep='\t', index_col=False, names=['qid', 'query'], converters={'query': str.lower}, header=None)
         # the column order in the file is [qid, uid, did, uid]!!!! STUPID!!
         qrels = pd.read_csv(f'{input}/qrels.train.tsv', encoding='UTF-8', sep='\t', index_col=False, names=['qid', 'uid', 'did', 'rel'], header=None)
-        #not considering uid
         # docid is a hash of the URL. qid is the a hash of the *noramlised query* ==> two uid may have same qid then, same docid.
         qrels.drop_duplicates(subset=['qid', 'did', 'uid'], inplace=True)
         queries_qrels = pd.merge(queries, qrels, on='qid', how='inner', copy=False)
@@ -96,6 +95,8 @@ class Aol(Dataset):
         if cat: queries_qrels = queries_qrels.groupby(['qid', 'query', 'uid'], as_index=False, observed=True).agg({'did': list, doccol: ' '.join})
         queries_qrels[doccol] = queries_qrels['uid'].astype(str) + ": " + queries_qrels[doccol].astype(str)
         queries_qrels.to_csv(output, sep='\t', encoding='utf-8', index=False)
+        # queries_qrels = pd.read_csv(output, sep='\t', encoding='utf-8', index_col=False)
+        if cls.user_pairing: qrels = pd.read_csv(f'{input}/{cls.user_pairing}qrels.train.tsv_', sep='\t', index_col=False, names=['qid', 'uid', 'did', 'rel'])
         batch_size = 1000000  # need to make this dynamic
         index_item_str = '.'.join(cls.settings['index_item'])
         ## create dirs:
@@ -103,10 +104,11 @@ class Aol(Dataset):
         if not os.path.isdir(f'../output/aol-ia/{cls.user_pairing}t5.base.gc.docs.query.{index_item_str}/qrels'): os.makedirs(f'../output/aol-ia/{cls.user_pairing}t5.base.gc.docs.query.{index_item_str}/qrels')
         if len(queries_qrels) > batch_size:
             for _, chunk in queries_qrels.groupby(np.arange(queries_qrels.shape[0]) // batch_size):
+                chunk.to_csv(f'../data/preprocessed/aol-ia/{cls.user_pairing}docs.query.{index_item_str}.{_}.tsv', columns=['docs', 'query'], header=False, sep='\t', encoding='utf-8', index=False)
                 chunk.to_csv(f'../output/aol-ia/{cls.user_pairing}t5.base.gc.docs.query.{index_item_str}/original_test_queries/original.{_}.tsv',
                              sep='\t', encoding='utf-8', index=False, columns=['query'], header=False)
-                qrels = chunk.merge(qrels, on='qid', how='inner')
-                qrels.to_csv(f'../output/aol-ia/{cls.user_pairing}t5.base.gc.docs.query.{index_item_str}/qrels/qrels.splits.{_}.tsv_', sep='\t',
+                qrels_splits = chunk[['qid', 'query']].merge(qrels, on='qid', how='inner')
+                qrels_splits.to_csv(f'../output/aol-ia/{cls.user_pairing}t5.base.gc.docs.query.{index_item_str}/qrels/qrels.splits.{_}.tsv_', sep='\t',
                              encoding='utf-8', index=False, header=False, columns=['qid', 'uid', 'did', 'rel'])
         return queries_qrels
 

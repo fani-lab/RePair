@@ -69,14 +69,14 @@ def run(data_list, domain_list, output, settings):
             #seems for some queries there is no qrels, so they are missed for t5 prediction.
             #query_originals = pd.read_csv(f'{datapath}/queries.train.tsv', sep='\t', names=['qid', 'query'], dtype={'qid': str})
             #we use the file after panda.merge that create the training set so we make sure the mapping of qids
-            query_originals = pd.read_csv(f'{prep_output}/queries.qrels.doc{"s" if "docs" in {in_type, out_type} else ""}.ctx.{index_item_str}.train.tsv', sep='\t', usecols=['qid', 'query'], dtype={'qid': str})
+            query_originals = pd.read_csv(f'{prep_output}/{ds.user_pairing}queries.qrels.doc{"s" if "docs" in {in_type, out_type} else ""}.ctx.{index_item_str}.train.tsv', sep='\t', usecols=['qid', 'query'], dtype={'qid': str})
             if settings['large_ds']:
                 import numpy as np
                 import glob
                 split_size = 1000000  # need to make this dynamic
                 for _, chunk in query_originals.groupby(np.arange(query_originals.shape[0]) // split_size):
                     file_changes = [(file, f'{file}.{settings["ranker"]}') for file in
-                                    glob.glob(f'{t5_output}/**/pred.0{_}*')]
+                                    glob.glob(f'{t5_output}/**/pred.{_}*') if f'{file}.{settings["ranker"]}' not in glob.glob(f'{t5_output}/**/pred.{_}*')]
                     with mp.Pool(settings['ncore']) as p:
                         p.starmap(partial(ds.search, qids=chunk['qid'].values.tolist(), ranker=settings['ranker'],
                                           topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'],
@@ -117,8 +117,9 @@ def run(data_list, domain_list, output, settings):
                 import glob
                 import itertools
                 search_results = list()
-                for i in range(0, 5):  # need to make this value dynamic
-                    search_results.append([(file, f'{file}.{settings["metric"]}', f'{t5_output}/qrels/qrels.splits.{i}.tsv_') for file in glob.glob(f'{t5_output}/**/pred.0{i}-*.bm25', recursive=True)])
+                num_splits = len(f'{t5_output}/qrels/*')
+                for i in range(0, num_splits):
+                    search_results.append([(file, f'{file}.{settings["metric"]}', f'{t5_output}/qrels/qrels.splits.{i}.tsv_') for file in glob.glob(f'{t5_output}/**/pred.{i}-*.bm25', recursive=True)])
                     search_results.append([(file, f'{file}.{settings["metric"]}', f'{t5_output}/qrels/qrels.splits.{i}.tsv_') for file in glob.glob(f'{t5_output}/original/original.{i}.tsv.bm25', recursive=True)])
                 search_results = list(itertools.chain(*search_results))
                 with mp.Pool(settings['ncore']) as p:
@@ -268,7 +269,7 @@ if __name__ == '__main__':
             output=args.output,
             settings=param.settings)
 
-    #after finetuning and predict, we can benchmark on rankers and metrics
+    # after finetuning and predict, we can benchmark on rankers and metrics
     # from itertools import product
     # for ranker, metric in product(['bm25', 'qld'], ['success.10', 'map', 'recip_rank.10']):
     #     param.settings['ranker'] = ranker
