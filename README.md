@@ -5,7 +5,7 @@ Search engines have difficulty searching into knowledge repositories since they 
 
 <table align="center" border=0>
 <tr>
-<td colspan=2>
+<td >
 
 - [1. Setup](#1-setup)
   * [Lucene Indexes](#lucene-indexes)
@@ -26,8 +26,8 @@ Search engines have difficulty searching into knowledge repositories since they 
 - [5. License](#5-license)
 
 </td>
-<td ><img src='./misc/flow.png' width="50%" /></td>
-<td ><img src='./misc/class.png' width="100%" /></td>
+<td ><img src='./misc/flow.png' width="70%" /></td>
+<td ><img src='./misc/class.png' width="800" /></td>
 </tr>
 </table>
 
