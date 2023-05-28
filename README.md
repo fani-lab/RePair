@@ -16,6 +16,7 @@ Search engines have difficulty searching into knowledge repositories since they 
   * [`search`](#search)
   * [`eval`](#eval)
   * [`agg, box`](#agg-box)
+  * [`dense_retrieve`](#dense_retrieve)
 - [3. Gold Standard Datasets](#3-gold-standard-datasets)
   * [File Structure](#file-structure)
   * [Settings](#settings)
@@ -225,6 +226,44 @@ For boxing, since we keep the performances for all the potential queries, we can
         'diamond':  'refined_q_metric > original_q_metric and refined_q_metric == 1'}
 ```
 
+
+After this step, [`./output`](./output) will further include:
+
+```bash
+├── output
+│   └── toy.msmarco.passage
+│       └── t5.small.local.docs.query.passage
+│           ├── qld.map.agg.all.tsv
+│           ├── qld.map.agg.all_.tsv
+│           ├── qld.map.agg.gold.tsv
+│           ├── qld.map.boxes
+│           │   ├── diamond.tsv
+│           │   ├── gold.tsv
+│           │   ├── platinum.tsv
+│           │   └── stamps
+│           │       ├── diamond.change.qld.map
+│           │       ├── diamond.original.qld.map
+│           │       ├── gold.change.qld.map
+│           │       ├── gold.original.qld.map
+│           │       ├── platinum.change.qld.map
+│           │       └── platinum.original.qld.map
+│           ├── qld.success.10.agg.all.tsv
+│           ├── qld.success.10.agg.all_.tsv
+│           ├── qld.success.10.agg.gold.tsv
+│           └── qld.success.10.boxes
+│               ├── diamond.tsv
+│               ├── gold.tsv
+│               ├── platinum.tsv
+│               └── stamps
+│                   ├── diamond.change.qld.success.10
+│                   ├── diamond.original.qld.success.10
+│                   ├── gold.change.qld.success.10
+│                   ├── gold.original.qld.success.10
+│                   ├── platinum.change.qld.success.10
+│                   └── platinum.original.qld.success.10
+```
+
+
 ### [`['dense_retrieve']`](./src/param.py#L17)
 
 It is imperative for us to support dense retrieval as a ranker method for which we choose to explore `tct_colbert` the current `state-of-the-art` method.
@@ -269,8 +308,7 @@ We do not apply `tct_colbert` to our whole dataset instead we attempt to improve
 original_q_metric > refined_q_metric and 0 >= original_q_metric >= 1
 ```
 
-
-After this step, [`./output`](./output) will further include:
+After this step, the [`./output`](./output) folder will have a final structure as below:
 
 ```bash
 ├── output
@@ -279,6 +317,18 @@ After this step, [`./output`](./output) will further include:
 │           ├── qld.map.agg.all.tsv
 │           ├── qld.map.agg.all_.tsv
 │           ├── qld.map.agg.gold.tsv
+|           ├── qld.map.agg.no_pred.tsv
+│           ├── qld.recip_rank.10.agg.all.tsv
+│           ├── qld.recip_rank.10.agg.all_.tsv
+|           ├── qld.recip_rank.agg.no_pred.tsv
+|           ├── original.no_pred.tct_colbert
+|           ├── original.no_pred.tct_colbert.map
+|           ├── original.no_pred.tct_colbert.recip_rank.10
+|           ├── pred.no_pred.tct_colbert
+|           ├── pred.no_pred.tct_colbert.map
+|           ├── pred.no_pred.tct_colbert.recip_rank.10
+|           ├── colbert.comparison.no_pred.map.tsv
+|           ├── colbert.comparison.no_pred.recip_rank.10.tsv
 │           ├── qld.map.boxes
 │           │   ├── diamond.tsv
 │           │   ├── gold.tsv
@@ -305,6 +355,7 @@ After this step, [`./output`](./output) will further include:
 │                   ├── platinum.change.qld.success.10
 │                   └── platinum.original.qld.success.10
 ```
+
 
 ## 3. Gold Standard Datasets 
 
@@ -348,6 +399,7 @@ settings = {
     'ranker': 'bm25',   
     'batch': 100,       # search per batch of queries using pyserini, if None, search per query
     'topk': 100,        # number of retrieved documents for a query
+    'large_ds': True,   # set if dataset size is greater than one Million
     'metric': 'map',    # any valid trec_eval.9.0.4 metric like map, ndcg, recip_rank, ...
     'box': {'gold':     'refined_q_metric >= original_q_metric and refined_q_metric > 0',
             'platinum': 'refined_q_metric > original_q_metric',
