@@ -142,16 +142,20 @@ def run(data_list, domain_list, output, settings):
                     metrics_query_list = list()
                     metrics_results_list = list()
                     print(f'appending query and metric split files for pred.{i}')
-                    for change in [file for file in os.listdir(f'{t5_output}/pred{i}') if len(file.split('.')) == 2]:
-                        metrics_query_list.append(pd.read_csv(f'{t5_output}/pred{i}/{change}',
-                                        skip_blank_lines=False, names=['query'], sep='\r\r', index_col=False,
-                                        engine='python', encoding='utf-8', dtype={'query': str}))
-                        metrics_results_list.append(pd.read_csv(f'{t5_output}/pred{i}/{change}.{settings["ranker"]}.{settings["metric"]}',
+                    for change in [file for file in os.listdir(f'{t5_output}/{i}') if len(file.split('.')) == 2]:
+                        #avoid loading queries if they already exists
+                        if not isfile(f'{t5_output}/pred.{i}'):
+                            metrics_query_list.append(pd.read_csv(f'{t5_output}/{i}/{change}',
+                                            skip_blank_lines=False, names=['query'], sep='\r\r', index_col=False,
+                                            engine='python', encoding='utf-8', dtype={'query': str}))
+                        metrics_results_list.append(pd.read_csv(f'{t5_output}/{i}/{change}.{settings["ranker"]}.{settings["metric"]}',
                             names=['metric_name', 'qid', 'metric'], sep='\t', index_col=False, dtype={'qid': str}))
-                    metrics_query_list = pd.concat(metrics_query_list)
+
+                    if not isfile(f'{t5_output}/pred.{i}'):
+                        metrics_query_list = pd.concat(metrics_query_list)
+                        metrics_query_list.to_csv(f'{t5_output}/pred.{i}', sep='\t', index=False, header=False)
                     metrics_results_list = pd.concat(metrics_results_list)
-                    metrics_query_list.to_csv(f'{t5_output}/pred.{i}', sep='\t',index=False, header=False)
-                    metrics_results_list.to_csv(f'{t5_output}/pred.{i}.{settings["ranker"]}.{settings["metric"]}', sep='\t',index=False, header=False)
+                    metrics_results_list.to_csv(f'{t5_output}/pred.{i}.{settings["ranker"]}.{settings["metric"]}', sep='\t', index=False, header=False)
                     print('all files are merged and ready for aggregation')
             else:
                 search_results = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["metric"]}') for f in listdir(t5_output) if f.endswith(settings["ranker"]) and f'{f}.{settings["ranker"]}.{settings["metric"]}' not in listdir(t5_output)]
