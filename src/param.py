@@ -9,7 +9,7 @@ extension = '.exe' if platform.system() == 'Windows' else ""
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 settings = {
-    'cmd': ['dense_retrieve'],   # steps of pipeline, ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box','dense_retrieve']
+    'cmd': ['stats'],   # steps of pipeline, ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box','dense_retrieve']
     'ncore': 2,
     't5model': 'base.gc',   # 'base.gc' on google cloud tpu, 'small.local' on local machine
     'iter': 5,                  # number of finetuning iteration for t5
