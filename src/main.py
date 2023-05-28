@@ -32,7 +32,7 @@ def run(data_list, domain_list, output, settings):
         if 'pair' in settings['cmd']:
             print(f'Pairing queries and relevant passages for training set ...')
             cat = True if 'docs' in {in_type, out_type} else False
-            query_qrel_doc = ds.pair(datapath, f'{prep_output}/{ds.user_pairing}queries.qrels.doc{"s" if cat else ""}.ctx.{index_item_str}.train.tsv', cat=cat)
+            query_qrel_doc = ds.pair(datapath, f'{prep_output}/{ds.user_pairing}queries.qrels.doc{"s" if cat else ""}.ctx.{index_item_str}.train.no_dups.tsv', cat=cat)
             # print(f'Pairing queries and relevant passages for test set ...')
             #TODO: query_qrel_doc = pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.{index_item_str}.test.tsv')
             #query_qrel_doc = ds.pair(datapath, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item_str}.test.tsv', cat=cat)
@@ -70,13 +70,14 @@ def run(data_list, domain_list, output, settings):
             #query_originals = pd.read_csv(f'{datapath}/queries.train.tsv', sep='\t', names=['qid', 'query'], dtype={'qid': str})
             #we use the file after panda.merge that create the training set so we make sure the mapping of qids
             query_originals = pd.read_csv(f'{prep_output}/{ds.user_pairing}queries.qrels.doc{"s" if "docs" in {in_type, out_type} else ""}.ctx.{index_item_str}.train.tsv', sep='\t', usecols=['qid', 'query'], dtype={'qid': str})
-            if settings['large_ds']:
+            if settings['large_ds']: # we can run this logic if shape of query_originals is greater than split_size
                 import numpy as np
                 import glob
-                split_size = 1000000  # need to make this dynamic
+                split_size = 1000000  # need to make this dynamic based on shape of query_originals.
                 for _, chunk in query_originals.groupby(np.arange(query_originals.shape[0]) // split_size):
                     file_changes = [(file, f'{file}.{settings["ranker"]}') for file in
-                                    glob.glob(f'{t5_output}/**/pred.{_}*') if f'{file}.{settings["ranker"]}' not in glob.glob(f'{t5_output}/**/pred.{_}*')]
+                                    glob.glob(f'{t5_output}/**/pred.{_}*') if f'{file}.{settings["ranker"]}' not in glob.glob(f'{t5_output}/**')]
+                    chunk.drop_duplicates(subset=['qid'], inplace=True)  # in the event there are duplicates in query qrels.
                     with mp.Pool(settings['ncore']) as p:
                         p.starmap(partial(ds.search, qids=chunk['qid'].values.tolist(), ranker=settings['ranker'],
                                           topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'],
@@ -85,7 +86,8 @@ def run(data_list, domain_list, output, settings):
                 print('for original queries')
                 file_changes = list()
                 for _, chunk in query_originals.groupby(np.arange(query_originals.shape[0]) // split_size):
-                    file_changes.append((f'{t5_output}/original/original.{_}.tsv',
+                        chunk.drop_duplicates(subset=['qid'], inplace=True)
+                        file_changes.append((f'{t5_output}/original/original.{_}.tsv',
                                          f'{t5_output}/original/original.{_}.tsv.bm25', chunk['qid'].values.tolist()))
                 with mp.Pool(settings['ncore']) as p:
                     p.starmap(partial(ds.search, ranker=settings['ranker'], topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'], index=ds.searcher.index_dir), file_changes)
