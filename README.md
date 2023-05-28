@@ -26,7 +26,7 @@ Search engines have difficulty searching into knowledge repositories since they 
 - [5. License](#5-license)
 
 </td>
-<td ><img src='./misc/flow.png' width="70%" /></td>
+<td ><img src='./misc/flow.png' width="80%" /></td>
 <td ><img src='./misc/class.png' width="800" /></td>
 </tr>
 </table>
