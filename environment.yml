@@ -17,7 +17,7 @@ dependencies:
       - torch==1.13.0
       - ir_datasets==0.5.1
       - pandas==1.5.2
-      - t5==0.9.3
+#      - t5==0.9.3
       - tensorflow==2.11.0
       - protobuf==3.19.6
       - filesplit

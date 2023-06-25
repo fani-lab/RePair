@@ -251,6 +251,9 @@ def run(data_list, domain_list, output, settings):
             agg_df['pred_sparse'] = original[f'{ranker}.{metric}_']
             agg_df.to_csv(f'{t5_output}/colbert.comparison.{condition}.{metric}.tsv', sep="\t", index=None)
 
+        if 'stats' in settings['cmd']:
+                from stats import stats
+
 def addargs(parser):
     dataset = parser.add_argument_group('dataset')
     dataset.add_argument('-data', '--data-list', nargs='+', type=str, default=[], required=True, help='a list of dataset paths; required; (eg. -data ./../data/raw/toy.msmarco.passage)')

@@ -18,6 +18,7 @@ class Dataset(object):
         Dataset.user_pairing = "user/" if "user" in settings["pairing"] else ""
         index_item_str = '.'.join(settings["index_item"]) if self.__class__.__name__ != 'MsMarcoPsg' else ""
         Dataset.searcher = LuceneSearcher(f'{Dataset.settings["index"]}{self.user_pairing}{index_item_str}')
+
         if not Dataset.searcher: raise ValueError(f'Lucene searcher cannot find/build index at {Dataset.settings["index"]}!')
 
     @classmethod
