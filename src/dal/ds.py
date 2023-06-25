@@ -16,8 +16,9 @@ class Dataset(object):
         # sometimes we need to manually download the index ==> https://github.com/castorini/pyserini/blob/master/docs/usage-interactive-search.md#how-do-i-manually-download-indexes
         # sometimes we need to manually build the index ==> Aol.init()
         Dataset.user_pairing = "user/" if "user" in settings["pairing"] else ""
-        # index_item_str = '.'.join(settings["index_item"]) if settings["index_item"] else ""
-        Dataset.searcher = LuceneSearcher(f'{Dataset.settings["index"]}{self.user_pairing}')
+        index_item_str = '.'.join(settings["index_item"]) if self.__class__.__name__ != 'MsMarcoPsg' else ""
+        Dataset.searcher = LuceneSearcher(f'{Dataset.settings["index"]}{self.user_pairing}{index_item_str}')
+
         if not Dataset.searcher: raise ValueError(f'Lucene searcher cannot find/build index at {Dataset.settings["index"]}!')
 
     @classmethod

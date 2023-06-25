@@ -90,6 +90,7 @@ class Aol(Dataset):
         queries_qrels.dropna(inplace=True) #empty doctxt, query, ...
         queries_qrels.drop(queries_qrels[queries_qrels['query'].str.strip().str.len() <= Dataset.settings['filter']['minql']].index, inplace=True)
         queries_qrels.drop(queries_qrels[queries_qrels[doccol].str.strip().str.len() < Dataset.settings["filter"]['mindocl']].index, inplace=True)  # remove qrels whose docs are less than mindocl
+        queries_qrels.drop_duplicates(subset=['qid', 'did'], inplace=True)
         queries_qrels.to_csv(f'{input}/{cls.user_pairing}qrels.train.tsv_', index=False, sep='\t', header=False, columns=['qid', 'uid', 'did', 'rel'])
 
         if cat: queries_qrels = queries_qrels.groupby(['qid', 'query', 'uid'], as_index=False, observed=True).agg({'did': list, doccol: ' '.join})
@@ -105,7 +106,7 @@ class Aol(Dataset):
         if len(queries_qrels) > batch_size:
             for _, chunk in queries_qrels.groupby(np.arange(queries_qrels.shape[0]) // batch_size):
                 chunk.to_csv(f'../data/preprocessed/aol-ia/{cls.user_pairing}docs.query.{index_item_str}.{_}.tsv', columns=['docs', 'query'], header=False, sep='\t', encoding='utf-8', index=False)
-                chunk.to_csv(f'../output/aol-ia/{cls.user_pairing}t5.base.gc.docs.query.{index_item_str}/original_test_queries/original.{_}.tsv',
+                chunk.to_csv(f'../output/aol-ia/{cls.user_pairing}t5.base.gc.docs.query.{index_item_str}/original/original.{_}.tsv',
                              sep='\t', encoding='utf-8', index=False, columns=['query'], header=False)
                 qrels_splits = chunk[['qid', 'query']].merge(qrels, on='qid', how='inner')
                 qrels_splits.to_csv(f'../output/aol-ia/{cls.user_pairing}t5.base.gc.docs.query.{index_item_str}/qrels/qrels.splits.{_}.tsv_', sep='\t',
