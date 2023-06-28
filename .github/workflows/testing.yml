@@ -8,7 +8,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Setup Python environment
-      uses: actions/setup-python@v3.8
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.8'
     - name: Install requirements
       run : pip install --quiet --requirement requirements.txt
     - name: Lint code
