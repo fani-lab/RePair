@@ -7,6 +7,7 @@ from shutil import copyfile
 
 import param
 
+
 def run(data_list, domain_list, output, settings):
     # 'qrels.train.tsv' => ,["qid","did","pid","relevancy"]
     # 'queries.train.tsv' => ["qid","query"]
@@ -30,12 +31,12 @@ def run(data_list, domain_list, output, settings):
 
         query_qrel_doc = None
         if 'pair' in settings['cmd']:
-            print(f'Pairing queries and relevant passages for training set ...')
+            print('Pairing queries and relevant passages for training set ...')
             cat = True if 'docs' in {in_type, out_type} else False
             query_qrel_doc = ds.pair(datapath, f'{prep_output}/{ds.user_pairing}queries.qrels.doc{"s" if cat else ""}.ctx.{index_item_str}.train.no_dups.tsv', cat=cat)
             # print(f'Pairing queries and relevant passages for test set ...')
-            #TODO: query_qrel_doc = pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.{index_item_str}.test.tsv')
-            #query_qrel_doc = ds.pair(datapath, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item_str}.test.tsv', cat=cat)
+            # TODO: query_qrel_doc = pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.{index_item_str}.test.tsv')
+            # query_qrel_doc = ds.pair(datapath, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item_str}.test.tsv', cat=cat)
             query_qrel_doc.to_csv(tsv_path['train'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
             query_qrel_doc.to_csv(tsv_path['test'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
 
@@ -49,9 +50,9 @@ def run(data_list, domain_list, output, settings):
                 print(f"Finetuning {t5_model} for {settings['iter']} iterations and storing the checkpoints at {t5_output} ...")
                 mt5w.finetune(
                     tsv_path=tsv_path,
-                    pretrained_dir=f'./../output/t5-data/pretrained_models/{t5_model.split(".")[0]}', #"gs://t5-data/pretrained_models/{"small", "base", "large", "3B", "11B"}
+                    pretrained_dir=f'./../output/t5-data/pretrained_models/{t5_model.split(".")[0]}',  # "gs://t5-data/pretrained_models/{"small", "base", "large", "3B", "11B"}
                     steps=settings['iter'],
-                    output=t5_output, task_name=f"{domain.replace('-', '')}_cf",#:DD Task name must match regex: ^[\w\d\.\:_]+$
+                    output=t5_output, task_name=f"{domain.replace('-', '')}_cf",  # :DD Task name must match regex: ^[\w\d\.\:_]+$
                     lseq=settings[domain]['lseq'],
                     nexamples=None, in_type=in_type, out_type=out_type, gcloud=False)
 
@@ -64,13 +65,13 @@ def run(data_list, domain_list, output, settings):
                     output=t5_output,
                     lseq=settings[domain]['lseq'],
                     gcloud=False)
-        if 'search' in settings['cmd']: #'bm25 ranker'
+        if 'search' in settings['cmd']:  # 'bm25 ranker'
             print(f"Searching documents for query changes using {settings['ranker']} ...")
-            #seems for some queries there is no qrels, so they are missed for t5 prediction.
-            #query_originals = pd.read_csv(f'{datapath}/queries.train.tsv', sep='\t', names=['qid', 'query'], dtype={'qid': str})
-            #we use the file after panda.merge that create the training set so we make sure the mapping of qids
+            # seems for some queries there is no qrels, so they are missed for t5 prediction.
+            # query_originals = pd.read_csv(f'{datapath}/queries.train.tsv', sep='\t', names=['qid', 'query'], dtype={'qid': str})
+            # we use the file after panda.merge that create the training set so we make sure the mapping of qids
             query_originals = pd.read_csv(f'{prep_output}/{ds.user_pairing}queries.qrels.doc{"s" if "docs" in {in_type, out_type} else ""}.ctx.{index_item_str}.train.tsv', sep='\t', usecols=['qid', 'query'], dtype={'qid': str})
-            if settings['large_ds']: # we can run this logic if shape of query_originals is greater than split_size
+            if settings['large_ds']:  # we can run this logic if shape of query_originals is greater than split_size
                 import numpy as np
                 import glob
                 split_size = 1000000  # need to make this dynamic based on shape of query_originals.
@@ -113,8 +114,6 @@ def run(data_list, domain_list, output, settings):
 
         if 'eval' in settings['cmd']:
             from evl import trecw
-            import glob
-            import itertools
             if settings['large_ds']:
                 import glob
                 import itertools
@@ -127,10 +126,10 @@ def run(data_list, domain_list, output, settings):
                 with mp.Pool(settings['ncore']) as p:
                     p.starmap(partial(trecw.evaluate, metric=settings['metric'], lib=settings['treclib']), search_results)
 
-                #merge after results
+                # merge after results
                 original_metrics_results_list = list()
 
-                #original merge
+                # original merge
                 for i in [file for file in os.listdir(f'{t5_output}/original') if file.endswith(f'{settings["ranker"]}.{settings["metric"]}')]:
                     print(f'appending query and metric for original, iteration {i} ')
                     original_metrics_results_list.append(pd.read_csv(f'{t5_output}/original/{i}', sep='\t', names=['metric_name', 'qid', 'metric'], index_col=False, dtype={'qid': str}))
@@ -143,7 +142,7 @@ def run(data_list, domain_list, output, settings):
                     metrics_results_list = list()
                     print(f'appending query and metric split files for pred.{i}')
                     for change in [file for file in os.listdir(f'{t5_output}/{i}') if len(file.split('.')) == 2]:
-                        #avoid loading queries if they already exists
+                        # avoid loading queries if they already exists
                         if not isfile(f'{t5_output}/pred.{i}'):
                             metrics_query_list.append(pd.read_csv(f'{t5_output}/{i}/{change}',
                                             skip_blank_lines=False, names=['query'], sep='\r\r', index_col=False,
@@ -176,6 +175,7 @@ def run(data_list, domain_list, output, settings):
             ds.aggregate(originals, changes, t5_output, settings["large_ds"])
 
         if 'box' in settings['cmd']:
+            from evl import trecw
             box_path = join(t5_output, f'{settings["ranker"]}.{settings["metric"]}.boxes')
             if not os.path.isdir(box_path): os.makedirs(box_path)
             gold_df = pd.read_csv(f'{t5_output}/{settings["ranker"]}.{settings["metric"]}.agg.all.tsv', sep='\t', header=0, dtype={'qid': str})
@@ -185,7 +185,7 @@ def run(data_list, domain_list, output, settings):
             ds.box(gold_df, qrels, box_path, box_condition)
             for c in box_condition.keys():
                 print(f'Stamping boxes for {settings["ranker"]}.{settings["metric"]} before and after refinements ...')
-                from evl import trecw
+                
                 if not os.path.isdir(join(box_path, 'stamps')): os.makedirs(join(box_path, 'stamps'))
 
                 df = pd.read_csv(f'{box_path}/{c}.tsv', sep='\t', encoding='utf-8', index_col=False, header=None, names=['qid', 'query', 'metric', 'query_', 'metric_'], dtype={'qid': str})
@@ -211,7 +211,7 @@ def run(data_list, domain_list, output, settings):
                         for change, metric_value in changes: all.append((row[change], row[f'{change}.{ranker}.{metric}'], change))
                         all = sorted(all, key=lambda x: x[1], reverse=True)
                         # if row[f'original.{ranker}.{metric}'] == 0 and all[0][1] <= 0.1: #poor perf
-                        if row[f'original.{ranker}.{metric}'] > all[0][1] and row[f'original.{ranker}.{metric}'] <= 1: # no prediction
+                        if row[f'original.{ranker}.{metric}'] > all[0][1] and row[f'original.{ranker}.{metric}'] <= 1:  # no prediction
                             agg_poor_perf.write(f'{row.qid}\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\t{all[0][0]}\t{all[0][1]}\n')
             original = pd.read_csv(f'{t5_output}/{ranker}.{metric}.agg.{condition}.tsv', sep='\t', encoding="utf-8",
                                    header=0, index_col=False, names=['qid', 'query', f'{ranker}.{metric}', 'query_', f'{ranker}.{metric}_'])
@@ -228,7 +228,7 @@ def run(data_list, domain_list, output, settings):
             with mp.Pool(settings['ncore']) as p:
                 p.starmap(partial(ds.search_df, qids=original['qid'].values.tolist(), ranker='tct_colbert', topk=100, batch=None,
                                   ncores=settings['ncore'], index=settings[f'{domain}']["dense_index"], encoder=settings[f'{domain}']['dense_encoder']), search_list)
-                p.starmap(partial(trecw.evaluate,  qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'],
+                p.starmap(partial(trecw.evaluate, qrels=f'{datapath}/qrels.train.tsv_', metric=settings['metric'],
                             lib=settings['treclib']), search_results)
 
             # aggregate colbert results and compare with bm25 results
@@ -252,7 +252,8 @@ def run(data_list, domain_list, output, settings):
             agg_df.to_csv(f'{t5_output}/colbert.comparison.{condition}.{metric}.tsv', sep="\t", index=None)
 
         if 'stats' in settings['cmd']:
-                from stats import stats
+            from stats import stats
+
 
 def addargs(parser):
     dataset = parser.add_argument_group('dataset')
@@ -265,6 +266,7 @@ def addargs(parser):
 # python -u main.py -data ../data/raw/toy.msmarco.passage -domain msmarco.passage
 # python -u main.py -data ../data/raw/toy.aol-ia -domain aol-ia
 # python -u main.py -data ../data/raw/toy.msmarco.passage ../data/raw/toy.aol-ia -domain msmarco.passage aol-ia
+
 
 if __name__ == '__main__':
     freeze_support()
