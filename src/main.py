@@ -185,7 +185,7 @@ def run(data_list, domain_list, output, settings):
             ds.box(gold_df, qrels, box_path, box_condition)
             for c in box_condition.keys():
                 print(f'Stamping boxes for {settings["ranker"]}.{settings["metric"]} before and after refinements ...')
-                
+
                 if not os.path.isdir(join(box_path, 'stamps')): os.makedirs(join(box_path, 'stamps'))
 
                 df = pd.read_csv(f'{box_path}/{c}.tsv', sep='\t', encoding='utf-8', index_col=False, header=None, names=['qid', 'query', 'metric', 'query_', 'metric_'], dtype={'qid': str})
