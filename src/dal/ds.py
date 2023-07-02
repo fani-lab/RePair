@@ -5,7 +5,6 @@ from os.path import isfile,join
 from pyserini.search.lucene import LuceneSearcher
 from pyserini.search.faiss import FaissSearcher, TctColBertQueryEncoder
 
-
 class Dataset(object):
     searcher = None
     settings = None
@@ -27,7 +26,7 @@ class Dataset(object):
         # The``docid`` is overloaded: if it is of type ``str``, it is treated as an external collection ``docid``;
         # if it is of type ``int``, it is treated as an internal Lucene``docid``. # stupid!!
         try:return json.loads(cls.searcher.doc(str(pid)).raw())['contents'].lower()
-        except AttributeError: return ''  # if Dataset.searcher.doc(str(pid)) is None
+        except AttributeError: return '' #if Dataset.searcher.doc(str(pid)) is None
         except Exception as e: raise e
 
     @classmethod
@@ -88,6 +87,7 @@ class Dataset(object):
                         hits = cls.searcher.search(row.query, k=topk, remove_dups=True)
                         for i, h in enumerate(hits): o.write(f'{qids[row.name]}\tQ0\t{h.docid:7}\t{i + 1:2}\t{h.score:.5f}\tPyserini\n')
 
+
                 queries.progress_apply(_docids, axis=1)
 
     @classmethod
@@ -124,6 +124,7 @@ class Dataset(object):
                     agg_all.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
                     if metric_value > 0 and metric_value >= row[f'original.{ranker}.{metric}']: agg_gold.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
 
+
     @classmethod
     def box(cls, input, qrels, output, checks):
         ranker = input.columns[-1].split('.')[0]  # e.g., bm25.success.10 => bm25
@@ -152,3 +153,8 @@ class Dataset(object):
             print(f'{c}  has {df.shape[0]} queries')
             qrels = df.merge(qrels, on='qid', how='inner')
             qrels.to_csv(f'{output}/{c}.qrels.tsv', sep='\t', encoding='utf-8', index=False, header=False, columns=['qid', 'did', 'pid', 'rel'])
+
+
+
+
+
