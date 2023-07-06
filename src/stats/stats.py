@@ -4,11 +4,13 @@ import numpy as np
 from stats.get_stats import get_stats
 
 datasets = ['diamond', 'platinum', 'gold']
+
+
 def plot_stats(box_path):
     for ds in datasets:
         map_ds = pd.read_csv(f'{box_path}/{ds}.tsv', sep='\t', encoding='utf-8', names=['qid', 'i', 'i_map', 't', 't_map'])
         map_ds.sort_values(by='i_map', inplace=True)
-        stats = map_ds.groupby(np.arange(len(map_ds))//(len(map_ds)/10)).mean()
+        stats = map_ds.groupby(np.arange(len(map_ds)) // (len(map_ds) / 10)).mean()
         X = [x for x in range(1, 11)]
         original_mean = stats['i_map']
         changes_mean = stats['t_map']
@@ -22,6 +24,7 @@ def plot_stats(box_path):
         print(f'saving stats image for {ds} at {box_path}')
         plt.savefig(f'{box_path}/{ds}.jpg')
         plt.clf()
+
 
 plot_stats('../output/toy.msmarco.passage/t5.small.local.docs.query.passage/bm25.map.boxes')
 file_path = '../output/toy.msmarco.passage/t5.small.local.docs.query.passage/bm25.recip_rank.10.agg.gold.tsv'
@@ -52,5 +55,3 @@ print(f'original_queries_length_stats: {stats["original_queries_length_stats"]}'
 print(f'original_queries_score_stats: {stats["original_queries_score_stats"]}')
 print(f'delta_lengths_stats: {stats["delta_lengths_stats"]}')
 print(f'delta_scores_stats: {stats["delta_scores_stats"]}')
-
-

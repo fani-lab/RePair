@@ -10,8 +10,6 @@ datasets = ['diamond', 'platinum', 'gold']
 t5_refinement = '../../output/aol-ia/t5.base.gc.docs.query.title.url/base.refinement'
 
 
-##compute f1 score
-
 def normalize_answer(s):
     """Lower text and remove punctuation, articles and extra whitespace."""
 
@@ -69,81 +67,80 @@ for ds in datasets:
     print(f'BLEU score {ds}: {bleu_mean}')
     print(f'f1 measure {ds}: {f1_mean}')
 
-## msmarco base refinement
-#rouge score for diamond: 0.42568057136051424
-#BLEU score diamond: 0.21029683850476916
-#f1 measure diamond: 0.416822260588614
+# msmarco base refinement
+# rouge score for diamond: 0.42568057136051424
+# BLEU score diamond: 0.21029683850476916
+# f1 measure diamond: 0.416822260588614
 
-#rouge score for platinum: 0.42969398167649014
-#BLEU score platinum: 0.2115697317809715
-#f1 measure platinum: 0.41915060043151015
+# rouge score for platinum: 0.42969398167649014
+# BLEU score platinum: 0.2115697317809715
+# f1 measure platinum: 0.41915060043151015
 
-#rouge score for gold: 0.4356421447877607
-#BLEU score gold: 0.21678563445709004
-#f1 measure gold: 0.42532275952238546
+# rouge score for gold: 0.4356421447877607
+# BLEU score gold: 0.21678563445709004
+# f1 measure gold: 0.42532275952238546
 
-## msmarco transfer refinement
-#rouge score for diamond: 0.4186038646735186
-#BLEU score diamond: 0.2061915039658764
-#f1 measure diamond: 0.41743805966063974
+# msmarco transfer refinement
+# rouge score for diamond: 0.4186038646735186
+# BLEU score diamond: 0.2061915039658764
+# f1 measure diamond: 0.41743805966063974
 
-#rouge score for platinum: 0.4180435950210718
-#BLEU score platinum: 0.20547429381774826
-#f1 measure platinum: 0.41576693292575345
+# rouge score for platinum: 0.4180435950210718
+# BLEU score platinum: 0.20547429381774826
+# f1 measure platinum: 0.41576693292575345
 
-#rouge score for gold: 0.4256894215931806
-#BLEU score gold: 0.21156194047222282
-#f1 measure gold: 0.42353650076526406
-
-
-
-## AOL title transfer
-#rouge score for diamond: 0.24785768028983485
-#BLEU score diamond: 0.1057627554917162
-#f1 measure diamond: 0.23602467853502
-
-#rouge score for platinum: 0.2148899068052302
-#BLEU score platinum: 0.08699215515241193
-#f1 measure platinum: 0.2011023023056243
+# rouge score for gold: 0.4256894215931806
+# BLEU score gold: 0.21156194047222282
+# f1 measure gold: 0.42353650076526406
 
 
-## AOL title Base
-#rouge score for diamond: 0.17408527383170763
-#BLEU score diamond: 0.07404099482985602
-#f1 measure diamond: 0.16509779706595218
+# AOL title transfer
+# rouge score for diamond: 0.24785768028983485
+# BLEU score diamond: 0.1057627554917162
+# f1 measure diamond: 0.23602467853502
 
-#rouge score for platinum: 0.1555684917625179
-#BLEU score platinum: 0.06250855995300625
-#f1 measure platinum: 0.14425863392143193
-
-#rouge score for gold: 0.17282032172417106
-#BLEU score gold: 0.07026203522067144
-#f1 measure gold: 0.16097593193386475
+# rouge score for platinum: 0.2148899068052302
+# BLEU score platinum: 0.08699215515241193
+# f1 measure platinum: 0.2011023023056243
 
 
-## AOL title URL base
-#rouge score for diamond: 0.25625260529488425
-#BLEU score diamond: 0.1079382534269401
-#f1 measure diamond: 0.24463295875478222
+# AOL title Base
+# rouge score for diamond: 0.17408527383170763
+# BLEU score diamond: 0.07404099482985602
+# f1 measure diamond: 0.16509779706595218
 
-#rouge score for platinum: 0.2213520954721022
-#BLEU score platinum: 0.08731537824992998
-#f1 measure platinum: 0.20731018675681637
+# rouge score for platinum: 0.1555684917625179
+# BLEU score platinum: 0.06250855995300625
+# f1 measure platinum: 0.14425863392143193
 
-#rouge score  gold: 0.2493297981807377
-#BLEU score gold: 0.0997131509862043
-#f1 measure gold: 0.23478355839064657
+# rouge score for gold: 0.17282032172417106
+# BLEU score gold: 0.07026203522067144
+# f1 measure gold: 0.16097593193386475
+
+
+# AOL title URL base
+# rouge score for diamond: 0.25625260529488425
+# BLEU score diamond: 0.1079382534269401
+# f1 measure diamond: 0.24463295875478222
+
+# rouge score for platinum: 0.2213520954721022
+# BLEU score platinum: 0.08731537824992998
+# f1 measure platinum: 0.20731018675681637
+
+# rouge score  gold: 0.2493297981807377
+# BLEU score gold: 0.0997131509862043
+# f1 measure gold: 0.23478355839064657
 
 # AOL TITLE URL Transfer
 
-#rouge score diamond: 0.25625260529488425
-#BLEU score diamond: 0.1079382534269401
-#f1 measure diamond: 0.24463295875478222
+# rouge score diamond: 0.25625260529488425
+# BLEU score diamond: 0.1079382534269401
+# f1 measure diamond: 0.24463295875478222
 
-#rouge score platinum: 0.2213520954721022
-#BLEU score platinum: 0.08731537824992998
-#f1 measure platinum: 0.20731018675681637
+# rouge score platinum: 0.2213520954721022
+# BLEU score platinum: 0.08731537824992998
+# f1 measure platinum: 0.20731018675681637
 
-#rouge score  gold: 0.2493297981807377
-#BLEU score gold: 0.0997131509862043
-#f1 measure gold: 0.23478355839064657
+# rouge score  gold: 0.2493297981807377
+# BLEU score gold: 0.0997131509862043
+# f1 measure gold: 0.23478355839064657

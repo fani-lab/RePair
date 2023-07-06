@@ -1,0 +1,21 @@
+name: testing
+on: [push]
+env: 
+  APPLICATION_NAME : WORKFLOW
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup Python environment
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.8'
+    - name: Install requirements
+      run : pip install --quiet --requirement testing_reqs.txt
+    - name: Lint code
+      run: |
+        flake8 --ignore=E117,E127,E128,E231,E401,E501,E722,E701,E704,F401,F523,F841 . --exclude src/cair/,src/mdl/
+    #    pylint --disable=C0301 --disable=C0326 *.py
+    # - name: Run unit tests
+    #   run: python -m unittest --verbose --failfast

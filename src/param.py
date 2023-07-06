@@ -19,7 +19,7 @@ settings = {
     'topk': 100,                 # number of retrieved documents for a query
     'metric': 'recip_rank.10',             # any valid trec_eval.9.0.4 metric like map, ndcg, recip_rank, ...
     'large_ds': True,
-    'treclib': f'"./trec_eval.9.0.4/trec_eval{extension}"',  #in non-windows, remove .exe, also for pytrec_eval, 'pytrec'
+    'treclib': f'"./trec_eval.9.0.4/trec_eval{extension}"',  # in non-windows, remove .exe, also for pytrec_eval, 'pytrec'
     'box': {'gold': 'refined_q_metric >= original_q_metric and refined_q_metric > 0',
             'platinum': 'refined_q_metric > original_q_metric',
             'diamond': 'refined_q_metric > original_q_metric and refined_q_metric == 1'},
@@ -33,9 +33,9 @@ settings = {
     },
     'aol-ia': {
         'index_item': ['title'],    # ['url'], ['title', 'url'], ['title', 'url', 'text']
-        'index': '../data/raw/aol-ia/lucene-index/title/', #change based on index_item
-        'dense_index': '../data/raw/aol-ia/dense-index/tct_colbert.title/', #change based on index_item
-        'dense_encoder':'../data/raw/aol-ia/dense-encoder/tct_colbert.title/', #change based on index_item
+        'index': '../data/raw/aol-ia/lucene-index/title/',  # change based on index_item
+        'dense_index': '../data/raw/aol-ia/dense-index/tct_colbert.title/',  # change based on index_item
+        'dense_encoder':'../data/raw/aol-ia/dense-encoder/tct_colbert.title/',  # change based on index_item
         'pairing': [None, 'docs', 'query'],     # [context={2 scenarios, one with userID and one without userID). input={'userid','query','doc(s)'} output={'query','doc(s)'}
         'lseq': {"inputs": 32, "targets": 256},  # query length and doc length for t5 model,
         'filter': {'minql': 1, 'mindocl': 10}   # [min query length, min doc length], after merge queries with relevant 'index_item', if |query| <= minql drop the row, if |'index_item'| < mindocl, drop row

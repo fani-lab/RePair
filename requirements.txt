@@ -10,3 +10,5 @@ pandas
 pyserini
 ir_datasets
 filesplit
+flake8
+pylint
