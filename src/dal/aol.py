@@ -2,11 +2,10 @@ import json, os, pandas as pd,numpy as np
 from tqdm import tqdm
 from shutil import copyfile
 from ftfy import fix_text
+from pyserini.search.lucene import LuceneSearcher
+from dal.ds import Dataset
 tqdm.pandas()
 
-from pyserini.search.lucene import LuceneSearcher
-
-from dal.ds import Dataset
 
 class Aol(Dataset):
 
@@ -16,8 +15,8 @@ class Aol(Dataset):
 
     @classmethod
     def _build_index(cls, homedir, index_item, indexdir, ncore):
-        print(f"Creating index from scratch using ir-dataset ...")
-        #https://github.com/allenai/ir_datasets
+        print("Creating index from scratch using ir-dataset ...")
+        # https://github.com/allenai/ir_datasets
         os.environ['IR_DATASETS_HOME'] = '/'.join(homedir.split('/')[:-1])
         if not os.path.isdir(os.environ['IR_DATASETS_HOME']): os.makedirs(os.environ['IR_DATASETS_HOME'])
         index_item_str = '.'.join(index_item)
@@ -30,12 +29,12 @@ class Aol(Dataset):
         print('Getting queries and qrels ...')
         # the column order in the file is [qid, uid, did, uid]!!!! STUPID!!
         qrels = pd.DataFrame.from_records(aolia.qrels_iter(), columns=['qid', 'did', 'rel', 'uid'], nrows=1)  # namedtuple<query_id, doc_id, relevance, iteration>
-        queries = pd.DataFrame.from_records(aolia.queries_iter(), columns=['qid', 'query'], nrows=1)# namedtuple<query_id, text>
+        queries = pd.DataFrame.from_records(aolia.queries_iter(), columns=['qid', 'query'], nrows=1)  # namedtuple<query_id, text>
 
         print('Creating jsonl collections for indexing ...')
         print(f'Raw documents should be downloaded already at {homedir}/aol-ia/downloaded_docs/ as explained here: https://github.com/terrierteam/aolia-tools')
-        print(f'But it had bugs: https://github.com/allenai/ir_datasets/issues/222')
-        print(f'Sean MacAvaney provided us with the downloaded_docs.tar file. Thanks Sean!')
+        print('But it had bugs: https://github.com/allenai/ir_datasets/issues/222')
+        print('Sean MacAvaney provided us with the downloaded_docs.tar file. Thanks Sean!')
 
         Aol.create_jsonl(aolia, index_item, f'{homedir}/{cls.user_pairing}{index_item_str}')
         if len(os.listdir(f'{indexdir}/{cls.user_pairing}{index_item_str}')) == 0:
@@ -87,7 +86,7 @@ class Aol(Dataset):
         # queries_qrels.drop_duplicates(subset=['qid', 'did','pid'], inplace=True)  # two users with same click for same query
         if not cls.user_pairing: queries_qrels['uid'] = -1
         queries_qrels['ctx'] = ''
-        queries_qrels.dropna(inplace=True) #empty doctxt, query, ...
+        queries_qrels.dropna(inplace=True)  # empty doctxt, query, ...
         queries_qrels.drop(queries_qrels[queries_qrels['query'].str.strip().str.len() <= Dataset.settings['filter']['minql']].index, inplace=True)
         queries_qrels.drop(queries_qrels[queries_qrels[doccol].str.strip().str.len() < Dataset.settings["filter"]['mindocl']].index, inplace=True)  # remove qrels whose docs are less than mindocl
         queries_qrels.drop_duplicates(subset=['qid', 'did'], inplace=True)
@@ -100,7 +99,7 @@ class Aol(Dataset):
         if cls.user_pairing: qrels = pd.read_csv(f'{input}/{cls.user_pairing}qrels.train.tsv_', sep='\t', index_col=False, names=['qid', 'uid', 'did', 'rel'])
         batch_size = 1000000  # need to make this dynamic
         index_item_str = '.'.join(cls.settings['index_item'])
-        ## create dirs:
+        # create dirs:
         if not os.path.isdir(f'../output/aol-ia/{cls.user_pairing}t5.base.gc.docs.query.{index_item_str}/original_test_queries'): os.makedirs(f'../output/aol-ia/{cls.user_pairing}t5.base.gc.docs.query.{index_item_str}/original_test_queries')
         if not os.path.isdir(f'../output/aol-ia/{cls.user_pairing}t5.base.gc.docs.query.{index_item_str}/qrels'): os.makedirs(f'../output/aol-ia/{cls.user_pairing}t5.base.gc.docs.query.{index_item_str}/qrels')
         if len(queries_qrels) > batch_size:
@@ -112,4 +111,3 @@ class Aol(Dataset):
                 qrels_splits.to_csv(f'../output/aol-ia/{cls.user_pairing}t5.base.gc.docs.query.{index_item_str}/qrels/qrels.splits.{_}.tsv_', sep='\t',
                              encoding='utf-8', index=False, header=False, columns=['qid', 'uid', 'did', 'rel'])
         return queries_qrels
-

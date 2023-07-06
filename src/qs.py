@@ -1,17 +1,20 @@
 import os, sys, time, random, string, json, numpy, glob, pandas as pd
 from collections import OrderedDict
+from cair.main.recommender import run
 sys.path.extend(["./cair", "./cair/main"])
 numpy.random.seed(7881)
 
-from cair.main.recommender import run
+
 
 ReQue = {
     'input': '../output',
     'output': './output'
 }
 
+
 def generate_random_string(n=12):
     return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(n))
+
 
 def tsv2json(df, output, topn=1):
     if not os.path.isdir(output):
@@ -41,7 +44,7 @@ def tsv2json(df, output, topn=1):
                 qcol = 'query_'
                 if (qcol not in df.columns) or pd.isna(row[qcol]):
                     break
-                #check if the query string is a dict (for weighted expanders such as onfields)
+                # check if the query string is a dict (for weighted expanders such as onfields)
                 try:
                     row[qcol] = ' '.join(eval(row[qcol]).keys())
                 except:
@@ -60,7 +63,7 @@ def tsv2json(df, output, topn=1):
                     ('session_id', generate_random_string()),
                     ('query', session_queries)
                 ])
-                print(str(row.qid) + ": " + qObj['text'] + '--' + str(i)+ '--> ' + q_Obj['text']);
+                print(str(row.qid) + ": " + qObj['text'] + '--' + str(i) + '--> ' + q_Obj['text'])
 
                 fds.write(json.dumps(obj) + '\n')
 
@@ -72,11 +75,12 @@ def tsv2json(df, output, topn=1):
                 else:
                     ftest.write(json.dumps(obj) + '\n')
 
+
 def call_cair_run(data_dir, epochs):
-    dataset_name = 'msmarco'#it is hard code in the library. Do not touch! :))
+    dataset_name = 'msmarco'  # it is hard code in the library. Do not touch! :))
     baseline_path = 'cair/'
 
-    cli_cmd  = '' #'python '
+    cli_cmd = ''  # 'python '
     cli_cmd += '{}main/recommender.py '.format(baseline_path)
     cli_cmd += '--dataset_name {} '.format(dataset_name)
     cli_cmd += '--data_dir {} '.format(data_dir)
@@ -92,8 +96,8 @@ def call_cair_run(data_dir, epochs):
     cli_cmd += '--embed_dir {}data/fasttext/ '.format(baseline_path)
     cli_cmd += '--embedding_file crawl-300d-2M-subword.vec '
 
-    #the models config are in QueStion\qs\cair\neuroir\hyparam.py
-    #only hredqs can be unidirectional! all other models are in bidirectional mode
+    # the models config are in QueStion\qs\cair\neuroir\hyparam.py
+    # only hredqs can be unidirectional! all other models are in bidirectional mode
     df = pd.DataFrame(columns=['model', 'epoch', 'rouge', 'bleu', 'bleu_list', 'exact_match', 'f1', 'elapsed_time'])
     for baseline in ['hredqs']:
         for epoch in epochs:
@@ -105,12 +109,13 @@ def call_cair_run(data_dir, epochs):
                             'epoch': epoch,
                             'rouge': test_resutls['rouge'],
                             'bleu': test_resutls['bleu'],
-                            'bleu_list': ','.join([str(b) for b  in test_resutls['bleu_list']]),
+                            'bleu_list': ','.join([str(b) for b in test_resutls['bleu_list']]),
                             'exact_match': test_resutls['em'],
                             'f1': test_resutls['f1'],
                             'elapsed_time': elapsed_time},
                            ignore_index=True)
             df.to_csv('{}/results.csv'.format(data_dir, baseline), index=False)
+
 
 def aggregate(path):
     fs = glob.glob(path + "/**/results.csv", recursive=True)
@@ -130,10 +135,10 @@ def aggregate(path):
 
     df.to_csv(path + "agg_results.csv", index=False)
 
-# # {CUDA_VISIBLE_DEVICES={zero-base gpu indexes, comma seprated reverse to the system}} python -u main.py {topn=[1,2,...]} {topics=[robust04, gov2, clueweb09b, clueweb12b13, all]} 2>&1 | tee log &
-# # CUDA_VISIBLE_DEVICES=0,1 python -u main.py 1 robust04 2>&1 | tee robust04.topn1.log &
+# {CUDA_VISIBLE_DEVICES={zero-base gpu indexes, comma seprated reverse to the system}} python -u main.py {topn=[1,2,...]} {topics=[robust04, gov2, clueweb09b, clueweb12b13, all]} 2>&1 | tee log &
+# CUDA_VISIBLE_DEVICES=0,1 python -u main.py 1 robust04 2>&1 | tee robust04.topn1.log &
 
-if __name__=='__main__':
+if __name__ == '__main__':
     topn = int(sys.argv[1])
     corpora = sys.argv[2:]
     if not corpora:
@@ -153,7 +158,7 @@ if __name__=='__main__':
                     tsv2json(df, f'{ReQue["input"]}/{corpus}/t5.base.gc.docs.query.title.url/boxes/qs-gold/', topn)
                 data_dir = f'{ReQue["input"]}/{corpus}/t5.base.gc.docs.query.title.url/boxes/qs-gold'
                 print('INFO: MAIN: Calling cair for {}'.format(data_dir))
-                #call_cair_run(data_dir, epochs=[e for e in range(1, 10)] + [e * 10 for e in range(1, 21)])
+                # call_cair_run(data_dir, epochs=[e for e in range(1, 10)] + [e * 10 for e in range(1, 21)])
                 call_cair_run(data_dir, epochs=[10])
 
     aggregate(ReQue['output'] + '/')

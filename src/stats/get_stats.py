@@ -80,7 +80,6 @@ class get_stats():
         total_queries = [original_queries, refuned_queries]
         return total_queries
 
-
     def combined_stats(self):
         i = 1
         row_count = self.num_rows - 1

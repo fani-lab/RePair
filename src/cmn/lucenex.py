@@ -1,5 +1,6 @@
 import sys, subprocess, os
 
+
 def lucenex(corpus, output, ncore):
     """
     common code to create index using the subprocess module
@@ -13,4 +14,4 @@ def lucenex(corpus, output, ncore):
                     '--index', output,
                     '--generator', 'DefaultLuceneDocumentGenerator',
                     '--threads', str(ncore), '--storePositions', '--storeDocvectors', '--storeRaw', '--optimize'])
-    print(f'Finished creating index.')
+    print('Finished creating index.')
