@@ -15,7 +15,7 @@ jobs:
       run : pip install --quiet --requirement requirements.txt
     - name: Lint code
       run: |
-        flake8 --ignore=E117,E127,E128,E231,E401,E501,E722,E701,E704,F401,F523,F841 . --exclude src/cair/,/src/mdl/
+        flake8 --ignore=E117,E127,E128,E231,E401,E501,E722,E701,E704,F401,F523,F841 . --exclude src/cair/, src/mdl/
     #    pylint --disable=C0301 --disable=C0326 *.py
     # - name: Run unit tests
     #   run: python -m unittest --verbose --failfast

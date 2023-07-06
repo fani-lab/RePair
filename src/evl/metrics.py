@@ -9,7 +9,6 @@ from collections import Counter
 datasets = ['diamond', 'platinum', 'gold']
 t5_refinement = '../../output/aol-ia/t5.base.gc.docs.query.title.url/base.refinement'
 
-# compute f1 score
 
 def normalize_answer(s):
     """Lower text and remove punctuation, articles and extra whitespace."""
@@ -93,7 +92,6 @@ for ds in datasets:
 # rouge score for gold: 0.4256894215931806
 # BLEU score gold: 0.21156194047222282
 # f1 measure gold: 0.42353650076526406
-
 
 
 # AOL title transfer
