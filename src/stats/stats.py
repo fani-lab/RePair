@@ -4,6 +4,8 @@ import numpy as np
 from stats.get_stats import get_stats
 
 datasets = ['diamond', 'platinum', 'gold']
+
+
 def plot_stats(box_path):
     for ds in datasets:
         map_ds = pd.read_csv(f'{box_path}/{ds}.tsv', sep='\t', encoding='utf-8', names=['qid', 'i', 'i_map', 't', 't_map'])
