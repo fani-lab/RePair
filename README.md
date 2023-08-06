@@ -24,6 +24,7 @@ Search engines have difficulty searching into knowledge repositories since they 
   * [Samples](#samples)
 - [4. Acknowledgement](#4-acknowledgement)
 - [5. License](#5-license)
+- [6. Citation](#6-citation)
 
 </td>
 <td ><img src='./misc/flow.png' width="80%" /></td>
@@ -442,3 +443,19 @@ Yogeswar Lakshmi Narayanan<sup>1</sup>, [Hossein Fani](https://hosseinfani.githu
 <sup><sup>1</sup>School of Computer Science, Faculty of Science, University of Windsor, ON, Canada.</sup>
 <sup><sup>2</sup>[hfani@uwindsor.ca](mailto:hfani@uwindsor.ca)</sup>
 
+## 6. Citation
+
+```
+@inproceedings{DBLP:conf/cikm/NarayananF23,
+author    = {Yogeswar Lakshmi Narayanan and Hossein Fani},
+title     = {RePair: An Extensible Toolkit to Generate Large-Scale Datasets via Transformers for Query Refinement},
+booktitle = {Proceedings of the 32nd {ACM} International Conference on Information {\&} Knowledge Management, University of Birmingham and Eastside Rooms, UK, October 21-25, 2023},
+pages     = {},
+publisher = {{ACM}},
+year      = {2023},
+url       = {},
+doi       = {},
+biburl    = {},
+bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+```
