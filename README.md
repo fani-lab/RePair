@@ -438,7 +438,7 @@ We benefit from [``trec_eval``](https://github.com/usnistgov/trec_eval), [``pyse
 ## 5. License
 ©2023. This work is licensed under a [CC BY-NC-SA 4.0](license.txt) license.
 
-Yogeswar Lakshmi Narayanan<sup>1</sup>, [Hossein Fani](https://hosseinfani.github.io/)<sup>1,2</sup> 
+[Yogeswar Lakshmi Narayanan](https://www.yogeswarl.tech/)<sup>1</sup>, [Hossein Fani](https://hosseinfani.github.io/)<sup>1,2</sup> 
 
 <sup><sup>1</sup>School of Computer Science, Faculty of Science, University of Windsor, ON, Canada.</sup>
 <sup><sup>2</sup>[hfani@uwindsor.ca](mailto:hfani@uwindsor.ca)</sup>
