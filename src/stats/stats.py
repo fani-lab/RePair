@@ -10,7 +10,7 @@ def plot_stats(box_path):
     for ds in datasets:
         map_ds = pd.read_csv(f'{box_path}/{ds}.tsv', sep='\t', encoding='utf-8', names=['qid', 'i', 'i_map', 't', 't_map'])
         map_ds.sort_values(by='i_map', inplace=True)
-        stats = map_ds.groupby(np.arange(len(map_ds)) // (len(map_ds) / 10)).mean()
+        stats = map_ds.groupby(np.arange(len(map_ds)) // (len(map_ds) / 10)).mean(numeric_only=True)
         X = [x for x in range(1, 11)]
         original_mean = stats['i_map']
         changes_mean = stats['t_map']

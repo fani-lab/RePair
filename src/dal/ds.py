@@ -1,6 +1,7 @@
 import json, pandas as pd
 from tqdm import tqdm
 from os.path import isfile,join
+import os
 
 from pyserini.search.lucene import LuceneSearcher
 from pyserini.search.faiss import FaissSearcher, TctColBertQueryEncoder
@@ -50,7 +51,7 @@ class Dataset(object):
         cls.search_df(queries, out_docids, qids, ranker=ranker, topk=topk, batch=batch, ncores=ncores, index=index)
 
     @classmethod
-    def search_df(cls, queries, out_docids, qids, ranker='bm25', topk=100, batch=None, ncores=1, index=None,encoder=None):
+    def search_df(cls, queries, out_docids, qids, ranker='bm25', topk=100, batch=None, ncores=1, index=None, encoder=None):
 
         if not cls.searcher:
             if ranker == 'tct_colbert':
@@ -88,7 +89,7 @@ class Dataset(object):
                         hits = cls.searcher.search(row.query, k=topk, remove_dups=True)
                         for i, h in enumerate(hits): o.write(f'{qids[row.name]}\tQ0\t{h.docid:7}\t{i + 1:2}\t{h.score:.5f}\tPyserini\n')
 
-                queries.progress_apply(_docids, axis=1)
+                queries.apply(_docids, axis=1)
 
     @classmethod
     def aggregate(cls, original, changes, output, is_large_ds=False):
@@ -101,7 +102,7 @@ class Dataset(object):
             if is_large_ds:
                 pred_metric_values = pd.read_csv(join(output, metric_value), sep='\t', usecols=[1, 2], names=['qid', f'{change}.{ranker}.{metric}'], index_col=False, dtype={'qid': str})
             else:
-                pred_metric_values = pd.read_csv(join(output, metric_value), sep='\t', usecols=[1, 2], names=['qid', f'{change}.{ranker}.{metric}'], index_col=False,skipfooter=1, dtype={'qid': str})
+                pred_metric_values = pd.read_csv(join(output, metric_value), sep='\t', usecols=[1, 2], names=['qid', f'{change}.{ranker}.{metric}'], index_col=False,skipfooter=1, dtype={'qid': str}, engine='python')
             original[change] = pred  # to know the actual change
             original = original.merge(pred_metric_values, how='left', on='qid')  # to know the metric value of the change
             original[f'{change}.{ranker}.{metric}'].fillna(0, inplace=True)

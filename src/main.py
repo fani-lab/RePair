@@ -43,6 +43,7 @@ def run(data_list, domain_list, output, settings):
         t5_model = settings['t5model']  # {"small", "base", "large", "3B", "11B"} cross {"local", "gc"}
         t5_output = f'../output/{os.path.split(datapath)[-1]}/{ds.user_pairing}t5.{t5_model}.{in_type}.{out_type}.{index_item_str}'
         if not os.path.isdir(t5_output): os.makedirs(t5_output)
+
         copyfile('./param.py', f'{t5_output}/param.py')
         if {'finetune', 'predict'} & set(settings['cmd']):
             from mdl import mt5w
@@ -69,33 +70,37 @@ def run(data_list, domain_list, output, settings):
             print(f"Searching documents for query changes using {settings['ranker']} ...")
             # seems for some queries there is no qrels, so they are missed for t5 prediction.
             # query_originals = pd.read_csv(f'{datapath}/queries.train.tsv', sep='\t', names=['qid', 'query'], dtype={'qid': str})
-            # we use the file after panda.merge that create the training set so we make sure the mapping of qids
+            # we use the file after panda.merge that create the training set, so we make sure the mapping of qids
             query_originals = pd.read_csv(f'{prep_output}/{ds.user_pairing}queries.qrels.doc{"s" if "docs" in {in_type, out_type} else ""}.ctx.{index_item_str}.train.tsv', sep='\t', usecols=['qid', 'query'], dtype={'qid': str})
-            if settings['large_ds']:  # we can run this logic if shape of query_originals is greater than split_size
+
+            original_dir = f'{t5_output}/original'
+            if not os.path.isdir(original_dir): os.makedirs(original_dir)
+
+            # we can run this logic if shape of query_originals is greater than split_size
+            if settings['large_ds']:
                 import numpy as np
                 import glob
                 split_size = 1000000  # need to make this dynamic based on shape of query_originals.
                 for _, chunk in query_originals.groupby(np.arange(query_originals.shape[0]) // split_size):
-                    file_changes = [(file, f'{file}.{settings["ranker"]}') for file in
-                                    glob.glob(f'{t5_output}/**/pred.{_}*') if f'{file}.{settings["ranker"]}' not in glob.glob(f'{t5_output}/**')]
+                    # Generate original queries' files
+                    original_file_i = f'{original_dir}/original.{_}.tsv'
+                    chunk[['query']].to_csv(original_file_i, sep='\t', index=False, header=False)
+
+                    file_changes = [(file, f'{file}.{settings["ranker"]}') for file in glob.glob(f'{t5_output}/**/pred.{_}*') if f'{file}.{settings["ranker"]}' not in glob.glob(f'{t5_output}/**')]
                     chunk.drop_duplicates(subset=['qid'], inplace=True)  # in the event there are duplicates in query qrels.
                     with mp.Pool(settings['ncore']) as p:
-                        p.starmap(partial(ds.search, qids=chunk['qid'].values.tolist(), ranker=settings['ranker'],
-                                          topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'],
-                                          index=ds.searcher.index_dir), file_changes)
+                        p.starmap(partial(ds.search, qids=chunk['qid'].values.tolist(), ranker=settings['ranker'], topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'], index=ds.searcher.index_dir), file_changes)
 
-                print('for original queries')
+                print('For original queries')
                 file_changes = list()
                 for _, chunk in query_originals.groupby(np.arange(query_originals.shape[0]) // split_size):
                         chunk.drop_duplicates(subset=['qid'], inplace=True)
-                        file_changes.append((f'{t5_output}/original/original.{_}.tsv',
-                                         f'{t5_output}/original/original.{_}.tsv.bm25', chunk['qid'].values.tolist()))
+                        file_changes.append((f'{t5_output}/original/original.{_}.tsv', f'{t5_output}/original/original.{_}.tsv.bm25', chunk['qid'].values.tolist()))
                 with mp.Pool(settings['ncore']) as p:
                     p.starmap(partial(ds.search, ranker=settings['ranker'], topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'], index=ds.searcher.index_dir), file_changes)
+
             else:
-                query_changes = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["ranker"]}') for f in
-                                 listdir(t5_output) if
-                                 isfile(join(t5_output, f)) and f.startswith('pred.') and len(f.split('.')) == 2 and f'{f}.{settings["ranker"]}' not in listdir(t5_output)]
+                query_changes = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["ranker"]}') for f in listdir(t5_output) if isfile(join(t5_output, f)) and f.startswith('pred.') and len(f.split('.')) == 2 and f'{f}.{settings["ranker"]}' not in listdir(t5_output)]
 
                 # for (i, o) in query_changes: ds.search(i, o, query_originals['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'])
                 # batch search:
@@ -103,14 +108,13 @@ def run(data_list, domain_list, output, settings):
                 # seems the LuceneSearcher cannot be shared in multiple processes! See dal.ds.py
                 # parallel on each file ==> Problem: starmap does not understand inherited Dataset.searcher attribute!
                 with mp.Pool(settings['ncore']) as p:
-                    p.starmap(partial(ds.search, qids=query_originals['qid'].values.tolist(), ranker=settings['ranker'],
-                                      topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'],
-                                      index=None), query_changes)
+                    p.starmap(partial(ds.search, qids=query_originals['qid'].values.tolist(), ranker=settings['ranker'], topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'], index=ds.searcher.index_dir), query_changes)
 
                 # we need to add the original queries as well
-                if not isfile(join(t5_output, f'original.{settings["ranker"]}')):
-                    query_originals.to_csv(f'{t5_output}/original', columns=['query'], index=False, header=False)
-                    ds.search_df(pd.DataFrame(query_originals['query']), f'{t5_output}/original.{settings["ranker"]}', query_originals['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'])
+                original_path = f'{t5_output}/original.{settings["ranker"]}'
+                if not isfile(original_path):
+                    query_originals[['query']].to_csv(original_path, sep='\t', index=False, header=False)
+                    ds.search_df(pd.DataFrame(query_originals['query']), original_path, query_originals['qid'].values.tolist(), settings['ranker'], topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'])
 
         if 'eval' in settings['cmd']:
             from evl import trecw
@@ -251,8 +255,7 @@ def run(data_list, domain_list, output, settings):
             agg_df['pred_sparse'] = original[f'{ranker}.{metric}_']
             agg_df.to_csv(f'{t5_output}/colbert.comparison.{condition}.{metric}.tsv', sep="\t", index=None)
 
-        if 'stats' in settings['cmd']:
-            from stats import stats
+        if 'stats' in settings['cmd']: from stats import stats
 
 
 def addargs(parser):
