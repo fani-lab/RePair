@@ -6,9 +6,11 @@ from os.path import isfile, join
 from shutil import copyfile
 
 import param
+from refinement import refiner_factory as rf
+from refinement.refiners.abstractqrefiner import AbstractQRefiner
 
 
-def run(data_list, domain_list, output, settings):
+def run(data_list, domain_list, output, corpora, settings):
     # 'qrels.train.tsv' => ,["qid","did","pid","relevancy"]
     # 'queries.train.tsv' => ["qid","query"]
 
@@ -19,53 +21,70 @@ def run(data_list, domain_list, output, settings):
 
         if domain == 'msmarco.passage':
             from dal.msmarco import MsMarcoPsg
-            ds = MsMarcoPsg(param.settings[domain])
-        if domain == 'aol-ia':
+            ds = MsMarcoPsg(corpora[domain])
+        elif domain == 'aol-ia':
             from dal.aol import Aol
-            ds = Aol(param.settings[domain], datapath, param.settings['ncore'])
-        if domain == 'yandex' in domain_list: raise ValueError('Yandex is yet to be added ...')
+            ds = Aol(corpora[domain], datapath, param.settings['ncore'])
+        elif domain == 'yandex' in domain_list: raise ValueError('Yandex is yet to be added ...')
+        # TODO: two or three different classes for datasets tsv, ...
 
-        index_item_str = '.'.join(settings[domain]['index_item'])
-        in_type, out_type = settings[domain]['pairing'][1], settings[domain]['pairing'][2]
+        ds.read_queries(datapath)
+
+        index_item_str = '.'.join(corpora[domain]['index_item'])
+        in_type, out_type = corpora[domain]['pairing'][1], corpora[domain]['pairing'][2]
         tsv_path = {'train': f'{prep_output}/{ds.user_pairing}{in_type}.{out_type}.{index_item_str}.train.tsv', 'test': f'{prep_output}/{ds.user_pairing}{in_type}.{out_type}.{index_item_str}.test.tsv'}
-
-        query_qrel_doc = None
-        if 'pair' in settings['cmd']:
-            print('Pairing queries and relevant passages for training set ...')
-            cat = True if 'docs' in {in_type, out_type} else False
-            query_qrel_doc = ds.pair(datapath, f'{prep_output}/{ds.user_pairing}queries.qrels.doc{"s" if cat else ""}.ctx.{index_item_str}.train.no_dups.tsv', cat=cat)
-            # print(f'Pairing queries and relevant passages for test set ...')
-            # TODO: query_qrel_doc = pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.{index_item_str}.test.tsv')
-            # query_qrel_doc = ds.pair(datapath, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item_str}.test.tsv', cat=cat)
-            query_qrel_doc.to_csv(tsv_path['train'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
-            query_qrel_doc.to_csv(tsv_path['test'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
 
         t5_model = settings['t5model']  # {"small", "base", "large", "3B", "11B"} cross {"local", "gc"}
         t5_output = f'../output/{os.path.split(datapath)[-1]}/{ds.user_pairing}t5.{t5_model}.{in_type}.{out_type}.{index_item_str}'
         if not os.path.isdir(t5_output): os.makedirs(t5_output)
-
         copyfile('./param.py', f'{t5_output}/param.py')
-        if {'finetune', 'predict'} & set(settings['cmd']):
-            from mdl import mt5w
-            if 'finetune' in settings['cmd']:
-                print(f"Finetuning {t5_model} for {settings['iter']} iterations and storing the checkpoints at {t5_output} ...")
-                mt5w.finetune(
-                    tsv_path=tsv_path,
-                    pretrained_dir=f'./../output/t5-data/pretrained_models/{t5_model.split(".")[0]}',  # "gs://t5-data/pretrained_models/{"small", "base", "large", "3B", "11B"}
-                    steps=settings['iter'],
-                    output=t5_output, task_name=f"{domain.replace('-', '')}_cf",  # :DD Task name must match regex: ^[\w\d\.\:_]+$
-                    lseq=settings[domain]['lseq'],
-                    nexamples=None, in_type=in_type, out_type=out_type, gcloud=False)
 
-            if 'predict' in settings['cmd']:
-                print(f"Predicting {settings['nchanges']} query changes using {t5_model} and storing the results at {t5_output} ...")
-                mt5w.predict(
-                    iter=settings['nchanges'],
-                    split='test',
-                    tsv_path=tsv_path,
-                    output=t5_output,
-                    lseq=settings[domain]['lseq'],
-                    gcloud=False)
+        query_qrel_doc = None
+
+        # TODO: Adding t5 as a refiner with other refiners
+        # Query refinement - refining queries using the selected refiners
+        if settings['query_refinement']:
+            refiners = rf.get_nrf_refiner()
+            if rf: refiners += rf.get_rf_refiner(rankers=settings['ranker'], corpus=corpora[domain], output=t5_output, ext_corpus=corpora[corpora[domain]['extcorpus']])
+            # TODO: each core for one expander to generate q* and set the output in a way to use in other parts of the pipeline
+            with mp.Pool(settings['ncore']) as p:
+                for refiner in refiners:
+                    p.starmap(partial(refiner.generate_queue, dataset=ds, batch=settings['batch']))
+
+        # Consider t5 as a refiner
+        else:
+            if 'pair' in settings['cmd']:
+                print('Pairing queries and relevant passages for training set ...')
+                cat = True if 'docs' in {in_type, out_type} else False
+                query_qrel_doc = ds.pair(datapath, f'{prep_output}/{ds.user_pairing}queries.qrels.doc{"s" if cat else ""}.ctx.{index_item_str}.train.no_dups.tsv', cat=cat)
+                # print(f'Pairing queries and relevant passages for test set ...')
+                # TODO: query_qrel_doc = pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.{index_item_str}.test.tsv')
+                # query_qrel_doc = ds.pair(datapath, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item_str}.test.tsv', cat=cat)
+                query_qrel_doc.to_csv(tsv_path['train'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
+                query_qrel_doc.to_csv(tsv_path['test'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
+
+            if {'finetune', 'predict'} & set(settings['cmd']):
+                from mdl import mt5w
+                if 'finetune' in settings['cmd']:
+                    print(f"Finetuning {t5_model} for {settings['iter']} iterations and storing the checkpoints at {t5_output} ...")
+                    mt5w.finetune(
+                        tsv_path=tsv_path,
+                        pretrained_dir=f'./../output/t5-data/pretrained_models/{t5_model.split(".")[0]}',  # "gs://t5-data/pretrained_models/{"small", "base", "large", "3B", "11B"}
+                        steps=settings['iter'],
+                        output=t5_output, task_name=f"{domain.replace('-', '')}_cf",  # :DD Task name must match regex: ^[\w\d\.\:_]+$
+                        lseq=corpora[domain]['lseq'],
+                        nexamples=None, in_type=in_type, out_type=out_type, gcloud=False)
+
+                if 'predict' in settings['cmd']:
+                    print(f"Predicting {settings['nchanges']} query changes using {t5_model} and storing the results at {t5_output} ...")
+                    mt5w.predict(
+                        iter=settings['nchanges'],
+                        split='test',
+                        tsv_path=tsv_path,
+                        output=t5_output,
+                        lseq=corpora[domain]['lseq'],
+                        gcloud=False)
+
         if 'search' in settings['cmd']:  # 'bm25 ranker'
             print(f"Searching documents for query changes using {settings['ranker']} ...")
             # seems for some queries there is no qrels, so they are missed for t5 prediction.
@@ -281,6 +300,7 @@ if __name__ == '__main__':
     run(data_list=args.data_list,
             domain_list=args.domain_list,
             output=args.output,
+            corpora=param.corpora,
             settings=param.settings)
 
     # after finetuning and predict, we can benchmark on rankers and metrics
