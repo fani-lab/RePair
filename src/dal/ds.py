@@ -1,13 +1,14 @@
 import json, pandas as pd
 from tqdm import tqdm
 from os.path import isfile,join
-import os
+from query import Query
 
 from pyserini.search.lucene import LuceneSearcher
 from pyserini.search.faiss import FaissSearcher, TctColBertQueryEncoder
 
 
 class Dataset(object):
+    queries = []
     searcher = None
     settings = None
 
@@ -24,10 +25,28 @@ class Dataset(object):
         if not Dataset.searcher: raise ValueError(f'Lucene searcher cannot find/build index at {Dataset.settings["index"]}!')
 
     @classmethod
+    def read_queries(cls, input):
+        queries = pd.read_csv(f'{input}/queries.train.tsv', sep='\t', index_col=False, names=['qid', 'query'], converters={'query': str.lower}, header=None)
+        qrels = pd.read_csv(f'{input}/qrels.train.tsv', sep='\t', index_col=False, names=['qid', 'did', 'rel'], header=None)
+        queries_qrels = pd.merge(queries, qrels, on='qid', how='inner', copy=False)
+        queries_qrels = queries_qrels.sort_values(by='qid')
+        cls.create_query_objects(queries_qrels)
+
+    @classmethod
+    def create_query_objects(cls, queries_qrels):
+        qid = ""
+        for i, row in queries_qrels.iterrows():
+            if qid != str(row['qid']):
+                if len(Dataset.queries) != 0: Dataset.queries.append(query)
+                query = Query(qid=row['qid'], q=row['query'])
+                qid = row['qid']
+            query.add_document(row['did'], row['rel'])
+
+    @classmethod
     def _txt(cls, pid):
         # The``docid`` is overloaded: if it is of type ``str``, it is treated as an external collection ``docid``;
         # if it is of type ``int``, it is treated as an internal Lucene``docid``. # stupid!!
-        try:return json.loads(cls.searcher.doc(str(pid)).raw())['contents'].lower()
+        try: return json.loads(cls.searcher.doc(str(pid)).raw())['contents'].lower()
         except AttributeError: return ''  # if Dataset.searcher.doc(str(pid)) is None
         except Exception as e: raise e
 
