@@ -23,6 +23,9 @@ def run(data_list, domain_list, output, settings):
         if domain == 'aol-ia':
             from dal.aol import Aol
             ds = Aol(param.settings[domain], datapath, param.settings['ncore'])
+        if domain == 'nfCorpus': 
+            from dal.nfCorpus import nfCorpus
+            ds = nfCorpus(param.settings[domain], datapath, param.settings['ncore'])
         if domain == 'yandex' in domain_list: raise ValueError('Yandex is yet to be added ...')
 
         index_item_str = '.'.join(settings[domain]['index_item'])

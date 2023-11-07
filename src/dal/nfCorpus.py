@@ -5,7 +5,7 @@ from tqdm import tqdm
 from shutil import copyfile
 from ftfy import fix_text
 from pyserini.search.lucene import LuceneSearcher
-from ds import Dataset
+from dal.ds import Dataset
 tqdm.pandas()
 
 class nfCorpus(Dataset):

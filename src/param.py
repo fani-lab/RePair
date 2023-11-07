@@ -39,5 +39,10 @@ settings = {
         'pairing': [None, 'docs', 'query'],     # [context={2 scenarios, one with userID and one without userID). input={'userid','query','doc(s)'} output={'query','doc(s)'}
         'lseq': {"inputs": 32, "targets": 256},  # query length and doc length for t5 model,
         'filter': {'minql': 1, 'mindocl': 10}   # [min query length, min doc length], after merge queries with relevant 'index_item', if |query| <= minql drop the row, if |'index_item'| < mindocl, drop row
+    },
+    'nfCorpus' : {
+        "index":'../data/raw/nfCorpus/lucene-index/',
+        "index_item":['title'],
+        'pairing': [None, 'docs', 'query'],
     }
 }
