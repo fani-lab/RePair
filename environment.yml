@@ -1,4 +1,4 @@
-name: repair
+name: Repair
 channels:
   - conda-forge
   - pytorch

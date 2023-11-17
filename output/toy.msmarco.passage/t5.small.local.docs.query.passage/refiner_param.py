@@ -10,8 +10,8 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 settings = {
     'query_refinement': True,
-    'cmd': ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box'],   # steps of pipeline, ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box','dense_retrieve', 'stats]
-    'ncore': 2,
+    'cmd': ['search', 'eval','agg', 'box'],   # steps of pipeline, ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box','dense_retrieve', 'stats]
+    'ncore': 1,
     't5model': 'small.local',   # 'base.gc' on google cloud tpu, 'small.local' on local machine
     'iter': 5,                  # number of finetuning iteration for t5
     'nchanges': 5,              # number of changes to a query
@@ -42,6 +42,7 @@ corpora = {
         'dense_index': '../data/raw/aol-ia/dense-index/tct_colbert.title/',  # change based on index_item
         'dense_encoder':'../data/raw/aol-ia/dense-encoder/tct_colbert.title/',  # change based on index_item
         'pairing': [None, 'docs', 'query'],     # [context={2 scenarios, one with userID and one without userID). input={'userid','query','doc(s)'} output={'query','doc(s)'}
+        'extcorpus': 'msmarco.passage',
         'lseq': {"inputs": 32, "targets": 256},  # query length and doc length for t5 model,
         'filter': {'minql': 1, 'mindocl': 10}   # [min query length, min doc length], after merge queries with relevant 'index_item', if |query| <= minql drop the row, if |'index_item'| < mindocl, drop row
     },
@@ -110,43 +111,51 @@ corpora = {
         'w_t': 2.25,  # OnFields # to be tuned
         'w_a': 1,  # OnFields # to be tuned
         'tokens': 16000000,
-        'qrels': '../ds/antique/qrels.antique.txt',
+        'qrels': '../data/raw/antique/qrels.antique.txt',
         'extcorpus': 'gov2',  # AdaptOnFields
+        'pairing': [None, None, None],
+        'index_item': [],
     },
     'trec09mq': {
-        'index': 'D:\clueweb09b\lucene-index.cw09b.pos+docvectors+rawdocs',
+        'index': '/data/raw/clueweb09b/lucene-index.cw09b.pos+docvectors+rawdocs',
         'size': 50000000,
         # 'topics': '../ds/trec2009mq/prep/09.mq.topics.20001-60000.prep.tsv',
-        'topics': '../ds/trec09mq/09.mq.topics.20001-60000.prep',
+        'topics': '../data/raw/trec09mq/09.mq.topics.20001-60000.prep',
         'prels': '',  # this will be generated after a retrieval {bm25, qld}
         'w_t': 2.25,  # OnFields # to be tuned
         'w_a': 1,  # OnFields # to be tuned
         'tokens': 16000000,
-        'qrels': '../ds/trec09mq/prels.20001-60000.prep',
+        'qrels': '../data/raw/trec09mq/prels.20001-60000.prep',
         'extcorpus': 'gov2',  # AdaptOnFields
+        'pairing': [None, None, None],
+        'index_item': [],
     },
     'dbpedia': {
-        'index': '../ds/dbpedia/lucene-index-dbpedia-collection',
+        'index': '../data/raw/dbpedia/lucene-index-dbpedia-collection',
         'size': 4632359,
-        'topics': '../ds/dbpedia/topics.dbpedia.txt',
+        'topics': '../data/raw/dbpedia/topics.dbpedia.txt',
         'prels': '',  # this will be generated after a retrieval {bm25, qld}
         'w_t': 1,  # OnFields # to be tuned
         'w_a': 1,  # OnFields # to be tuned
         'tokens': 200000000,
-        'qrels': '../ds/dbpedia/qrels.dbpedia.txt',
+        'qrels': '../data/raw/dbpedia/qrels.dbpedia.txt',
         'extcorpus': 'gov2',  # AdaptOnFields
+        'pairing': [None, None, None],
+        'index_item': [],
     },
     'orcas': {
-        'index': '../ds/orcas/lucene-index.msmarco-v1-doc.20220131.9ea315',
+        'index': '../data/raw/orcas/lucene-index.msmarco-v1-doc.20220131.9ea315',
         'size': 50000000,
-        # 'topics': '../ds/trec2009mq/prep/09.mq.topics.20001-60000.prep.tsv',
-        'topics': '../ds/orcas/preprocess/orcas-I-2M_topics.prep',
+        # 'topics': '../data/raw/trec2009mq/prep/09.mq.topics.20001-60000.prep.tsv',
+        'topics': '../data/raw/orcas/preprocess/orcas-I-2M_topics.prep',
         'prels': '',  # this will be generated after a retrieval {bm25, qld}
         'w_t': 2.25,  # OnFields # to be tuned
         'w_a': 1,  # OnFields # to be tuned
         'tokens': 16000000,
-        'qrels': '../ds/orcas/preprocess/orcas-doctrain-qrels.prep',
+        'qrels': '../data/raw/orcas/preprocess/orcas-doctrain-qrels.prep',
         'extcorpus': 'gov2',  # AdaptOnFields
+        'pairing': [None, None, None],
+        'index_item': [],
     },
 }
 
