@@ -1,6 +1,6 @@
 import functools, os, sys, time
 import tensorflow.compat.v1 as tf
-import tensorflow_datasets as tfds
+# import tensorflow_datasets as tfds
 
 import t5
 import t5.models
@@ -95,7 +95,7 @@ def predict(iter, split, tsv_path, output, lseq, vocab_model_path='./../output/t
 # def predict(iter, split, tsv_path, pretrained_dir, steps, output, lseq, task_name, nexamples=None, in_type='query', out_type='doc', vocab_model_path='./../output/t5-data/vocabs/cc_en.32000/sentencepiece.model', gcloud=False):
 
     if gcloud: import gcloud
-    model_parallelism, train_batch_size, keep_checkpoint_max = {"small": (1, 256, 16), "base": (2, 128, 8), "large": (8, 64, 4), "3B": (8, 16, 1), "11B": (8, 16, 1)}[output.split('.')[-4]]
+    model_parallelism, train_batch_size, keep_checkpoint_max = {"small": (1, 256, 16), "base": (2, 128, 8), "large": (8, 64, 4), "3B": (8, 16, 1), "11B": (8, 16, 1)}[output.split('.')[-5]]
     model = t5.models.MtfModel(
         model_dir=output.replace('/', os.path.sep),
         tpu=gcloud.TPU_ADDRESS if gcloud else None,

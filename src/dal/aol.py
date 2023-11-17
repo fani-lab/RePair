@@ -3,14 +3,15 @@ from tqdm import tqdm
 from shutil import copyfile
 from ftfy import fix_text
 from pyserini.search.lucene import LuceneSearcher
-from dal.ds import Dataset
+from ds import Dataset
+from query import Query
 tqdm.pandas()
 
 
 class Aol(Dataset):
 
-    def __init__(self, settings, homedir, ncore):
-        try: super(Aol, self).__init__(settings=settings)
+    def __init__(self, settings, domain, homedir, ncore):
+        try: super(Aol, self).__init__(settings=settings, domain=domain)
         except: self._build_index(homedir, Dataset.settings['index_item'], Dataset.settings['index'], ncore)
 
     @classmethod
@@ -22,7 +23,7 @@ class Aol(Dataset):
         index_item_str = '.'.join(index_item)
         if not os.path.isdir(f'{indexdir}/{cls.user_pairing}{index_item_str}'): os.makedirs(f'{indexdir}/{cls.user_pairing}{index_item_str}')
         import ir_datasets
-        from cmn.lucenex import lucenex
+        from src.cmn.lucenex import lucenex
 
         print(f"Setting up aol corpus using ir-datasets at {homedir}...")
         aolia = ir_datasets.load("aol-ia")
@@ -48,6 +49,17 @@ class Aol(Dataset):
         # for d in os.listdir(homedir):
         #     if not (d.find('aol-ia') > -1) and os.path.isdir(f'./../data/raw/{d}'): shutil.rmtree(f'./../data/raw/{d}')
 
+    def read_queries(cls, input, domain):
+        queries = pd.read_csv(f'{input}/queries.train.tsv', encoding='UTF-8', sep='\t', index_col=False, names=['qid', 'query'], converters={'query': str.lower}, header=None)
+        # the column order in the file is [qid, uid, did, uid]!!!! STUPID!!
+        qrels = pd.read_csv(f'{input}/qrels.train.tsv', encoding='UTF-8', sep='\t', index_col=False, names=['qid', 'uid', 'did', 'rel'], header=None)
+        qrels.to_csv(f'{input}/qrels.train.tsv_', index=False, sep='\t', header=False)
+        # docid is a hash of the URL. qid is the a hash of the *noramlised query* ==> two uid may have same qid then, same docid.
+        qrels.drop_duplicates(subset=['qid', 'did', 'uid'], inplace=True)
+        queries_qrels = pd.merge(queries, qrels, on='qid', how='inner', copy=False)
+        queries_qrels = queries_qrels.sort_values(by='qid')
+        cls.create_query_objects(queries_qrels, ['qid', 'uid', 'did', 'rel'], domain)
+
     @classmethod
     def create_jsonl(cls, aolia, index_item, output):
         """
@@ -69,19 +81,21 @@ class Aol(Dataset):
             output_jsonl_file.close()
 
     @classmethod
-    def pair(cls, input, output, cat=True):
+    def pair(cls, queries, output, cat=True):
+        # TODO: change the code in a way to use read_queries
         queries = pd.read_csv(f'{input}/queries.train.tsv', encoding='UTF-8', sep='\t', index_col=False, names=['qid', 'query'], converters={'query': str.lower}, header=None)
         # the column order in the file is [qid, uid, did, uid]!!!! STUPID!!
         qrels = pd.read_csv(f'{input}/qrels.train.tsv', encoding='UTF-8', sep='\t', index_col=False, names=['qid', 'uid', 'did', 'rel'], header=None)
         # docid is a hash of the URL. qid is the a hash of the *noramlised query* ==> two uid may have same qid then, same docid.
         qrels.drop_duplicates(subset=['qid', 'did', 'uid'], inplace=True)
         queries_qrels = pd.merge(queries, qrels, on='qid', how='inner', copy=False)
+
         doccol = 'docs' if cat else 'doc'
         del queries
         # in the event of user oriented pairing, we simply concat qid and uid
         if cls.user_pairing: queries_qrels['qid'] = queries_qrels['qid'].astype(str) + "_" + queries_qrels['uid'].astype(str)
         queries_qrels = queries_qrels.astype('category')
-        queries_qrels[doccol] = queries_qrels['did'].progress_apply(cls._txt)
+        queries_qrels[doccol] = queries_qrels['did'].apply(cls._txt)
 
         # queries_qrels.drop_duplicates(subset=['qid', 'did','pid'], inplace=True)  # two users with same click for same query
         if not cls.user_pairing: queries_qrels['uid'] = -1
@@ -111,3 +125,4 @@ class Aol(Dataset):
                 qrels_splits.to_csv(f'../output/aol-ia/{cls.user_pairing}t5.base.gc.docs.query.{index_item_str}/qrels/qrels.splits.{_}.tsv_', sep='\t',
                              encoding='utf-8', index=False, header=False, columns=['qid', 'uid', 'did', 'rel'])
         return queries_qrels
+        pass
