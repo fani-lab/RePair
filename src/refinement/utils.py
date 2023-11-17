@@ -28,13 +28,7 @@ def valid(word):
     return False
 
 def clean(str):
-    result = [0] * len(str)
-    for i in range(len(str)):
-        ch = str[i]
-        if ch.isalpha():
-            result[i] = ch
-        else:
-            result[i] = ' '
+    result = [ch if ch.isalpha() else ' ' for ch in str]
     return ''.join(result)
 
 def insert_row(df, idx, row):
@@ -137,3 +131,11 @@ def stdout_redirected_2_file(to=os.devnull):
             _redirect_stdout(to=old_stdout) # restore stdout.
                                             # buffering and flags such as
                                             # CLOEXEC may be different
+
+
+def hex_to_ansi(hex_color_code):
+    hex_color_code = hex_color_code.lstrip('#')
+    red = int(hex_color_code[0:2], 16)
+    green = int(hex_color_code[2:4], 16)
+    blue = int(hex_color_code[4:6], 16)
+    return f'\033[38;2;{red};{green};{blue}m'

@@ -2,6 +2,10 @@ import sys, platform
 
 extension = '.exe' if platform.system() == 'Windows' else ""
 
+settings = {
+    'transformer_model': 'johngiorgi/declutr-small',
+}
+
 refiners = {
         'SenseDisambiguation':  0,
         'Thesaurus':            0,

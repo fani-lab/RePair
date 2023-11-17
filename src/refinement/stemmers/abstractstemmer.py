@@ -6,7 +6,7 @@ from nltk.tokenize import WordPunctTokenizer
 import re
 import sys
 
-from cmn import utils
+from src.refinement import utils
 class AbstractStemmer(object):
     def __init__(self):
         super(AbstractStemmer, self).__init__()

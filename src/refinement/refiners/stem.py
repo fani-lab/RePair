@@ -1,8 +1,8 @@
 import sys
 sys.path.extend(['../refinement'])
 
-from refiners.abstractqrefiner import AbstractQRefiner
-from stemmers.abstractstemmer import AbstractStemmer
+from src.refinement.refiners.abstractqrefiner import AbstractQRefiner
+from src.refinement.stemmers.abstractstemmer import AbstractStemmer
 class Stem(AbstractQRefiner):
     def __init__(self, stemmer:AbstractStemmer):
         AbstractQRefiner.__init__(self, replace=False)
@@ -15,7 +15,7 @@ class Stem(AbstractQRefiner):
         return super().get_refined_query(self.stemmer.stem_query(q))
 
 if __name__ == "__main__":
-    from refinement.stemmers.krovetz import KrovetzStemmer
+    from src.refinement.stemmers.krovetz import KrovetzStemmer
     qe = Stem(KrovetzStemmer(jarfile='stemmers/kstem-3.4.jar'))
     print(qe.get_model_name())
     print(qe.get_refined_query('International Crime Organization'))
