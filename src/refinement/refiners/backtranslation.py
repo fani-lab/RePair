@@ -21,14 +21,14 @@ class BackTranslation(AbstractQRefiner):
     Generates the backtranslated query then calculates the semantic similarity of the two queries
     '''
     def get_refined_query(self, query, args=None):
-        translated_query = self.translator(query.q)
+        translated_query = self.translator(query)
         back_translated_query = self.back_translator(translated_query[0]['translation_text'])
         return back_translated_query[0]['translation_text']
         # return super().get_expanded_query(q, [0])
 
     def get_refined_query_batch(self, queries, args=None):
         try:
-            translated_queries = self.translator([query.q for query in queries])
+            translated_queries = self.translator([query for query in queries])
             back_translated_queries = self.back_translator([tq_['translation_text'] for tq_ in translated_queries])
             q_s = [q_['translation_text'] for q_ in back_translated_queries]
         except:
@@ -40,7 +40,7 @@ class BackTranslation(AbstractQRefiner):
     Example: 'backtranslation_fra_latn'
     '''
     def get_model_name(self):
-        return super().get_model_name() + '_' + self.tgt.lower()
+        return 'bt_' + self.tgt.lower()
 
 
 if __name__ == "__main__":

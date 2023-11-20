@@ -38,7 +38,8 @@ def run(data_list, domain_list, output, corpora, settings):
 
         #TODO: change files naming
         t5_model = settings['t5model']  # {"small", "base", "large", "3B", "11B"} cross {"local", "gc"}
-        t5_output = f'../output/{os.path.split(datapath)[-1]}/{ds.user_pairing}t5.{t5_model}.{in_type}.{out_type}.{index_item_str}'
+        t5_output = f'../output/{os.path.split(datapath)[-1]}' if settings['query_refinement'] else f'../output/{os.path.split(datapath)[-1]}/{ds.user_pairing}t5.{t5_model}.{in_type}.{out_type}.{index_item_str}'
+        # t5_output = f'../output/{os.path.split(datapath)[-1]}/{ds.user_pairing}t5.{t5_model}.{in_type}.{out_type}.{index_item_str}'
         if not os.path.isdir(t5_output): os.makedirs(t5_output)
         copyfile('./param.py', f'{t5_output}/refiner_param.py')
 
@@ -50,11 +51,11 @@ def run(data_list, domain_list, output, corpora, settings):
             if rf: refiners += rf.get_rf_refiner(rankers=settings['ranker'], corpus=corpora[domain], output=t5_output, ext_corpus=corpora[corpora[domain]['extcorpus']])
             with mp.Pool(settings['ncore']) as p:
                 for refiner in refiners:
-                    if refiner.get_model_name() == 'original.queries': refiner_outfile = f'{t5_output}/{refiner.get_model_name()}'
+                    if refiner.get_model_name() == 'original': refiner_outfile = f'{t5_output}/{refiner.get_model_name()}'
                     else: refiner_outfile = f'{t5_output}/refiner.{refiner.get_model_name()}'
                     if not exists(refiner_outfile):
-                        print(f'Writing results from {refiner.get_model_name()} queries in {refiner_outfile}')
                         ds.queries = p.map(partial(refiner.preprocess_query), ds.queries)
+                        print(f'Writing results from {refiner.get_model_name()} queries in {refiner_outfile}')
                         refiner.write_queries(queries=ds.queries, outfile=refiner_outfile)
                     else: print(f'Results from {refiner.get_model_name()} queries in {refiner_outfile}')
 
@@ -99,8 +100,6 @@ def run(data_list, domain_list, output, corpora, settings):
             # we use the file after panda.merge that create the training set, so we make sure the mapping of qids
             # query_originals = pd.read_csv(f'{prep_output}/{ds.user_pairing}queries.qrels.doc{"s" if "docs" in {in_type, out_type} else ""}.ctx.{index_item_str}.train.tsv', sep='\t', usecols=['qid', 'query'], dtype={'qid': str})
 
-
-
             # we can run this logic if shape of queries is greater than split_size
             if settings['large_ds']:
                 import glob
@@ -124,13 +123,7 @@ def run(data_list, domain_list, output, corpora, settings):
 
             else:
                 # Here it considers generated queries from t5 or refiners and the original queries
-                query_changes = [
-                    (f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["ranker"]}')
-                    for f in listdir(t5_output)
-                    if isfile(join(t5_output, f)) and (
-                            f.startswith('pred.') or f.startswith('refiner.') or f.startswith('original.')
-                    ) and len(f.split('.')) == 2 and f'{f}.{settings["ranker"]}' not in listdir(t5_output)
-                ]
+                query_changes = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["ranker"]}') for f in listdir(t5_output) if isfile(join(t5_output, f)) and ((f.startswith('pred.') and len(f.split('.')) == 2) or (f.startswith('refiner.') or f.startswith('original')) and f'{f}.{settings["ranker"]}' not in listdir(t5_output) and not settings["ranker"] in f)]
                 # query_changes = []
                 # for f in listdir(t5_output):
                 #     if isfile(join(t5_output, f)) and (f.startswith('pred.') or f.startswith('refiner.')) and len(
@@ -142,7 +135,7 @@ def run(data_list, domain_list, output, corpora, settings):
                 # seems the LuceneSearcher cannot be shared in multiple processes! See dal.ds.py
                 #TODO: parallel on each file ==> Problem: starmap does not understand inherited Dataset.searcher attribute!
                 user_pairing = "user/" if "user" in ds.settings["pairing"] else ""
-                index_item_str = '.'.join(settings["index_item"]) if ds.__class__.__name__ != 'MsMarcoPsg' else ""
+                index_item_str = '.'.join(settings["index_item"]) if ds.__class__.__name__ == 'AOL' else ""
                 with mp.Pool(settings['ncore']) as p: p.starmap(partial(ds.search, qids=[query.qid for query in ds.queries], ranker=settings['ranker'], topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'], index=f'{ds.settings["index"]}{user_pairing}{index_item_str}'), query_changes)
 
 
@@ -197,7 +190,7 @@ def run(data_list, domain_list, output, corpora, settings):
                     metrics_results_list.to_csv(f'{t5_output}/pred.{i}.{settings["ranker"]}.{settings["metric"]}', sep='\t', index=False, header=False)
                     print('all files are merged and ready for aggregation')
             else:
-                search_results = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["metric"]}') for f in listdir(t5_output) if f.endswith(settings["ranker"]) and f'{f}.{settings["ranker"]}.{settings["metric"]}' not in listdir(t5_output)]
+                search_results = [(f'{t5_output}/{f}', f'{t5_output}/{f}.{settings["metric"]}') for f in listdir(t5_output) if f.endswith(settings["ranker"]) and f'{f}.{settings["metric"]}' not in listdir(t5_output)]
                 # This snipet code is added in the read_quereis function!
                 # if not isfile(f'{datapath}/{ds.user_pairing}qrels.train.tsv_'):
                 #     qrels = pd.read_csv(f'{datapath}/{ds.user_pairing}qrels.train.tsv', sep='\t', index_col=False, names=['qid', 'did', 'pid', 'relevancy'], header=None)
@@ -208,12 +201,11 @@ def run(data_list, domain_list, output, corpora, settings):
 
 
         if 'agg' in settings['cmd']:
-            # originals = pd.read_csv(f'{prep_output}/queries.qrels.doc{"s" if "docs" in {in_type, out_type} else ""}.ctx.{index_item_str}.train.tsv', sep='\t', usecols=['qid', 'query'], dtype={'qid': str})
             originals = pd.DataFrame({'qid': [str(query.qid) for query in ds.queries], 'query': [query.q for query in ds.queries]})
-            original_metric_values = pd.read_csv(join(t5_output, f'original.queries.{settings["ranker"]}.{settings["metric"]}'), sep='\t', usecols=[1, 2], names=['qid', f'original.queries.{settings["ranker"]}.{settings["metric"]}'], index_col=False, dtype={'qid': str})
+            original_metric_values = pd.read_csv(join(t5_output, f'original.{settings["ranker"]}.{settings["metric"]}'), sep='\t', usecols=[1, 2], names=['qid', f'original.{settings["ranker"]}.{settings["metric"]}'], index_col=False, dtype={'qid': str})
 
             originals = originals.merge(original_metric_values, how='left', on='qid')
-            originals[f'original.queries.{settings["ranker"]}.{settings["metric"]}'].fillna(0, inplace=True)
+            originals[f'original.{settings["ranker"]}.{settings["metric"]}'].fillna(0, inplace=True)
             changes = [('.'.join(f.split('.')[0:2]), f) for f in os.listdir(t5_output) if f.endswith(f'{settings["ranker"]}.{settings["metric"]}') and 'original' not in f]
             ds.aggregate(originals, changes, t5_output, settings["large_ds"])
 
@@ -222,7 +214,9 @@ def run(data_list, domain_list, output, corpora, settings):
             box_path = join(t5_output, f'{settings["ranker"]}.{settings["metric"]}.boxes')
             if not os.path.isdir(box_path): os.makedirs(box_path)
             gold_df = pd.read_csv(f'{t5_output}/{settings["ranker"]}.{settings["metric"]}.agg.all.tsv', sep='\t', header=0, dtype={'qid': str})
-            qrels = pd.DataFrame([query.docs for query in ds.queries])
+
+            qrels_list = [pd.DataFrame(query.docs) for query in ds.queries]
+            qrels = pd.concat(qrels_list, ignore_index=True)
 
             box_condition = settings['box']
             ds.box(gold_df, qrels, box_path, box_condition)

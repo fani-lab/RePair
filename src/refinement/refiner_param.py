@@ -46,5 +46,4 @@ backtranslation = {
     'max_length': 512,
     'device': 'cpu',
     'model_card': 'facebook/nllb-200-distilled-600M',
-    'transformer_model': 'johngiorgi/declutr-small',
 }

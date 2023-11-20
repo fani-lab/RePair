@@ -78,8 +78,9 @@ class Dataset(object):
             if qid != row['qid']:
                 if query: cls.queries.append(query)
                 qid = row['qid']
-                query = Query(domain=domain, qid=qid, q=row['query'])
-            query.docs.update({col: str(row[col]) for col in qrel_col})
+                query = Query(domain=domain, qid=qid, q=row['query'], docs={col: [] for col in qrel_col})
+            [query.docs[col].append(str(row[col])) for col in qrel_col]
+            query.original = True
         if query: cls.queries.append(query)
 
     # gpu-based t5 generate the predictions in b'' format!!!
@@ -132,9 +133,9 @@ class Dataset(object):
                         if len(unique_docids) < topk:
                             print(f'unique docids fetched less than {topk}')
                     else:
+                        #TODO: Store qrets
                         hits = cls.searcher.search(row.query, k=topk, remove_dups=True)
-                        for i, h in enumerate(hits): o.write(
-                            f'{qids[row.name]}\tQ0\t{h.docid:7}\t{i + 1:2}\t{h.score:.5f}\tPyserini\n')
+                        for i, h in enumerate(hits): o.write(f'{qids[row.name]}\tQ0\t{h.docid:7}\t{i + 1:2}\t{h.score:.5f}\tPyserini\n')
 
                 queries.apply(_docids, axis=1)
 
@@ -164,14 +165,14 @@ class Dataset(object):
             agg_gold.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
             agg_all.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
             for index, row in tqdm(original.iterrows(), total=original.shape[0]):
-                agg_gold.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.queries.{ranker}.{metric}"]}\n')
-                agg_all.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.queries.{ranker}.{metric}"]}\n')
+                agg_gold.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\n')
+                agg_all.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\n')
                 all = list()
                 for change, metric_value in changes: all.append((row[change], row[f'{change}.{ranker}.{metric}'], change))
                 all = sorted(all, key=lambda x: x[1], reverse=True)
                 for i, (query, metric_value, change) in enumerate(all):
                     agg_all.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
-                    if metric_value > 0 and metric_value >= row[f'original.queries.{ranker}.{metric}']: agg_gold.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
+                    if metric_value > 0 and metric_value >= row[f'original.{ranker}.{metric}']: agg_gold.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
 
     @classmethod
     def box(cls, input, qrels, output, checks):
