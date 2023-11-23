@@ -26,6 +26,15 @@ def run(data_list, domain_list, output, corpora, settings):
             from dal.aol import Aol
             ds = Aol(corpora[domain], domain, datapath, param.settings['ncore'])
         elif domain == 'yandex' in domain_list: raise ValueError('Yandex is yet to be added ...')
+        elif domain == 'nfCorpus': 
+            from dal.nfCorpus import nfCorpus
+            ds = nfCorpus(corpora[domain], datapath, param.settings['ncore'])
+        elif domain == 'trecCovid': 
+            from dal.trecCovid import trecCovid
+            ds = trecCovid(corpora[domain], datapath, param.settings['ncore'])
+        elif domain == 'clefIP':
+            from dal.clefIP import ClefIP
+            ds = ClefIP(corpora[domain], datapath, param.settings['ncore'])
         else:
             from dal.ds import Dataset
             ds = Dataset(corpora[domain], domain)
