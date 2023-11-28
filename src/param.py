@@ -43,7 +43,11 @@ corpora = {
         'dense_encoder':'../data/raw/aol-ia/dense-encoder/tct_colbert.title/',  # change based on index_item
         'pairing': [None, 'docs', 'query'],     # [context={2 scenarios, one with userID and one without userID). input={'userid','query','doc(s)'} output={'query','doc(s)'}
         'lseq': {"inputs": 32, "targets": 256},  # query length and doc length for t5 model,
-        'filter': {'minql': 1, 'mindocl': 10}   # [min query length, min doc length], after merge queries with relevant 'index_item', if |query| <= minql drop the row, if |'index_item'| < mindocl, drop row
+        'filter': {'minql': 1, 'mindocl': 10},   # [min query length, min doc length], after merge queries with relevant 'index_item', if |query| <= minql drop the row, if |'index_item'| < mindocl, drop row
+        "qrels_cols": ['query_id', 'doc_id', 'relevance', 'iteration'], #the columns in the qrel set
+        "queries_cols": ['query_id', 'text'], # the columns in the query set
+        "docs_cols": ['doc_id', 'text', 'title', 'url', 'ia_url'], # the columns in the doc set
+        "dataset_name": 'aol-ia'
     },
     'robust04': {
         'index': '../data/raw/robust04/lucene-index.robust04.pos+docvectors+rawdocs',
@@ -148,6 +152,33 @@ corpora = {
         'qrels': '../ds/orcas/preprocess/orcas-doctrain-qrels.prep',
         'extcorpus': 'gov2',  # AdaptOnFields
     },
+    'nfCorpus' : {
+        "index":'../data/raw/nfCorpus/lucene-index/',
+        "index_item":['title'],
+        "qrels_cols": ['qid', 'did', 'rel', 'iteration'], #the columns in the qrel set
+        "queries_cols": ['qid', 'query', 'url'], # the columns in the query set
+        "docs_cols": ['doc_id', 'text', 'title', 'url'], # the columns in the doc set
+        "dataset_name": 'beir/nfcorpus/train', #(change test to train for the training set) this is the dataset_name that will be passed into the ir_datasets.load() function as per the documentation
+        'pairing': [None, 'docs', 'query'],
+    },
+    'clefIP' : {
+      'index_item' : ["title"],
+      'index' : '../data/raw/clefIP/lucene-index/',
+      'qrels_cols' : [],
+      'queries_cols' : [],
+      'dataset_name' : 'clefIP',
+      'source_path' : '../testPath/', ## change this to wherever you put the files
+      'pairing': [None, 'docs', 'query'],
+    },
+    'trecCovid' : {
+        "index":'../data/raw/trecCovid/lucene-index/',
+        "index_item":['title'],
+        "qrels_cols": ['qid', 'did', 'rel', 'iteration'], #the columns in the qrel set
+        "queries_cols": ['qid', 'title', 'description', 'narrative'], # the columns in the query set
+        "docs_cols": ['doc_id', "text", "title", "url", "pubmed_id"],
+        "dataset_name": 'cord19/trec-covid', #this is the dataset_name that will be passed into the ir_datasets.load() function as per the documentation
+        'pairing': [None, 'docs', 'query'],
+    }
 }
 
 # Only for sparse indexing
