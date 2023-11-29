@@ -37,7 +37,7 @@ class AbstractQRefiner:
             print(traceback.format_exc())
             q_, semsim = query.q, 1
 
-        refined_query = Query(domain=query.domain, qid=query.qid, q=q_, docs=query.docs)
+        refined_query = Query(domain=query.domain, qid=query.qid, q=q_, qrel=query.qrel)
         query.q_[self.get_model_name()] = (refined_query, semsim)
         return query
 

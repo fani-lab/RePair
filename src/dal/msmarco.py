@@ -9,7 +9,7 @@ class MsMarcoPsg(Dataset):
     def __init__(self, settings, domain): super(MsMarcoPsg, self).__init__(settings=settings, domain=domain)
 
     @classmethod
-    def read_queries(cls, input, domain):
+    def read_queries(cls, input, domain, trec=False):
         queries = pd.read_csv(f'{input}/queries.train.tsv', sep='\t', index_col=False, names=['qid', 'query'], converters={'query': str.lower}, header=None)
         qrels = pd.read_csv(f'{input}/qrels.train.tsv', sep='\t', index_col=False, names=['qid', 'did', 'pid', 'relevancy'], header=None)
         qrels.drop_duplicates(subset=['qid', 'pid'], inplace=True)  # qrels have duplicates!!

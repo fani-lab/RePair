@@ -1,6 +1,7 @@
-import json, pandas as pd
+import csv
 from tqdm import tqdm
-from os.path import isfile,join
+from os.path import join
+import json, pandas as pd
 from src.dal.query import Query
 from pyserini.search.lucene import LuceneSearcher
 from pyserini.search.faiss import FaissSearcher, TctColBertQueryEncoder
@@ -25,39 +26,44 @@ class Dataset(object):
         if not Dataset.searcher: raise ValueError(f'Lucene searcher cannot find/build index at {Dataset.settings["index"]}!')
 
     @classmethod
-    def read_queries(cls, input, domain):
+    def read_queries(cls, input, domain, trec=False):
         is_tag_file = False
         q, qid = '', ''
         queries = pd.DataFrame(columns=['qid'])
-        with open(f'{input}/topics.{cls.domain}.txt', 'r', encoding='UTF-8') as Qfile:
+        with open(f'{input}/topics.{domain}.txt', 'r', encoding='UTF-8') as Qfile:
             for line in Qfile:
                 if '<top>' in line and not is_tag_file: is_tag_file = True
                 if '<num>' in line:
-                    qid = int(line[line.index(':') + 1:])
+                    qid = str(line[line.index(':') + 1:])
                 elif line[:7] == '<title>':
                     q = line[8:].strip()
                     if not q: q = next(Qfile).strip()
                 elif '<topic' in line:
                     s = line.index('\"') + 1
                     e = line.index('\"', s + 1)
-                    qid = int(line[s:e])
+                    qid = str(line[s:e])
                 elif line[2:9] == '<query>':
                     q = line[9:-9]
                 elif len(line.split('\t')) >= 2 and not is_tag_file:
-                    qid = line.split('\t')[0].rstrip()
+                    qid = str(line.split('\t')[0].rstrip())
                     q = line.split('\t')[1].rstrip()
                 if q != '' and qid != '':
                     new_line = {'qid': qid, 'query': q}
                     queries = pd.concat([queries, pd.DataFrame([new_line])], ignore_index=True)
                     q, qid = '', ''
-        infile = f'{input}/qrels.{cls.domain}.txt'
-        with open(infile, 'r') as file: separator = '\t' if '\t' in file.readline() else '\s'
-        qrels = pd.read_csv(infile, sep=separator, index_col=False, names=['qid', '0', 'did', 'relevancy'], header=None, engine='python')
+        infile = f'{input}/qrels.{domain}.txt'
+        with open(infile, 'r') as file:
+            line = file.readline()
+            if '\t' in line: separator = '\t'
+            elif '  ' in  line: separator = '  '
+            else: separator = '\s'
+        qrels = pd.read_csv(infile, sep=separator, index_col=False, names=['qid', '0', 'did', 'relevancy'], header=None, engine='python', encoding='unicode_escape', dtype={'qid': str})
         qrels.drop_duplicates(subset=['qid', 'did'], inplace=True)  # qrels have duplicates!!
-        qrels.to_csv(f'{input}/qrels.train.tsv_', index=False, sep='\t', header=False)
-        queries_qrels = pd.merge(queries, qrels, on='qid', how='left', copy=False)
+        if trec: qrels.to_csv(f'{input}/qrels.{domain}.train.tsv_', index=False, sep='\t', header=False)
+        else: qrels.to_csv(f'{input}/qrels.train.tsv_', index=False, sep='\t', header=False)
+        queries_qrels = pd.merge(queries, qrels, on='qid', how='inner', copy=False)
         queries_qrels = queries_qrels.sort_values(by='qid')
-        cls.create_query_objects(queries_qrels, ['qid', 'did', 'relevancy'], domain)
+        cls.create_query_objects(queries_qrels, ['qid', '0', 'did', 'relevancy'], domain)
 
     @classmethod
     def pair(cls, input, output, index_item, cat=True): pass
@@ -78,8 +84,8 @@ class Dataset(object):
             if qid != row['qid']:
                 if query: cls.queries.append(query)
                 qid = row['qid']
-                query = Query(domain=domain, qid=qid, q=row['query'], docs={col: [] for col in qrel_col})
-            [query.docs[col].append(str(row[col])) for col in qrel_col]
+                query = Query(domain=domain, qid=qid, q=row['query'], qrel={col: [] for col in qrel_col})
+            [query.qrel[col].append(str(row[col])) for col in qrel_col]
             query.original = True
         if query: cls.queries.append(query)
 

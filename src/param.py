@@ -10,15 +10,15 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 settings = {
     'query_refinement': True,
-    'cmd': ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box'],   # steps of pipeline, ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box','dense_retrieve', 'stats]
+    'cmd': ['search', 'eval', 'agg', 'box'],   # steps of pipeline, ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box','dense_retrieve', 'stats]
     'ncore': 2,
     't5model': 'small.local',   # 'base.gc' on google cloud tpu, 'small.local' on local machine
     'iter': 5,                  # number of finetuning iteration for t5
     'nchanges': 5,              # number of changes to a query
-    'ranker': 'bm25',           # 'qld', 'bm25', 'tct_colbert'
+    'ranker': 'qld',           # 'qld', 'bm25', 'tct_colbert'
+    'metric': 'map',             # any valid trec_eval.9.0.4 metric like map, ndcg, recip_rank, ...
     'batch': None,               # search per batch of queries for IR search using pyserini, if None, search per query
     'topk': 100,                 # number of retrieved documents for a query
-    'metric': 'map',             # any valid trec_eval.9.0.4 metric like map, ndcg, recip_rank, ...
     'large_ds': False,
     'treclib': f'"./trec_eval.9.0.4/trec_eval{extension}"',  # in non-windows, remove .exe, also for pytrec_eval, 'pytrec'
     'box': {'gold': 'refined_q_metric >= original_q_metric and refined_q_metric > 0',
@@ -31,6 +31,7 @@ corpora = {
         'index_item': ['passage'],
         'index': '../data/raw/msmarco.passage/lucene-index.msmarco-v1-passage.20220131.9ea315/',
         'dense_encoder': 'castorini/tct_colbert-msmarco',
+        'qrels': '../data/raw/msmarco.passage/qrels.train.tsv',
         'dense_index': 'msmarco-passage-tct_colbert-hnsw',
         'extcorpus': 'orcas',
         'pairing': [None, 'docs', 'query'],     # [context={msmarco does not have userinfo}, input={query, doc, doc(s)}, output={query, doc, doc(s)}], s means concat of docs
@@ -40,8 +41,10 @@ corpora = {
         'index_item': ['title'],    # ['url'], ['title', 'url'], ['title', 'url', 'text']
         'index': '../data/raw/aol-ia/lucene-index/title/',  # change based on index_item
         'dense_index': '../data/raw/aol-ia/dense-index/tct_colbert.title/',  # change based on index_item
+        'qrels': '../data/raw/aol-ia/qrels.train.tsv',
         'dense_encoder':'../data/raw/aol-ia/dense-encoder/tct_colbert.title/',  # change based on index_item
         'pairing': [None, 'docs', 'query'],     # [context={2 scenarios, one with userID and one without userID). input={'userid','query','doc(s)'} output={'query','doc(s)'}
+        'extcorpus': 'msmarco.passage',
         'lseq': {"inputs": 32, "targets": 256},  # query length and doc length for t5 model,
         'filter': {'minql': 1, 'mindocl': 10}   # [min query length, min doc length], after merge queries with relevant 'index_item', if |query| <= minql drop the row, if |'index_item'| < mindocl, drop row
     },
@@ -64,7 +67,7 @@ corpora = {
         'index': '../data/raw/gov2/lucene-index.gov2.pos+docvectors+rawdocs',
         'size': 25000000,
         'topics': '../data/raw/gov2/topics.terabyte0{}.txt',  # {} is a placeholder for subtopics in main.py -> run()
-        'trec': ['4.701-750', '5.751-800', '6.801-850'],
+        'trec': ['terabyte04.701-750', 'terabyte05.751-800', 'terabyte06.801-850'],
         'prels': '',  # this will be generated after a retrieval {bm25, qld}
         'w_t': 4,  # OnFields
         'w_a': 0.25,  # OnFields
@@ -78,7 +81,7 @@ corpora = {
         'index': '../data/raw/clueweb09b/lucene-index.cw09b.pos+docvectors+rawdocs',
         'size': 50000000,
         'topics': '../data/raw/clueweb09b/topics.web.{}.txt',  # {} is a placeholder for subtopics in main.py -> run()
-        'trec': ['1-50', '51-100', '101-150', '151-200'],
+        'trec': ['web.1-50', 'web.51-100', 'web.101-150', 'web.151-200'],
         'prels': '',  # this will be generated after a retrieval {bm25, qld}
         'w_t': 1,  # OnFields
         'w_a': 0,  # OnFields
@@ -110,43 +113,51 @@ corpora = {
         'w_t': 2.25,  # OnFields # to be tuned
         'w_a': 1,  # OnFields # to be tuned
         'tokens': 16000000,
-        'qrels': '../ds/antique/qrels.antique.txt',
+        'qrels': '../data/raw/antique/qrels.antique.txt',
         'extcorpus': 'gov2',  # AdaptOnFields
+        'pairing': [None, None, None],
+        'index_item': [],
     },
     'trec09mq': {
-        'index': 'D:\clueweb09b\lucene-index.cw09b.pos+docvectors+rawdocs',
+        'index': '/data/raw/clueweb09b/lucene-index.cw09b.pos+docvectors+rawdocs',
         'size': 50000000,
         # 'topics': '../ds/trec2009mq/prep/09.mq.topics.20001-60000.prep.tsv',
-        'topics': '../ds/trec09mq/09.mq.topics.20001-60000.prep',
+        'topics': '../data/raw/trec09mq/09.mq.topics.20001-60000.prep',
         'prels': '',  # this will be generated after a retrieval {bm25, qld}
         'w_t': 2.25,  # OnFields # to be tuned
         'w_a': 1,  # OnFields # to be tuned
         'tokens': 16000000,
-        'qrels': '../ds/trec09mq/prels.20001-60000.prep',
+        'qrels': '../data/raw/trec09mq/prels.20001-60000.prep',
         'extcorpus': 'gov2',  # AdaptOnFields
+        'pairing': [None, None, None],
+        'index_item': [],
     },
     'dbpedia': {
-        'index': '../ds/dbpedia/lucene-index-dbpedia-collection',
+        'index': '../data/raw/dbpedia/lucene-index-dbpedia-collection',
         'size': 4632359,
-        'topics': '../ds/dbpedia/topics.dbpedia.txt',
+        'topics': '../data/raw/dbpedia/topics.dbpedia.txt',
         'prels': '',  # this will be generated after a retrieval {bm25, qld}
         'w_t': 1,  # OnFields # to be tuned
         'w_a': 1,  # OnFields # to be tuned
         'tokens': 200000000,
-        'qrels': '../ds/dbpedia/qrels.dbpedia.txt',
+        'qrels': '../data/raw/dbpedia/qrels.dbpedia.txt',
         'extcorpus': 'gov2',  # AdaptOnFields
+        'pairing': [None, None, None],
+        'index_item': [],
     },
     'orcas': {
-        'index': '../ds/orcas/lucene-index.msmarco-v1-doc.20220131.9ea315',
+        'index': '../data/raw/orcas/lucene-index.msmarco-v1-doc.20220131.9ea315',
         'size': 50000000,
-        # 'topics': '../ds/trec2009mq/prep/09.mq.topics.20001-60000.prep.tsv',
-        'topics': '../ds/orcas/preprocess/orcas-I-2M_topics.prep',
+        # 'topics': '../data/raw/trec2009mq/prep/09.mq.topics.20001-60000.prep.tsv',
+        'topics': '../data/raw/orcas/preprocess/orcas-I-2M_topics.prep',
         'prels': '',  # this will be generated after a retrieval {bm25, qld}
         'w_t': 2.25,  # OnFields # to be tuned
         'w_a': 1,  # OnFields # to be tuned
         'tokens': 16000000,
-        'qrels': '../ds/orcas/preprocess/orcas-doctrain-qrels.prep',
+        'qrels': '../data/raw/orcas/preprocess/orcas-doctrain-qrels.prep',
         'extcorpus': 'gov2',  # AdaptOnFields
+        'pairing': [None, None, None],
+        'index_item': [],
     },
 }
 

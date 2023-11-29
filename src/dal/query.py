@@ -1,5 +1,6 @@
-from tqdm import tqdm
-import pandas as pd
+from src.refinement import utils
+from scipy.spatial.distance import cosine
+import traceback
 
 class Query:
     """
@@ -10,7 +11,7 @@ class Query:
     Attributes:
         qid (int): The query identifier.
         q (str): The query text.
-        docs (dict): A dictionary of tuples containing document information.
+        qrel (dict): A dictionary of tuples containing document information.
             Each tuple includes docid and relevancy, and additional information
             related to documents can be added in between.
         q_ (dict): A dictionary containing the refiner's name as the key and the tuple of (refined query, semantic similarity) as the value. Notice that type of the refined query must be Query.
@@ -30,13 +31,46 @@ class Query:
         query = Query(qid='Q123', q='Sample query text', args={'id': 'U456', 'time': '2023-10-31'})
 
     """
-    def __init__(self, domain, qid, q, docs, args=None):
+    def __init__(self, domain, qid, q, qrel, args=None):
         self.domain = domain
         self.qid = qid
         self.q = q
-        self.docs = docs
+        self.qrel = qrel
         self.q_ = dict()
-        self.qret= dict()
+        self.qret= []
         self.original = False
         self.lang = 'English'
 
+    def refine(self, model, clean=True):
+        ansi_reset = "\033[0m"
+        try:
+            refinedq_text = model.get_refined_query(self.q)
+            refinedq_text = utils.clean(refinedq_text) if clean else refinedq_text
+            semsim = self.get_semsim(self.q, refinedq_text)
+            print(
+                f'{utils.hex_to_ansi("#F1C40F")}Info: {utils.hex_to_ansi("#3498DB")}({model.get_model_name()}){ansi_reset} {self.qid}: {self.q} -> {utils.hex_to_ansi("#52BE80")}{refinedq_text}{ansi_reset}')
+        except Exception as e:
+            print(
+                f'{utils.hex_to_ansi("#E74C3C")}WARNING: {utils.hex_to_ansi("#3498DB")}({model.get_model_name()}){ansi_reset} Refining query [{self.qid}:{self.q}] failed!')
+            print(traceback.format_exc())
+            refinedq_text, semsim = self.q, 1
+        refined_query = Query(domain=self.domain, qid=self.qid, q=refinedq_text, docs=self.qrel)
+        self.q_[model.get_model_name()] = (refined_query, semsim)
+
+    def search(self, ranker, searcher, topk=100):
+        if not self.q: return
+        if ranker == 'tct_colbert':
+            hits = searcher.search(self.q, k=topk)
+            unique_docids = set()
+            for i, h in enumerate(hits):
+                if h.docid not in unique_docids: unique_docids.add(h.docid)
+            if len(unique_docids) < topk: print(f'unique docids fetched less than {topk}')
+        else:
+            hits = searcher.search(self.q, k=topk, remove_dups=True)
+            self.qret.append((searcher, hits))
+
+    def evaluate(self): pass
+
+    def get_semsim(self, q1, q2):
+        me, you = self.transformer_model.encode([q1, q2])
+        return 1 - cosine(me, you)
