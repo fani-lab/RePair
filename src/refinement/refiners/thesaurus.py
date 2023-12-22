@@ -6,8 +6,8 @@ from bs4 import BeautifulSoup
 import sys
 sys.path.extend(['../refinement'])
 
-from refiners.abstractqrefiner import AbstractQRefiner
-import utils
+from src.refinement.refiners.abstractqrefiner import AbstractQRefiner
+from src.refinement import utils
 
 class Thesaurus(AbstractQRefiner):
     def __init__(self, replace=False, topn=3):

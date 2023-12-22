@@ -1,28 +1,23 @@
-import os, sys, re, io
-sys.path.extend(['../refinement'])
+import re, io
+from src.refinement import utils
+from pyserini.search.lucene import LuceneSearcher
+from src.refinement.refiners.relevancefeedback import RelevanceFeedback
 
-from pyserini.search import SimpleSearcher
-import utils #although it's not used here, this is required!
-from refiners.relevancefeedback import RelevanceFeedback
 
 class RM3(RelevanceFeedback):
     def __init__(self, ranker, index, topn=10, topw=10, original_q_w=0.5):
-        RelevanceFeedback.__init__(self, ranker=ranker, prels=None, anserini=None, index=index, topn=topn)
-        self.topw=topw
-        self.searcher = SimpleSearcher(index)
-        self.ranker=ranker
-        self.original_q_w=original_q_w
-
+        RelevanceFeedback.__init__(self, ranker=ranker, prels=None, index=index, topn=topn)
+        self.topw = topw
+        self.searcher = LuceneSearcher(index)
+        self.ranker = ranker
+        self.original_q_w = original_q_w
 
     def get_refined_query(self, q, args=None):
-        
-        if self.ranker=='bm25':
+        if self.ranker =='bm25':
             self.searcher.set_bm25()
-        elif self.ranker=='qld':
+        elif self.ranker =='qld':
             self.searcher.set_qld()
-
         self.searcher.set_rm3(fb_terms=self.topw, fb_docs=self.topn, original_query_weight=self.original_q_w, rm3_output_query=True)
-        
         f = io.BytesIO()
         with utils.stdout_redirector_2_stream(f):
             self.searcher.search(q)
@@ -38,7 +33,7 @@ class RM3(RelevanceFeedback):
         return super().get_refined_query(q_)
 
     def get_model_name(self):
-        return super().get_model_name().replace('topn{}'.format(self.topn), 'topn{}.{}.{}'.format(self.topn, self.topw, self.original_q_w))
+        return super().get_model_name().replace(f'topn{self.topn}', f'topn{self.topn}.{self.topw}.{self.original_q_w}')
 
     def parse_rm3_log(self,rm3_log):
         new_q=rm3_log.split('Running new query:')[1]

@@ -28,8 +28,10 @@ def valid(word):
     return False
 
 def clean(str):
-    result = [ch if ch.isalpha() else ' ' for ch in str]
-    return ''.join(result)
+    # Just keeping the alphabet
+    processed_str = [ch if ch.isalpha() else ' ' for ch in str]
+    # Remove extra spaces
+    return ' '.join((''.join(processed_str)).strip().split())
 
 def insert_row(df, idx, row):
     import pandas as pd

@@ -1,14 +1,12 @@
 import tagme
 tagme.GCUBE_TOKEN = "10df41c6-f741-45fc-88dd-9b24b2568a7b"
+from src.refinement.refiners.termluster import Termluster
+import os
 
-import os,sys
-sys.path.extend(['../refinement'])
 
-from refiners.termluster import Termluster
-import utils
 class Conceptluster(Termluster):
-    def __init__(self, ranker, prels, anserini, index, topn=5, topw=3):
-        Termluster.__init__(self, ranker, prels, anserini, index, topn=topn, topw=topw)
+    def __init__(self, ranker, prels, index, topn=5, topw=3):
+        Termluster.__init__(self, ranker, prels, index, topn=topn, topw=topw)
 
     def get_refined_query(self, q, args):
         qid = args[0]
@@ -40,7 +38,6 @@ class Conceptluster(Termluster):
 if __name__ == "__main__":
     qe = Conceptluster(ranker='bm25',
                    prels='./output/robust04/topics.robust04.abstractqueryexpansion.bm25.txt',
-                   anserini='../anserini/',
                    index='../ds/robust04/index-robust04-20191213')
 
     for i in range(5):

@@ -2,24 +2,26 @@ import networkx as nx
 from collections import defaultdict
 from community import community_louvain
 from nltk.stem import PorterStemmer
+from nltk.corpus import stopwords
 
 import sys
 sys.path.extend(['../refinement'])
 
-from refiners.relevancefeedback import RelevanceFeedback
-import utils
+from src.refinement.refiners.relevancefeedback import RelevanceFeedback
+from src.refinement import utils
+
+
 class Termluster(RelevanceFeedback):
-    def __init__(self, ranker, prels, anserini, index, topn=5, topw=3):
-        RelevanceFeedback.__init__(self, ranker, prels, anserini, index, topn=topn)
+    def __init__(self, ranker, prels, index, topn=5, topw=3):
+        RelevanceFeedback.__init__(self, ranker, prels, index, topn=topn)
         self.topw = topw
 
     def get_model_name(self):
         return super().get_model_name().replace('topn{}'.format(self.topn),'topn{}.{}'.format(self.topn, self.topw))
 
-    def get_refined_query(self, q, args):
-        qid = args[0]
+    def get_refined_query(self, q, args=None):
         list_of_word_lists = []
-        docids = self.get_topn_relevant_docids(qid)
+        docids = self.get_topn_relevant_docids(q.qid)
         for docid in docids:
             tfidf = self.get_tfidf(docid)
             list_of_word_lists.append(self.get_list_of_words(tfidf, threshold=2))
@@ -88,6 +90,7 @@ class Termluster(RelevanceFeedback):
 
     def get_list_of_words(self, tfidf, threshold):
         list = []
+        stop_words = set(stopwords.words('english'))
         for x in tfidf.split('\n'):
             if not x:
                 continue
@@ -99,10 +102,10 @@ class Termluster(RelevanceFeedback):
 
         return list
 
+
 if __name__ == "__main__":
     qe = Termluster(ranker='bm25',
                    prels='./output/robust04/topics.robust04.abstractqueryexpansion.bm25.txt',
-                   anserini='../anserini/',
                    index='../ds/robust04/index-robust04-20191213')
     for i in range(5):
         print(qe.get_model_name())

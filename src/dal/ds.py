@@ -1,8 +1,8 @@
-import csv
+import re
 from tqdm import tqdm
 from os.path import join
 import json, pandas as pd
-from src.dal.query import Query
+from src.cmn.query import Query
 from pyserini.search.lucene import LuceneSearcher
 from pyserini.search.faiss import FaissSearcher, TctColBertQueryEncoder
 
@@ -34,7 +34,7 @@ class Dataset(object):
             for line in Qfile:
                 if '<top>' in line and not is_tag_file: is_tag_file = True
                 if '<num>' in line:
-                    qid = str(line[line.index(':') + 1:])
+                    qid = re.findall(r'\d+', line)[0]
                 elif line[:7] == '<title>':
                     q = line[8:].strip()
                     if not q: q = next(Qfile).strip()
@@ -52,6 +52,8 @@ class Dataset(object):
                     queries = pd.concat([queries, pd.DataFrame([new_line])], ignore_index=True)
                     q, qid = '', ''
         infile = f'{input}/qrels.{domain}.txt'
+
+        #TODO: use python engine in panda read_csv to infer the seperator
         with open(infile, 'r') as file:
             line = file.readline()
             if '\t' in line: separator = '\t'
@@ -86,13 +88,11 @@ class Dataset(object):
                 qid = row['qid']
                 query = Query(domain=domain, qid=qid, q=row['query'], qrel={col: [] for col in qrel_col})
             [query.qrel[col].append(str(row[col])) for col in qrel_col]
-            query.original = True
         if query: cls.queries.append(query)
 
     # gpu-based t5 generate the predictions in b'' format!!!
     @classmethod
     def clean(cls, tf_txt):
-        # lambda x: x.replace('b\'', '').replace('\'', '') if in pandas' convertors
         # TODO: we need to clean the \\x chars also
         return tf_txt.replace('b\'', '').replace('\'', '').replace('b\"', '').replace('\"', '')
 
@@ -146,15 +146,15 @@ class Dataset(object):
                 queries.apply(_docids, axis=1)
 
     @classmethod
-    def aggregate(cls, original, changes, output, is_large_ds=False):
-        ranker = changes[0][1].split('.')[2]  # e.g., pred.0-1004000.bm25.success.10 => bm25
-        metric = '.'.join(changes[0][1].split('.')[3:])  # e.g., pred.0-1004000.bm25.success.10 => success.10
+    def aggregate(cls, original, refined_query, changes, output, is_large_ds=False):
+        ranker = changes[0][1].split('.')[-2]  # e.g., pred.0-1004000.bm25.success.10 => bm25
+        metric = changes[0][1].split('.')[-1]  # e.g., pred.0-1004000.bm25.success.10 => success.10
 
         for change, metric_value in changes:
-            if 'refiner.' in change: pred = pd.read_csv(join(output, change), sep='\t', usecols=[1], skip_blank_lines=False, names=[change], converters={change: cls.clean}, engine='python', index_col=False, header=None)
+            if 'refiner.' in change: pred = pd.read_csv(join(refined_query, change), sep='\t', usecols=[1], skip_blank_lines=False, names=[change], converters={change: cls.clean}, engine='python', index_col=False, header=None)
             else: pred = pd.read_csv(join(output, change), sep='\r\r', skip_blank_lines=False, names=[change], converters={change: cls.clean}, engine='python', index_col=False, header=None)
             assert len(original['qid']) == len(pred[change])
-            if is_large_ds:
+            if is_large_ds:#TODO: later we should get rid of this
                 pred_metric_values = pd.read_csv(join(output, metric_value), sep='\t', usecols=[1, 2], names=['qid', f'{change}.{ranker}.{metric}'], index_col=False, dtype={'qid': str})
             else:
                 pred_metric_values = pd.read_csv(join(output, metric_value), sep='\t', usecols=[1, 2], names=['qid', f'{change}.{ranker}.{metric}'], index_col=False,skipfooter=1, dtype={'qid': str}, engine='python')

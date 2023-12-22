@@ -18,8 +18,8 @@ from nltk.tokenize import word_tokenize
 from pygaggle.rerank.transformer import MonoBERT
 from pygaggle.rerank.base import hits_to_texts
 
-from refiners.relevancefeedback import RelevanceFeedback
-import utils
+from src.refinement.refiners.relevancefeedback import RelevanceFeedback
+from src.refinement import utils
 
 reranker =  MonoBERT()
 
@@ -35,11 +35,11 @@ reranker =  MonoBERT()
 #    pages = "4718--4728",
 #}
 
-class BertQE(RelevanceFeedback):
-    def __init__(self, ranker, prels, anserini, index):
-        RelevanceFeedback.__init__(self, ranker, prels, anserini, index, topn=10)
-        self.index_reader = pyserini.index.IndexReader(self.index)
 
+class BertQE(RelevanceFeedback):
+    def __init__(self, ranker, prels, index):
+        RelevanceFeedback.__init__(self, ranker, prels, index, topn=10)
+        self.index_reader = pyserini.index.IndexReader(self.index)
 
     def get_refined_query(self, q, args):
         q=q.translate(str.maketrans('', '', string.punctuation))
@@ -64,10 +64,7 @@ class BertQE(RelevanceFeedback):
         normalized_chunks[q]=1.5
         for i in range(5):
             normalized_chunks[list(chunk_scores.keys())[i]]=norm[i]
-        return super().get_expanded_query(str(normalized_chunks))
-
-    def write_expanded_queries(self, Qfilename, Q_filename,clean=False):
-        return super().write_expanded_queries(Qfilename, Q_filename, clean=False)
+        return super().get_refined_query(str(normalized_chunks))
 
     def make_chunks(self,raw_doc):
         chunks=[]
@@ -95,13 +92,12 @@ class BertQE(RelevanceFeedback):
             #print(f'{i+1:2} {reranked[i].score:.5f} {reranked[i].text}')
         return chunk_scores
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     qe = BertQE(ranker='bm25',
                 prels='./output/robust04/topics.robust04.abstractqueryexpansion.bm25.txt',
-                anserini='../anserini/',
                 index='../anserini/lucene-index.robust04.pos+docvectors+rawdocs')
     print(qe.get_model_name())
-    print(qe.get_expanded_query('International Organized Crime  ', [305]))
+    print(qe.get_refined_query('International Organized Crime  ', [305]))
     
 

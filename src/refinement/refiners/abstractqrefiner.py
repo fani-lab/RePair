@@ -1,12 +1,9 @@
 import traceback
-from src.dal.query import Query
 from sentence_transformers import SentenceTransformer
 from scipy.spatial.distance import cosine
-import sys
-sys.path.extend(['../src'])
 from src.refinement import utils
 from src.refinement.refiner_param import settings
-from src.dal.query import Query
+from src.cmn.query import Query
 
 
 class AbstractQRefiner:
@@ -28,7 +25,7 @@ class AbstractQRefiner:
     def preprocess_query(self, query, clean=True):
         ansi_reset = "\033[0m"
         try:
-            q_ = self.get_refined_query(query.q)
+            q_ = self.get_refined_query(query.q, args=[query.qid])
             q_ = utils.clean(q_) if clean else q_
             semsim = self.get_semsim(query.q, q_)
             print(f'{utils.hex_to_ansi("#F1C40F")}Info: {utils.hex_to_ansi("#3498DB")}({self.get_model_name()}){ansi_reset} {query.qid}: {query.q} -> {utils.hex_to_ansi("#52BE80")}{q_}{ansi_reset}')
@@ -37,7 +34,7 @@ class AbstractQRefiner:
             print(traceback.format_exc())
             q_, semsim = query.q, 1
 
-        refined_query = Query(domain=query.domain, qid=query.qid, q=q_, qrel=query.qrel)
+        refined_query = Query(domain=query.domain, qid=query.qid, q=q_, qrel=query.qrel, parent=query)
         query.q_[self.get_model_name()] = (refined_query, semsim)
         return query
 
@@ -67,7 +64,7 @@ class AbstractQRefiner:
         with open(outfile, 'w', encoding='utf-8') as file:
             # file.write(f"qid\tq\tq_\tsemsim\n")
             for query in queries:
-                file.write(f"{query.qid}\t{query.q}\t{query.q_[self.get_model_name()][0]}\t{query.q_[self.get_model_name()][1]}\n")
+                file.write(f"{query.qid}\t{query.q}\t{query.q_[self.get_model_name()][0].q}\t{query.q_[self.get_model_name()][1]}\n")
 
 
 if __name__ == "__main__":

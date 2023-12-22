@@ -2,23 +2,20 @@ import scipy
 from nltk.stem import PorterStemmer
 import numpy as np
 
-import sys
-sys.path.extend(['../refinement'])
+from src.refinement.refiners.abstractqrefiner import AbstractQRefiner
+from src.refinement import utils
 
-from refiners.abstractqrefiner import AbstractQRefiner
-import utils
 
 class Glove(AbstractQRefiner):
     def __init__(self, vectorfile, replace=False, topn=3):
         AbstractQRefiner.__init__(self, replace, topn)
-        Glove.vectorfile = vectorfile
-        Glove.glove = None
-
+        self.vectorfile = vectorfile
+        self.glove = None
 
     def get_refined_query(self, q, args=None):
-        if not Glove.glove:
-            print('INFO: Glove: Loading word vectors in {} ...'.format(Glove.vectorfile))
-            Glove.glove = load_glove_model(Glove.vectorfile)
+        if not self.glove:
+            print('INFO: Glove: Loading word vectors in {} ...'.format(self.vectorfile))
+            self.glove = load_glove_model(self.vectorfile)
 
         upd_query = utils.get_tokenized_query(q)
         synonyms = []
@@ -29,8 +26,8 @@ class Glove(AbstractQRefiner):
         for qw in upd_query:
             found_flag = False
             qw_stem = ps.stem(qw)
-            if qw.lower() in Glove.glove.keys():
-                w = sorted(Glove.glove.keys(), key=lambda word: scipy.spatial.distance.euclidean(Glove.glove[word], Glove.glove[qw]))
+            if qw.lower() in self.glove.keys():
+                w = sorted(self.glove.keys(), key=lambda word: scipy.spatial.distance.euclidean(self.glove[word], self.glove[qw]))
                 w = w[:self.topn]
                 for u in w:
                     u_stem = ps.stem(u)
@@ -56,6 +53,7 @@ def load_glove_model(glove_file):
             else:
                 counter+=1
     return model
+
 
 if __name__ == "__main__":
     qe = Glove('../pre/glove.6B.300d')

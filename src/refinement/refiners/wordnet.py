@@ -4,8 +4,8 @@ from nltk.stem import PorterStemmer
 import sys
 sys.path.extend(['../refinement'])
 
-from refiners.abstractqrefiner import AbstractQRefiner
-import utils
+from src.refinement.refiners.abstractqrefiner import AbstractQRefiner
+from src.refinement import utils
 
 class Wordnet(AbstractQRefiner):
     def __init__(self, replace=False, topn=3):

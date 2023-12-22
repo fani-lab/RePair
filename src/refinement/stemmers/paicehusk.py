@@ -1,6 +1,6 @@
 #!/bin/python
-from stemmers.abstractstemmer import AbstractStemmer
-import stemmers.paicehuskstemmer as paicehuskstemmer
+from src.refinement.stemmers.abstractstemmer import AbstractStemmer
+import src.refinement.stemmers.paicehuskstemmer as paicehuskstemmer
 import sys
 
 

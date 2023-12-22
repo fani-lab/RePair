@@ -1,6 +1,6 @@
 #!/bin/python
-from stemmers.abstractstemmer import AbstractStemmer
-import stemmers.porter2stemmer as porter2stemmer
+from src.refinement.stemmers.abstractstemmer import AbstractStemmer
+import src.refinement.stemmers.porter2stemmer as porter2stemmer
 import sys
 
 
