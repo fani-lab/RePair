@@ -4,7 +4,7 @@ from shutil import copyfile
 from ftfy import fix_text
 from pyserini.search.lucene import LuceneSearcher
 from ds import Dataset
-from query import Query
+
 tqdm.pandas()
 
 
