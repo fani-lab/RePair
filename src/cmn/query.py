@@ -1,6 +1,8 @@
-from src.refinement import utils
 from scipy.spatial.distance import cosine
+from src.refinement import utils
 import traceback
+import os
+
 
 class Query:
     """
@@ -31,14 +33,14 @@ class Query:
         query = Query(qid='Q123', q='Sample query text', args={'id': 'U456', 'time': '2023-10-31'})
 
     """
-    def __init__(self, domain, qid, q, qrel, args=None):
+    def __init__(self, domain, qid, q, qrel, parent=None, args=None):
         self.domain = domain
         self.qid = qid
         self.q = q
         self.qrel = qrel
         self.q_ = dict()
         self.qret= []
-        self.original = False
+        self.parent = parent
         self.lang = 'English'
 
     def refine(self, model, clean=True):
@@ -59,17 +61,29 @@ class Query:
 
     def search(self, ranker, searcher, topk=100):
         if not self.q: return
+        # TCT_Colbert
         if ranker == 'tct_colbert':
             hits = searcher.search(self.q, k=topk)
             unique_docids = set()
             for i, h in enumerate(hits):
                 if h.docid not in unique_docids: unique_docids.add(h.docid)
             if len(unique_docids) < topk: print(f'unique docids fetched less than {topk}')
+        # BM25 and QLD
         else:
             hits = searcher.search(self.q, k=topk, remove_dups=True)
-            self.qret.append((searcher, hits))
+        self.qret.append((ranker, hits))
 
-    def evaluate(self): pass
+    def evaluate(self, in_docids, settings, output):
+        #TODO use pyterrier
+        metric, lib = settings['metric'], settings['treclib']
+        print(f'Evaluating retrieved docs for {in_docids} with {metric} ...')
+        if 'trec_eval' in lib:
+            cli_cmd = f'{lib} -q -m {metric} {self.qrels} {in_docids} > {output}'
+            print(cli_cmd)
+            stream = os.popen(cli_cmd)
+            print(stream.read())
+        else:
+            raise NotImplementedError
 
     def get_semsim(self, q1, q2):
         me, you = self.transformer_model.encode([q1, q2])
