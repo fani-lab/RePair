@@ -21,7 +21,7 @@ class Termluster(RelevanceFeedback):
 
     def get_refined_query(self, q, args=None):
         list_of_word_lists = []
-        docids = self.get_topn_relevant_docids(q.qid)
+        docids = self.get_topn_relevant_docids(args[0])
         for docid in docids:
             tfidf = self.get_tfidf(docid)
             list_of_word_lists.append(self.get_list_of_words(tfidf, threshold=2))
@@ -31,7 +31,7 @@ class Termluster(RelevanceFeedback):
         # add three relevant words from each cluster for each query word
         refined_query = self.refined_query_term_cluster(q, G, cluster_dict, k_relevant_words=self.topw)
 
-        return super().get_refined_query(refined_query)
+        return super().get_refined_query(refined_query, args[0])
 
     def make_graph_document(self, list_s, min_edge):
         G = nx.Graph()

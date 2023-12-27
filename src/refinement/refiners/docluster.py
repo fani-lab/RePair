@@ -61,7 +61,7 @@ class Docluster(RelevanceFeedback):
 
     def get_refined_query(self, q, args=None):
         selected_words = []
-        docids = self.get_topn_relevant_docids(q.qid)
+        docids = self.get_topn_relevant_docids(args[0])
         tfidfs = []
         for docid in docids:
             tfidfs.append(self.get_tfidf(docid))
@@ -90,7 +90,7 @@ class Docluster(RelevanceFeedback):
             if word.lower() not in query_splited:
                 query_splited.append(word)
 
-        return super().get_refined_query(' '.join(query_splited))
+        return super().get_refined_query(' '.join(query_splited), args[0])
 
     def get_top_k(self, pairlist, k):
         output = []

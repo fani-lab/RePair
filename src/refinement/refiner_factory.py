@@ -43,16 +43,16 @@ def get_nrf_refiner():
 
 
 #local analysis
-def get_rf_refiner(ranker, corpus, output, ext_corpus=None):
+def get_rf_refiner(ranker, corpus, output, prels, ext_corpus=None):
     refiners_list = []
 
     if refiner_param.refiners['RM3']: from src.refinement.refiners.rm3 import RM3; refiners_list.append(RM3(ranker=ranker, index=corpus['index']))
-    if refiner_param.refiners['RelevanceFeedback']: from src.refinement.refiners.relevancefeedback import RelevanceFeedback; refiners_list.append(RelevanceFeedback(ranker=ranker, prels=f'{output}/original.{ranker}', index=corpus['index']))
-    if refiner_param.refiners['Docluster']: from src.refinement.refiners.docluster import Docluster; refiners_list.append(Docluster(ranker=ranker, prels=f'{output}.abstractqueryexpansion.{ranker}.txt', index=corpus['index'])),
-    if refiner_param.refiners['Termluster']: from src.refinement.refiners.termluster import Termluster; refiners_list.append(Termluster(ranker=ranker, prels=f'{output}.abstractqueryexpansion.{ranker}.txt', index=corpus['index']))
-    if refiner_param.refiners['Conceptluster']: from src.refinement.refiners.conceptluster import Conceptluster; refiners_list.append(Conceptluster(ranker=ranker, prels=f'{output}.abstractqueryexpansion.{ranker}.txt', index=corpus['index']))
-    if refiner_param.refiners['BertQE']: from src.refinement.refiners.bertqe import BertQE; refiners_list.append(BertQE(ranker=ranker, prels=f'{output}.abstractqueryexpansion.{ranker}.txt', index=corpus['index']))
-    if refiner_param.refiners['OnFields']: from src.refinement.refiners.onfields import OnFields; refiners_list.append(OnFields(ranker=ranker, prels=f'{output}.abstractqueryexpansion.{ranker}.txt', index=refiner_param.corpora[corpus]['index'], w_t=corpus['w_t'], w_a=corpus['w_a'], corpus_size=corpus['size']))
-    if refiner_param.refiners['AdapOnFields']: from src.refinement.refiners.adaponfields import AdapOnFields; refiners_list.append(AdapOnFields(ranker=ranker, prels=f'{output}.abstractqueryexpansion.{ranker}.txt', index=corpus['index'], w_t=corpus['w_t'], w_a=corpus['w_a'], corpus_size=corpus['size'], collection_tokens=corpus['tokens'], ext_corpus=ext_corpus, ext_index=ext_corpus['index'], ext_collection_tokens=ext_corpus['tokens'], ext_w_t=ext_corpus['w_t'], ext_w_a=ext_corpus['w_a'], ext_corpus_size=ext_corpus['size'], adap=True))
+    if refiner_param.refiners['RelevanceFeedback']: from src.refinement.refiners.relevancefeedback import RelevanceFeedback; refiners_list.append(RelevanceFeedback(ranker=ranker, prels=prels, index=corpus['index']))
+    if refiner_param.refiners['Docluster']: from src.refinement.refiners.docluster import Docluster; refiners_list.append(Docluster(ranker=ranker, prels=prels, index=corpus['index'])),
+    if refiner_param.refiners['Termluster']: from src.refinement.refiners.termluster import Termluster; refiners_list.append(Termluster(ranker=ranker, prels=prels, index=corpus['index']))
+    if refiner_param.refiners['Conceptluster']: from src.refinement.refiners.conceptluster import Conceptluster; refiners_list.append(Conceptluster(ranker=ranker, prels=prels, index=corpus['index']))
+    if refiner_param.refiners['BertQE']: from src.refinement.refiners.bertqe import BertQE; refiners_list.append(BertQE(ranker=ranker, prels=prels, index=corpus['index']))
+    if refiner_param.refiners['OnFields']: from src.refinement.refiners.onfields import OnFields; refiners_list.append(OnFields(ranker=ranker, prels=prels, index=refiner_param.corpora[corpus]['index'], w_t=corpus['w_t'], w_a=corpus['w_a'], corpus_size=corpus['size']))
+    if refiner_param.refiners['AdapOnFields']: from src.refinement.refiners.adaponfields import AdapOnFields; refiners_list.append(AdapOnFields(ranker=ranker, prels=prels, index=corpus['index'], w_t=corpus['w_t'], w_a=corpus['w_a'], corpus_size=corpus['size'], collection_tokens=corpus['tokens'], ext_corpus=ext_corpus, ext_index=ext_corpus['index'], ext_collection_tokens=ext_corpus['tokens'], ext_w_t=ext_corpus['w_t'], ext_w_a=ext_corpus['w_a'], ext_corpus_size=ext_corpus['size'], adap=True))
 
     return refiners_list

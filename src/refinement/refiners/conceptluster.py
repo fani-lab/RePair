@@ -18,15 +18,15 @@ class Conceptluster(Termluster):
             list_of_concept_lists.append(concept_list)
 
         G, cluster_dict = self.make_graph_document(list_of_concept_lists, min_edge=10)
-        expanded_query = self.expand_query_concept_cluster(q, G, cluster_dict, k_relevant_words=self.topw)
-        return super().get_expanded_query(expanded_query)
+        expanded_query = self.refine_query_concept_cluster(q, G, cluster_dict, k_relevant_words=self.topw)
+        return super().get_refined_query(expanded_query, args[0])
 
-    def expand_query_concept_cluster(self, q, G, cluster_dict, k_relevant_words):
+    def refine_query_concept_cluster(self, q, G, cluster_dict, k_relevant_words):
         q += ' ' + ' '.join(self.get_concepts(q, 0.1))
         return super().refined_query_term_cluster(q, G, cluster_dict, k_relevant_words)
 
     def get_document(self, docid):
-        command = '\"{}target/appassembler/bin/IndexUtils\" -index \"{}\" -dumpRawDoc \"{}\"'.format(self.anserini, self.index, docid)
+        command = f'\"./anserini/target/appassembler/bin/IndexUtils\" -index \"{self.index}\" -dumpRawDoc \"{docid}\"'
         stream = os.popen(command)
         return stream.read()
 
@@ -42,6 +42,6 @@ if __name__ == "__main__":
 
     for i in range(5):
         print(qe.get_model_name())
-        print(qe.get_expanded_query('HosseinFani International Crime Organization', [301]))
-        print(qe.get_expanded_query('Agoraphobia', [698]))
-        print(qe.get_expanded_query('Unsolicited Faxes', [317]))
+        print(qe.get_refined_query('HosseinFani International Crime Organization', [301]))
+        print(qe.get_refined_query('Agoraphobia', [698]))
+        print(qe.get_refined_query('Unsolicited Faxes', [317]))

@@ -1,5 +1,4 @@
 from src.refinement.refiners.abstractqrefiner import AbstractQRefiner
-# from pyserini.search import SimpleSearcher
 import os
 
 
@@ -8,7 +7,6 @@ class RelevanceFeedback(AbstractQRefiner):
         AbstractQRefiner.__init__(self, replace=False, topn=topn)
         self.prels = prels
         self.f = None
-        # self.searcher = SimpleSearcher(index)
         self.index = index
         self.ranker = ranker
 
@@ -44,16 +42,13 @@ class RelevanceFeedback(AbstractQRefiner):
                     relevant_documents.append(x_splited[2])
                     i = i+1
                     if i >= self.topn: break
-        return super().get_refined_query(relevant_documents)
+        return relevant_documents
 
     def get_tfidf(self, docid):
-        # Using Anserini
-        # #command = "target/appassembler/bin/IndexUtils -index lucene-index.robust04.pos+docvectors+rawdocs -dumpDocVector FBIS4-40260 -docVectorWeight TF_IDF "
-        # cli_cmd = '\"{}target/appassembler/bin/IndexUtils\" -index \"{}\" -dumpDocVector \"{}\" -docVectorWeight TF_IDF'.format(self.anserini, self.index, docid)
-        # stream = os.popen(cli_cmd)
-        # return stream.read()
-
-        return self.searcher.doc_vector(docid, 'TF_IDF')
+        # command = "target/appassembler/bin/IndexUtils -index lucene-index.robust04.pos+docvectors+rawdocs -dumpDocVector FBIS4-40260 -docVectorWeight TF_IDF "
+        cli_cmd = f'\"./anserini/target/appassembler/bin/IndexUtils\" -index \"{self.index}\" -dumpDocVector \"{docid}\" -docVectorWeight TF_IDF'
+        stream = os.popen(cli_cmd)
+        return stream.read()
 
     def get_top_word(self, tfidf):
         i = 0

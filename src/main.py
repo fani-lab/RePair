@@ -49,7 +49,7 @@ def run(data_list, domain_list, output, corpora, settings):
         # Query refinement - refining queries using the selected refiners
         if settings['query_refinement']:
             refiners = rf.get_nrf_refiner()
-            if rf: refiners += rf.get_rf_refiner(ranker=settings['ranker'], corpus=corpora[domain], output=output, ext_corpus=corpora[corpora[domain]['extcorpus']])
+            if rf: refiners += rf.get_rf_refiner(ranker=settings['ranker'], corpus=corpora[domain], output=output, prels=f'{output}/original.{settings["ranker"]}', ext_corpus=corpora[corpora[domain]['extcorpus']])
             with mp.Pool(settings['ncore']) as p:
                 for refiner in refiners:
                     if refiner.get_model_name() == 'original': refiner_outfile = f'{refined_data_output}/{refiner.get_model_name()}'
@@ -194,6 +194,8 @@ def run(data_list, domain_list, output, corpora, settings):
                 search_results = [(f'{output}/{f}', f'{output}/{f}.{settings["metric"]}') for f in listdir(output) if f.endswith(settings["ranker"]) and f'{f}.{settings["metric"]}' not in listdir(output)]
                 # for (i, o) in search_results: trecw.evaluate(i, o, qrels=qrel_path, metric=settings['metric'], lib=settings['treclib'])
                 with mp.Pool(settings['ncore']) as p: p.starmap(partial(trecw.evaluate, qrels=qrel_path, metric=settings['metric'], lib=settings['treclib'], mean=not settings['large_ds']), search_results)
+
+        if 'rag-fusion' in settings['cmd'] and settings['metric'] == 'recip_rank': pass
 
         if 'agg' in settings['cmd']:
             originals = pd.DataFrame({'qid': [str(query.qid) for query in ds.queries], 'query': [query.q for query in ds.queries]})
