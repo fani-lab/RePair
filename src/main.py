@@ -298,5 +298,5 @@ if __name__ == '__main__':
                 corpora=param.corpora,
                 settings=param.settings,
                 ranker=ranker,
-                mettric=metric)
+                metric=metric)
 
