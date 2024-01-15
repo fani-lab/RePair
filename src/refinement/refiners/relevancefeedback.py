@@ -15,7 +15,7 @@ class RelevanceFeedback(AbstractQRefiner):
 
     def get_refined_query(self, q, args=None):
         selected_words = []
-        docids = self.get_topn_relevant_docids(args[0])
+        docids = self.get_topn_relevant_docids(qid=args[0])
         for docid in docids:
             tfidf = self.get_tfidf(docid)
             top_word, _ = self.get_top_word(tfidf)
@@ -25,7 +25,7 @@ class RelevanceFeedback(AbstractQRefiner):
             if word.lower() not in query_splited: query_splited.append(word)
         return super().get_refined_query(' '.join(query_splited))
 
-    def get_topn_relevant_docids(self, qid):
+    def get_topn_relevant_docids(self, q=None, qid=None):
         relevant_documents = []
         if not self.f: self.f = open(self.prels, "r", encoding='utf-8')
         self.f.seek(0)

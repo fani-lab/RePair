@@ -40,7 +40,6 @@ def run(data_list, domain_list, output, corpora, settings):
 
         t5_model = settings['t5model']  # {"small", "base", "large", "3B", "11B"} cross {"local", "gc"}
         refined_data_output = f'../output/{os.path.split(datapath)[-1]}' if settings['query_refinement'] else f'../output/{os.path.split(datapath)[-1]}/{ds.user_pairing}t5.{t5_model}.{in_type}.{out_type}.{index_item_str}'
-        # TODO: change the input and output file (Read all the input from the source file and the output must be in the ranker.metric)
         output = f'{refined_data_output}/{settings["ranker"]}.{settings["metric"]}'
         if not os.path.isdir(output): os.makedirs(output)
         qrel_path = f'{datapath}/qrels.train.tsv_'
@@ -49,7 +48,7 @@ def run(data_list, domain_list, output, corpora, settings):
         # Query refinement - refining queries using the selected refiners
         if settings['query_refinement']:
             refiners = rf.get_nrf_refiner()
-            if rf: refiners += rf.get_rf_refiner(ranker=settings['ranker'], corpus=corpora[domain], output=output, prels=f'{output}/original.{settings["ranker"]}', ext_corpus=corpora[corpora[domain]['extcorpus']])
+            if rf: refiners += rf.get_rf_refiner(corpus=corpora[domain], prels=f'{output}/original.{settings["ranker"]}', ext_corpus=corpora[corpora[domain]['extcorpus']])
             with mp.Pool(settings['ncore']) as p:
                 for refiner in refiners:
                     if refiner.get_model_name() == 'original': refiner_outfile = f'{refined_data_output}/{refiner.get_model_name()}'
@@ -124,7 +123,7 @@ def run(data_list, domain_list, output, corpora, settings):
 
             else:
                 # Considers generated queries from t5 or refiners and the original queries
-                query_changes = [(f'{refined_data_output}/{f}', f'{output}/{f}.{settings["ranker"]}') for f in listdir(refined_data_output) if isfile(join(refined_data_output, f)) and ((f.startswith('pred.') and len(f.split('.')) == 2) or (f.startswith('refiner.') or f.startswith('original')) and f'{f}.{settings["ranker"]}' not in listdir(output) and not settings["ranker"] in f)]
+                query_changes = [(f'{refined_data_output}/{f}', f'{output}/{f}.{settings["ranker"]}') for f in listdir(refined_data_output) if isfile(join(refined_data_output, f)) and ((f.startswith('pred.') and len(f.split('.')) == 2) or (f.startswith('refiner.') or f.startswith('original')) and f'{f}.{settings["ranker"]}' not in listdir(output))]
                 # query_changes = []
                 # for f in listdir(output):
                 #     if isfile(join(output, f)) and (f.startswith('pred.') or f.startswith('refiner.')) and len(
