@@ -194,7 +194,11 @@ def run(data_list, domain_list, output, corpora, settings):
                 # for (i, o) in search_results: trecw.evaluate(i, o, qrels=qrel_path, metric=settings['metric'], lib=settings['treclib'])
                 with mp.Pool(settings['ncore']) as p: p.starmap(partial(trecw.evaluate, qrels=qrel_path, metric=settings['metric'], lib=settings['treclib'], mean=not settings['large_ds']), search_results)
 
-        if 'rag-fusion' in settings['cmd'] and settings['metric'] == 'recip_rank': pass
+        if 'rag-fusion' in settings['cmd'] and settings['metric'] == 'recip_rank':
+            df_mrr = pd.concat([pd.read_csv(os.path.join(output, f)).assign(Refiner='.'.join(f.split('.')[1:-1])) for f in os.listdir(output) if f.endswith(settings["recip_rank"])], ignore_index=True, sort=False)
+            # Drop the 'name' column and sort by 'recip_rank'
+            df_mrr = df_mrr.drop('name', axis=1).sort_values(by='recip_rank')
+            #TODO: calculate rag-fusion : evaluate results for query by qid
 
         if 'agg' in settings['cmd']:
             originals = pd.DataFrame({'qid': [str(query.qid) for query in ds.queries], 'query': [query.q for query in ds.queries]})
