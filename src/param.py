@@ -10,15 +10,15 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 settings = {
     'query_refinement': True,
-    'cmd': ['search', 'eval', 'agg', 'box'],   # steps of pipeline, ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box','dense_retrieve', 'stats]
+    'cmd': ['search', 'eval'],  # steps of pipeline, ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box','dense_retrieve', 'stats]
     'ncore': 2,
     't5model': 'small.local',   # 'base.gc' on google cloud tpu, 'small.local' on local machine
     'iter': 5,                  # number of finetuning iteration for t5
     'nchanges': 5,              # number of changes to a query
-    'ranker': 'qld',           # 'qld', 'bm25', 'tct_colbert'
-    'metric': 'map',             # any valid trec_eval.9.0.4 metric like map, ndcg, recip_rank, ...
-    'batch': None,               # search per batch of queries for IR search using pyserini, if None, search per query
-    'topk': 100,                 # number of retrieved documents for a query
+    'ranker': ['bm25', 'qld'],           # 'qld', 'bm25', 'tct_colbert'
+    'metric': ['map', 'recip_rank', 'ndcg'],            # any valid trec_eval.9.0.4 metric like map, ndcg, recip_rank, ...
+    'batch': None,              # search per batch of queries for IR search using pyserini, if None, search per query
+    'topk': 100,                # number of retrieved documents for a query
     'large_ds': False,
     'treclib': f'"./trec_eval.9.0.4/trec_eval{extension}"',  # in non-windows, remove .exe, also for pytrec_eval, 'pytrec'
     'box': {'gold': 'refined_q_metric >= original_q_metric and refined_q_metric > 0',
@@ -163,7 +163,7 @@ corpora = {
 
 # Only for sparse indexing
 anserini = {
-    'path': '../anserini/',
+    'path': './src/anserini/',
     'trec_eval': '../anserini/eval/trec_eval.9.0.4/trec_eval'
 }
 
