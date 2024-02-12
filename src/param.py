@@ -9,14 +9,15 @@ extension = '.exe' if platform.system() == 'Windows' else ""
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 settings = {
-    'query_refinement': True,
-    'cmd': ['search', 'eval'],  # steps of pipeline, ['pair', 'finetune', 'predict', 'search', 'eval','agg', 'box','dense_retrieve', 'stats]
+    'cmd': ['query_refinement', 'search', 'eval', 'agg'],  # steps of pipeline, ['query_refinement', 'similarity, 'pair', 'finetune', 'predict', 'search', 'rag_fusion', 'eval','agg', 'box','dense_retrieve', 'stats]
+    'datalist': ['./../data/raw/dbpedia'], # './../data/raw/robust04', './../data/raw/gov2', './../data/raw/antique', './../data/raw/dbpedia'],
+    'domainlist': ['dbpedia'], # 'robust04', 'gov2', 'antique', 'dbpedia'],
     'ncore': 2,
     't5model': 'small.local',   # 'base.gc' on google cloud tpu, 'small.local' on local machine
     'iter': 5,                  # number of finetuning iteration for t5
     'nchanges': 5,              # number of changes to a query
-    'ranker': ['bm25', 'qld'],           # 'qld', 'bm25', 'tct_colbert'
-    'metric': ['map', 'recip_rank', 'ndcg'],            # any valid trec_eval.9.0.4 metric like map, ndcg, recip_rank, ...
+    'ranker': ['qld', 'bm25'],           # 'qld', 'bm25', 'tct_colbert'
+    'metric': ['map', 'ndcg', 'recip_rank'],            # any valid trec_eval.9.0.4 metrics like map, ndcg, recip_rank, ...
     'batch': None,              # search per batch of queries for IR search using pyserini, if None, search per query
     'topk': 100,                # number of retrieved documents for a query
     'large_ds': False,

@@ -1,9 +1,8 @@
 from src.refinement.refiners.abstractqrefiner import AbstractQRefiner
 from src.refinement.refiners.stem import Stem   # Stem refiner is the wrapper for all stemmers as an refiner :)
 from src.refinement import refiner_param
-from src.refinement import utils
-import sys
-# sys.path.extend(['./src/refinement'])
+from src.param import settings
+import os
 
 
 #global analysis
@@ -43,9 +42,11 @@ def get_nrf_refiner():
 
 
 #local analysis
-def get_rf_refiner(corpus, prels, ext_corpus=None):
+def get_rf_refiner(output, corpus, ext_corpus=None):
     refiners_list = []
-    for ranker in ['qld', 'bm25']:
+    for ranker in settings['ranker']:
+        ranker_folder = next((folder for folder in [folder for folder in os.listdir(output) if os.path.isdir(os.path.join(output, folder))] if ranker in folder), None)
+        prels = f'{output}/{ranker_folder}/original.{ranker}'
         if refiner_param.refiners['RM3']: from src.refinement.refiners.rm3 import RM3; refiners_list.append(RM3(ranker=ranker, index=corpus['index']))
         if refiner_param.refiners['RelevanceFeedback']: from src.refinement.refiners.relevancefeedback import RelevanceFeedback; refiners_list.append(RelevanceFeedback(ranker=ranker, prels=prels, index=corpus['index']))
         if refiner_param.refiners['Docluster']: from src.refinement.refiners.docluster import Docluster; refiners_list.append(Docluster(ranker=ranker, prels=prels, index=corpus['index'])),
