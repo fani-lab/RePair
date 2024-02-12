@@ -264,7 +264,7 @@ For boxing, since we keep the performances for all the potential queries, we can
         'diamond':  'refined_q_metric > original_q_metric and refined_q_metric == 1'}
 ```
 
-After this step, search results will be added to [`./output`](./output):
+After this step, the final structure of the output will be look like below:
 
 ```bash
 ├── output
