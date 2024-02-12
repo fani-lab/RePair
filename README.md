@@ -36,24 +36,20 @@ Search engines have difficulty searching into knowledge repositories since they 
 
 ## 1. Setup
 You need to have ``Python=3.8`` and install [`pyserini`](https://github.com/castorini/pyserini/) package (needs `Java`), among others listed in [``requirements.txt``](requirements.txt). 
-You may also need to install [anserini](https://github.com/hosseinfani/anserini). Only for indexing purposes and RelevanceFeedback reifner.
+You may also need to install [anserini](https://github.com/castorini/anserini). Only for indexing purposes and RelevanceFeedback refiner.
 > [!IMPORTANT]   
 > Anserini is only compatible with Java version 11. Using versions older or newer than this will result in an error.
 >
-We also suggest you clone our repo with the `--recurse-submodules` (altenatively, use the `git submodule update --init` inside the cloned repository) to get the [`trec_eval`](https://github.com/usnistgov/trec_eval) metric evaluation tool:
+We also suggest you clone our repo with the `--recurse-submodules` (alternatively, use the `git submodule update --init` inside the cloned repository) to get the [`trec_eval`](https://github.com/usnistgov/trec_eval) metric evaluation tool:
 
 By ``pip``, clone the codebase and install the required packages:
 ```sh
-git clone https://github.com/Fani-Lab/RePair --recurse-submodules
-cd RePair
 pip install -r requirements.txt
 ```
 
 By [``conda``](https://www.anaconda.com/products/individual):
 
 ```sh
-git clone https://github.com/Fani-Lab/RePair --recurse-submodules
-cd RePair
 conda env create -f environment.yml
 conda activate repair
 ```
@@ -184,8 +180,8 @@ After this step, [`./data/`](./data) directory looks like:
 
 ### [`['finetune']`](./src/param.py#L14)
 We have used [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to generate the refinements to the original queries. We can run [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) on local machine (cpu/gpu), or on google cloud (tpu), which is the [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) pereferance,
-> - [`local machine (cpu, gpu)(linux, windows)`](https://github.com/fani-lab/personalized_query_refinement/blob/main/RUNT5.md#localhost-cpu-or-gpu)
-> - [`google cloud (tpu)`](https://github.com/fani-lab/personalized_query_refinement/blob/main/RUNT5.md#google-cloud-tpu)
+> - `local machine (cpu, gpu)(linux, windows)`
+> - `google cloud (tpu)`
 
 We store the finetuned transformer in `./output/{domain name}/{transformer name}.{pairing strategy}`. For instance, for  [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) whose `small` version has been finetuned on a local machine for `toy.msmarco.passage`, we save the model in [`./output/toy.msmarco.passage/t5.small.local.docs.query.passage/`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/)
 
