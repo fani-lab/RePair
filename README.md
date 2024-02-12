@@ -35,7 +35,12 @@ Search engines have difficulty searching into knowledge repositories since they 
 </table>
 
 ## 1. Setup
-You need to have ``Python=3.8`` and install [`pyserini`](https://github.com/castorini/pyserini/) package (needs `Java`), among others listed in [``requirements.txt``](requirements.txt). We also suggest you to clone our repo with the `--recurse-submodules` (altenatively, use the `git submodule update --init` inside the cloned repository) to get the [`trec_eval`](https://github.com/usnistgov/trec_eval) metric evaluation tool:
+You need to have ``Python=3.8`` and install [`pyserini`](https://github.com/castorini/pyserini/) package (needs `Java`), among others listed in [``requirements.txt``](requirements.txt). 
+You may also need to install [anserini](https://github.com/hosseinfani/anserini). Only for indexing purposes and RelevanceFeedback reifner.
+> [!IMPORTANT]   
+> Anserini is only compatible with Java version 11. Using versions older or newer than this will result in an error.
+>
+We also suggest you clone our repo with the `--recurse-submodules` (altenatively, use the `git submodule update --init` inside the cloned repository) to get the [`trec_eval`](https://github.com/usnistgov/trec_eval) metric evaluation tool:
 
 By ``pip``, clone the codebase and install the required packages:
 ```sh
@@ -67,15 +72,18 @@ To perform fast IR tasks, we need to build the indexes of document corpora or us
 In case there is no prebuilt index, steps include collecting the corpus and building an index as we did for [`aol-ia`](https://dl.acm.org/doi/abs/10.1007/978-3-030-99736-6_42) using [`ir-datasets`](https://ir-datasets.com/aol-ia.html).
 
 ## 2. Quickstart
-We use [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to train a model, that when given an input query (origianl query), generates refined (better) versions of the query in terms of retrieving more relevant documents at higher ranking positions. Currently, we finetuned [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) model on `msmarco.passage` (no context) and `aol` (w/o `userid`). For `yandex` dataset, we will train [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) from scratch since the tokens are anonymized by random numbers. 
+For using query refinement make sure to add the command to the pipeline in the [./src/param.py](./src/param.py).
 
-As seen in the above [`workflow`](./misc/workflow.png), `RePair` has four pipelined steps: 
-> 1. Transformer Finetuning: [`pair`, `finetune`]
-> 2. Refined Query Prediction: [`predict`]
-> 3. Performance Evaluation: [`search`, `eval`]
-> 4. Dataset Curation: [`agg`, `box`]
+Also for refining queries, we use [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to train a model, that when given an input query (origianl query). Currently, we finetuned [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) model on `msmarco.passage` (no context) and `aol` (w/o `userid`). For `yandex` dataset, we will train [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) from scratch since the tokens are anonymized by random numbers. 
 
-To run `RePair` pipeline, we need to set the required parameters of each step in [`./src/param.py`](./src/param.py) such as pairing strategy ([`pairing`](./src/param.py#L28)) for a query set, the choice of transformer ([`t5model`](./src/param.py#L14)), and etc. Then, the pipeline can be run by its driver at [`./src/main.py`](./src/main.py):
+As seen in the above [`workflow`](./misc/workflow.png), `RePair` has three pipelined steps: 
+> 1. Refining Quereis: [`query_refinement`, `t5`]
+ > 1.1. Query Refinement methods: [`query_refinement`]
+ > 1.2. Transformer: [`pair`, `finetune`, `predict`]
+> 2. Performance Evaluation: [`search`, `eval`]
+> 3. Dataset Curation: [`agg`, `box`]
+
+To run `RePair` pipeline, we need to set the required parameters of each step in [`./src/param.py`](./src/param.py) such as pairing strategy ([`pairing`](./src/param.py#L28)) for a query set, the choice of transformer ([`t5model`](./src/param.py#L14)), etc. Then, the pipeline can be run by its driver at [`./src/main.py`](./src/main.py):
 
 ```sh
 python -u main.py -data ../data/raw/toy.msmarco.passage -domain msmarco.passage
