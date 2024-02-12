@@ -214,7 +214,7 @@ After this step, prediction files will be added to [`./output`](./output):
 
 ```bash
 ├── output
-│   └── toy.msmarco.passage
+│   └── dataset_name
 │       └── t5.small.local.docs.query.passage
 │           ├── original.-1
 │           ├── pred.0-1000005
@@ -222,6 +222,7 @@ After this step, prediction files will be added to [`./output`](./output):
 │           ├── pred.2-1000005
 │           ├── pred.3-1000005
 │           ├── pred.4-1000005
+│   │   └── refined_queries_files
 ```
 
 ### [`['search']`](./src/param.py#L17)
@@ -229,43 +230,12 @@ We search the relevant documents for both the original query and each of the `po
 
 We store the result of search for the `i`-th potential refined query at same folder in files with names ending with ranker, i.e., `./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}.{ranker name}` like [`./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005.bm25`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005.bm25).
 
-After this step, search results will be added to [`./output`](./output):
-
-```bash
-├── output
-│   └── toy.msmarco.passage
-│       └── t5.small.local.docs.query.passage
-│           ├── original.-1.bm25
-│           ├── original.-1.qld
-│           ├── pred.0-1000005.bm25
-│           ├── pred.0-1000005.qld
-│           ├── pred.1-1000005.bm25
-│           ├── pred.1-1000005.qld
-│           ├── pred.2-1000005.bm25
-│           ├── pred.2-1000005.qld
-│           ├── pred.3-1000005.bm25
-│           ├── pred.3-1000005.qld
-│           ├── pred.4-1000005.bm25
-│           ├── pred.4-1000005.qld
-```
 
 ### [`['eval']`](./src/param.py#L20)
 The search results of each potential refined queries are evaluated based on how they improve the performance with respect to an evaluation metric like `map` or `mrr`. 
 
 We store the result of evaluation for the `i`-th potential refined query at same folder in files with names ending with evaluation metric, i.e., `./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}.{ranker name}.{metric name}` like [`./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005.bm25.map`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005.bm25.map).
 
-
-After this step, evaluation results will be added to [`./output`](./output):
-
-```bash
-├── output
-│   └── toy.msmarco.passage
-│       └── t5.small.local.docs.query.passage
-│           ├── original.-1.bm25.map
-│           ├── original.-1.bm25.success.10
-│           ├── original.-1.qld.map
-│           ├── original.-1.qld.success.10
-```
 
 ### [`['agg', 'box']`](./src/param.py#L12)
 Finaly, we keep those potential refined queries whose performance (metric score) have been better or equal compared to the original query, i.e., `refined_query_metric >= original_query_metric and refined_q_metric > 0`.
@@ -294,43 +264,16 @@ For boxing, since we keep the performances for all the potential queries, we can
         'diamond':  'refined_q_metric > original_q_metric and refined_q_metric == 1'}
 ```
 
-
-After this step, [`./output`](./output) will further include:
+After this step, search results will be added to [`./output`](./output):
 
 ```bash
 ├── output
-│   └── toy.msmarco.passage
-│       └── t5.small.local.docs.query.passage
-│           ├── qld.map.agg.all.tsv
-│           ├── qld.map.agg.all_.tsv
-│           ├── qld.map.agg.gold.tsv
-│           ├── qld.map.boxes
-│           │   ├── diamond.tsv
-│           │   ├── gold.tsv
-│           │   ├── platinum.tsv
-│           │   └── stamps
-│           │       ├── diamond.change.qld.map
-│           │       ├── diamond.original.qld.map
-│           │       ├── gold.change.qld.map
-│           │       ├── gold.original.qld.map
-│           │       ├── platinum.change.qld.map
-│           │       └── platinum.original.qld.map
-│           ├── qld.success.10.agg.all.tsv
-│           ├── qld.success.10.agg.all_.tsv
-│           ├── qld.success.10.agg.gold.tsv
-│           └── qld.success.10.boxes
-│               ├── diamond.tsv
-│               ├── gold.tsv
-│               ├── platinum.tsv
-│               └── stamps
-│                   ├── diamond.change.qld.success.10
-│                   ├── diamond.original.qld.success.10
-│                   ├── gold.change.qld.success.10
-│                   ├── gold.original.qld.success.10
-│                   ├── platinum.change.qld.success.10
-│                   └── platinum.original.qld.success.10
-```
+│   └── dataset_name
+│       └── refined_queries_files
+│   │   └── ranker.metric [such as bm25.map]
+│   │       └── [This is where all the results from the search, eval, aggregate, and boxing are stored]
 
+```
 
 ### [`['dense_retrieve']`](./src/param.py#L17)
 
@@ -376,54 +319,6 @@ We do not apply `tct_colbert` to our whole dataset instead we attempt to improve
 original_q_metric > refined_q_metric and 0 >= original_q_metric >= 1
 ```
 
-After this step, the [`./output`](./output) folder will have a final structure as below:
-
-```bash
-├── output
-│   └── toy.msmarco.passage
-│       └── t5.small.local.docs.query.passage
-│           ├── qld.map.agg.all.tsv
-│           ├── qld.map.agg.all_.tsv
-│           ├── qld.map.agg.gold.tsv
-|           ├── qld.map.agg.no_pred.tsv
-│           ├── qld.recip_rank.10.agg.all.tsv
-│           ├── qld.recip_rank.10.agg.all_.tsv
-|           ├── qld.recip_rank.agg.no_pred.tsv
-|           ├── original.no_pred.tct_colbert
-|           ├── original.no_pred.tct_colbert.map
-|           ├── original.no_pred.tct_colbert.recip_rank.10
-|           ├── pred.no_pred.tct_colbert
-|           ├── pred.no_pred.tct_colbert.map
-|           ├── pred.no_pred.tct_colbert.recip_rank.10
-|           ├── colbert.comparison.no_pred.map.tsv
-|           ├── colbert.comparison.no_pred.recip_rank.10.tsv
-│           ├── qld.map.boxes
-│           │   ├── diamond.tsv
-│           │   ├── gold.tsv
-│           │   ├── platinum.tsv
-│           │   └── stamps
-│           │       ├── diamond.change.qld.map
-│           │       ├── diamond.original.qld.map
-│           │       ├── gold.change.qld.map
-│           │       ├── gold.original.qld.map
-│           │       ├── platinum.change.qld.map
-│           │       └── platinum.original.qld.map
-│           ├── qld.success.10.agg.all.tsv
-│           ├── qld.success.10.agg.all_.tsv
-│           ├── qld.success.10.agg.gold.tsv
-│           └── qld.success.10.boxes
-│               ├── diamond.tsv
-│               ├── gold.tsv
-│               ├── platinum.tsv
-│               └── stamps
-│                   ├── diamond.change.qld.success.10
-│                   ├── diamond.original.qld.success.10
-│                   ├── gold.change.qld.success.10
-│                   ├── gold.original.qld.success.10
-│                   ├── platinum.change.qld.success.10
-│                   └── platinum.original.qld.success.10
-```
-
 
 ## 3. Gold Standard Datasets 
 
@@ -457,35 +352,7 @@ As seen, `order: -1` shows the original query with its retrieval preformance. Fo
 
 ### Settings
 
-`RePair` has generated gold standard query refinement datasets for `msmarco.passage` and `aol-ia` query sets using `t5.base` transformer on google cloud's tpus (`gc`) with `docs.query` pairing strategy for `bm25` ranker and `map` evaluation metric. The golden datasets along with all the artifacts including preprocessed `docs.query` pairs, model checkpoint, predicted refined queries, their search results and evaluation metric values are available at the above links. The running settings were:
-
-```
-settings = {
-    't5model': 'base.gc'
-    'iter': 4000,       # number of finetuning iteration for t5
-    'nchanges': 10,     # number of changes to a query
-    'ranker': 'bm25',   
-    'batch': 100,       # search per batch of queries using pyserini, if None, search per query
-    'topk': 100,        # number of retrieved documents for a query
-    'large_ds': True,   # set if dataset size is greater than one Million
-    'metric': 'map',    # any valid trec_eval.9.0.4 metric like map, ndcg, recip_rank, ...
-    'box': {'gold':     'refined_q_metric >= original_q_metric and refined_q_metric > 0',
-            'platinum': 'refined_q_metric > original_q_metric',
-            'diamond':  'refined_q_metric > original_q_metric and refined_q_metric == 1'},
-    'msmarco.passage': {
-        'index': '../data/raw/msmarco.passage/lucene-index.msmarco-v1-passage.20220131.9ea315/',
-        'pairing': [None, 'docs', 'query'],     # input=doc(s), output=query, s means concat of relevant docs
-        'lseq':{"inputs": 32, "targets": 256},  # query length and doc length for t5 model,
-    },
-    'aol-ia': {
-        'index_item': ['title'], # ['url'], ['title', 'url'], ['title', 'url', 'text']
-        'index': '../data/raw/aol-ia/lucene-index/title/',
-        'pairing': [None, 'docs', 'query'], #input=doc(s) output=query
-        'lseq':{"inputs": 32, "targets": 256},  # query length and doc length for t5 model,
-        'filter': {'minql': 1, 'mindocl': 10}.  # [min query length, min doc length], after merge queries with relevant 'index_item', if |query| <= minql drop the row, if |'index_item'| < mindocl, drop row
-    }
-}
-```
+`RePair` has generated gold standard query refinement datasets for `msmarco.passage` and `aol-ia` query sets using `t5.base` transformer on google cloud's tpus (`gc`) with `docs.query` pairing strategy for `bm25` ranker and `map` evaluation metric. The golden datasets along with all the artifacts including preprocessed `docs.query` pairs, model checkpoint, predicted refined queries, their search results and evaluation metric values are available at the above links. You can adjust the settings [./src/param.py](./src/param.py)
 
 ### Stats
 
