@@ -303,6 +303,8 @@ def addargs(parser):
     dataset = parser.add_argument_group('dataset')
     dataset.add_argument('-data', '--data-list', nargs='+', type=str, default=[], required=False, help='a list of dataset paths; required; (eg. -data ./../data/raw/toy.msmarco.passage)')
     dataset.add_argument('-domain', '--domain-list', nargs='+', type=str, default=[], required=False, help='a list of dataset paths; required; (eg. -domain msmarco.passage)')
+    dataset.add_argument('-data', '--data-list', nargs='+', type=str, default=param.settings['datalist'], help='a list of dataset paths; required; (eg. -data ./../data/raw/toy.msmarco.passage)')
+    dataset.add_argument('-domain', '--domain-list', nargs='+', type=str, default=param.settings['domainlist'], help='a list of dataset paths; required; (eg. -domain msmarco.passage)')
 
     output = parser.add_argument_group('output')
     output.add_argument('-output', type=str, default='../output/', help='The output path (default: -output ../output/)')
@@ -323,6 +325,8 @@ if __name__ == '__main__':
     # TODO: All the args will be changed in the param also the client can change them as an input
     run(data_list=param.settings['datalist'],
         domain_list=param.settings['domainlist'],
+    run(data_list=args.data_list,
+        domain_list=args.domain_list,
         output_result=args.output,
         corpora=param.corpora,
         settings=param.settings)
