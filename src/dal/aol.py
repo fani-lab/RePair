@@ -11,8 +11,10 @@ tqdm.pandas()
 class Aol(Dataset):
 
     def __init__(self, settings, domain, homedir, ncore):
-        try: super(Aol, self).__init__(settings=settings, domain=domain)
-        except: self._build_index(homedir, Dataset.settings['index_item'], Dataset.settings['index'], ncore)
+        try: super(Aol, self).__init__(setiing=settings, domain=domain)
+        except: self._build_index(homedir, settings['index_item'], settings['index'], ncore)
+        Aol.user_pairing = "user/" if "user" in Aol.settings["pairing"] else ""
+        Aol.index_item_str = '.'.join(Aol.settings["index_item"])
 
     @classmethod
     def _build_index(cls, homedir, index_item, indexdir, ncore):
@@ -49,6 +51,7 @@ class Aol(Dataset):
         # for d in os.listdir(homedir):
         #     if not (d.find('aol-ia') > -1) and os.path.isdir(f'./../data/raw/{d}'): shutil.rmtree(f'./../data/raw/{d}')
 
+    @classmethod
     def read_queries(cls, input, domain, trec=False):
         queries = pd.read_csv(f'{input}/queries.train.tsv', encoding='UTF-8', sep='\t', index_col=False, names=['qid', 'query'], converters={'query': str.lower}, header=None)
         # the column order in the file is [qid, uid, did, uid]!!!! STUPID!!
@@ -79,6 +82,9 @@ class Aol(Dataset):
                 output_jsonl_file.write(json.dumps({'id': did, 'contents': doc}) + '\n')
                 if i % 100000 == 0: print(f'Converted {i:,} docs, writing into file {output_jsonl_file.name} ...')
             output_jsonl_file.close()
+
+    @classmethod
+    def set_index(cls, index): super().search_init(f'{index}{Dataset.user_pairing}{Dataset.index_item_str}')
 
     @classmethod
     def pair(cls, queries, output, cat=True):

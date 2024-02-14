@@ -1,12 +1,16 @@
 import pandas as pd
 from tqdm import tqdm
-from src.dal.ds import Dataset
+from dal.ds import Dataset
 tqdm.pandas()
 
 
 class MsMarcoPsg(Dataset):
 
-    def __init__(self, settings, domain): super(MsMarcoPsg, self).__init__(settings=settings, domain=domain)
+    def __init__(self, settings, domain):
+        super(MsMarcoPsg, self).__init__(settings=settings, domain=domain)
+        MsMarcoPsg.user_pairing = "user/" if "user" in MsMarcoPsg.settings["pairing"] else ""
+        MsMarcoPsg.index_item_str = '.'.join(MsMarcoPsg.settings["index_item"])
+
 
     @classmethod
     def read_queries(cls, input, domain, trec=False):
@@ -17,6 +21,9 @@ class MsMarcoPsg(Dataset):
         queries_qrels = pd.merge(queries, qrels, on='qid', how='inner', copy=False)
         queries_qrels = queries_qrels.sort_values(by='qid')
         cls.create_query_objects(queries_qrels, ['qid', 'did', 'pid', 'relevancy'], domain)
+
+    @classmethod
+    def set_index(cls, index): super().search_init(f'{index}{Dataset.user_pairing}{Dataset.index_item_str}')
 
     @classmethod
     def pair(cls, output, cat=True):

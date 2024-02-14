@@ -142,11 +142,10 @@ def run(data_list, domain_list, output_result, corpora, settings):
                 else:
                     # Considers generated queries from t5 or refiners and the original queries
                     query_changes = [(f'{refined_data_output}/{f}', f'{output}/{f}.{ranker}') for f in listdir(refined_data_output) if isfile(join(refined_data_output, f)) and ((f.startswith('pred.') and len(f.split('.')) == 2) or (f.startswith('refiner.') or f.startswith('original')) and f'{f}.{ranker}' not in listdir(output))]
+                    ds.set_index(index=ds.settings["index"])
                     # seems the LuceneSearcher cannot be shared in multiple processes! See dal.ds.py
                     #TODO: parallel on each file ==> Problem: starmap does not understand inherited Dataset.searcher attribute!
-                    user_pairing = "user/" if "user" in ds.settings["pairing"] else ""
-                    index_item_str = '.'.join(settings["index_item"]) if ds.__class__.__name__ == 'AOL' else ""
-                    with mp.Pool(settings['ncore']) as p: p.starmap(partial(ds.search, qids=[query.qid for query in ds.queries], ranker=ranker, topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'], index=f'{ds.settings["index"]}{user_pairing}{index_item_str}'), query_changes)
+                    with mp.Pool(settings['ncore']) as p: p.starmap(partial(ds.search, qids=[query.qid for query in ds.queries], ranker=ranker, topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore']), query_changes)
 
             if 'rag_fusion' in settings['cmd']:
                 print('RAG Fusion Step ...')
