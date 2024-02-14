@@ -1,7 +1,5 @@
 # ``RePair``: A Toolkit for Query Refinement Gold Standard Generation Using Transformers
-Search engines have difficulty searching into knowledge repositories since they are not tailored to the users' information needs. User's queries are, more often than not, under-specified that also retrieve irrelevant documents. Query refinement, also known as query `reformulation`, or `suggesetion`, is the process of transforming users' queries into new `refined` versions without semantic drift to enhance the relevance of search results. Prior query refiners have been benchmarked on web retrieval datasets following `weak assumptions` that users' input queries improve gradually within a search session. To fill the gap, we contribute `RePair`, an open-source configurable toolkit to generate large-scale gold-standard benchmark datasets from a variety of domains for the task of query refinement. `RePair` takes a dataset of queries and their relevance judgements (e.g. `msmarco` or `aol`), an information retrieval method (e.g., `bm25`), and an evaluation metric (e.g., `map`), and outputs refined versions of queries using a transformer (e.g., [`T5`](https://github.com/google-research/text-to-text-transfer-transformer)), each of which with the relevance improvement guarantees. Currently, `RePair` includes gold standard datasets for [`aol-ia`](https://dl.acm.org/doi/abs/10.1007/978-3-030-99736-6_42) and [`msmarco.passage`](https://www.microsoft.com/en-us/research/publication/ms-marco-human-generated-machine-reading-comprehension-dataset/).
-
-**Future Work**: We are investigating `contexual` query refinement by incorporating query session information like user or time information of queries on the performance of neural query refinement methods compared to the lack thereof.
+Search engines have difficulty searching into knowledge repositories since they are not tailored to the users' information needs. User's queries are, more often than not, under-specified that also retrieve irrelevant documents. Query refinement, also known as query `reformulation`, or `suggesetion`, is the process of transforming users' queries into new `refined` versions without semantic drift to enhance the relevance of search results. Prior query refiners have been benchmarked on web retrieval datasets following `weak assumptions` that users' input queries improve gradually within a search session. To fill the gap, we contribute `RePair`, an open-source configurable toolkit to generate large-scale gold-standard benchmark datasets from a variety of domains for the task of query refinement. `RePair` takes a dataset of queries and their relevance judgements (e.g. `trec-datasets`, `msmarco` or `aol`), an information retrieval method (e.g., `bm25`), and an evaluation metric (e.g., `map`), and outputs refined versions of queries using supervised and unsupervised methods (e.g., `backtranslation`, [`T5`](https://github.com/google-research/text-to-text-transfer-transformer)), each of which with the relevance improvement guarantees.
 
 <table align="center" border=0>
 <tr>
@@ -10,6 +8,8 @@ Search engines have difficulty searching into knowledge repositories since they 
 - [1. Setup](#1-setup)
   * [Lucene Indexes](#lucene-indexes)
 - [2. Quickstart](#2-quickstart)
+  * [`query_refinement`](#query_refinement)
+  * [`similarity`](#similarity)
   * [`pair`](#pair)
   * [`finetune`](#finetune)
   * [`predict`](#predict)
@@ -33,20 +33,21 @@ Search engines have difficulty searching into knowledge repositories since they 
 </table>
 
 ## 1. Setup
-You need to have ``Python=3.8`` and install [`pyserini`](https://github.com/castorini/pyserini/) package (needs `Java`), among others listed in [``requirements.txt``](requirements.txt). We also suggest you to clone our repo with the `--recurse-submodules` (altenatively, use the `git submodule update --init` inside the cloned repository) to get the [`trec_eval`](https://github.com/usnistgov/trec_eval) metric evaluation tool:
+You need to have ``Python=3.8`` and install [`pyserini`](https://github.com/castorini/pyserini/) package (needs `Java`), among others listed in [``requirements.txt``](requirements.txt). 
+You may also need to install [anserini](https://github.com/castorini/anserini). Only for indexing purposes and RelevanceFeedback refiner.
+> [!IMPORTANT]   
+> Anserini is only compatible with Java version 11. Using versions older or newer than this will result in an error.
+>
+We also suggest you clone our repo with the `--recurse-submodules` (alternatively, use the `git submodule update --init` inside the cloned repository) to get the [`trec_eval`](https://github.com/usnistgov/trec_eval) metric evaluation tool:
 
 By ``pip``, clone the codebase and install the required packages:
 ```sh
-git clone https://github.com/Fani-Lab/RePair --recurse-submodules
-cd RePair
 pip install -r requirements.txt
 ```
 
 By [``conda``](https://www.anaconda.com/products/individual):
 
 ```sh
-git clone https://github.com/Fani-Lab/RePair --recurse-submodules
-cd RePair
 conda env create -f environment.yml
 conda activate repair
 ```
@@ -65,15 +66,18 @@ To perform fast IR tasks, we need to build the indexes of document corpora or us
 In case there is no prebuilt index, steps include collecting the corpus and building an index as we did for [`aol-ia`](https://dl.acm.org/doi/abs/10.1007/978-3-030-99736-6_42) using [`ir-datasets`](https://ir-datasets.com/aol-ia.html).
 
 ## 2. Quickstart
-We use [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to train a model, that when given an input query (origianl query), generates refined (better) versions of the query in terms of retrieving more relevant documents at higher ranking positions. Currently, we finetuned [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) model on `msmarco.passage` (no context) and `aol` (w/o `userid`). For `yandex` dataset, we will train [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) from scratch since the tokens are anonymized by random numbers. 
+For using query refinement make sure to add the command to the pipeline in the [./src/param.py](./src/param.py).
 
-As seen in the above [`workflow`](./misc/workflow.png), `RePair` has four pipelined steps: 
-> 1. Transformer Finetuning: [`pair`, `finetune`]
-> 2. Refined Query Prediction: [`predict`]
-> 3. Performance Evaluation: [`search`, `eval`]
-> 4. Dataset Curation: [`agg`, `box`]
+Also for refining queries, we use [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to train a model, that when given an input query (origianl query). Currently, we finetuned [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) model on `msmarco.passage` (no context) and `aol` (w/o `userid`). For `yandex` dataset, we will train [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) from scratch since the tokens are anonymized by random numbers. 
 
-To run `RePair` pipeline, we need to set the required parameters of each step in [`./src/param.py`](./src/param.py) such as pairing strategy ([`pairing`](./src/param.py#L28)) for a query set, the choice of transformer ([`t5model`](./src/param.py#L14)), and etc. Then, the pipeline can be run by its driver at [`./src/main.py`](./src/main.py):
+As seen in the above [`workflow`](./misc/workflow.png), `RePair` has three pipelined steps: 
+> 1. Refining Quereis: [`query_refinement`, `t5`]
+ > 1.1. Query Refinement methods: [`query_refinement`]
+ > 1.2. Transformer: [`pair`, `finetune`, `predict`]
+> 2. Performance Evaluation: [`search`, `eval`]
+> 3. Dataset Curation: [`agg`, `box`]
+
+To run `RePair` pipeline, we need to set the required parameters of each step in [`./src/param.py`](./src/param.py) such as pairing strategy ([`pairing`](./src/param.py#L28)) for a query set, the choice of transformer ([`t5model`](./src/param.py#L14)), etc. Then, the pipeline can be run by its driver at [`./src/main.py`](./src/main.py):
 
 ```sh
 python -u main.py -data ../data/raw/toy.msmarco.passage -domain msmarco.passage
@@ -84,6 +88,71 @@ python -u main.py -data ../data/raw/toy.aol-ia -domain aol-ia
 ```sh
 python -u main.py -data ../data/raw/toy.msmarco.passage ../data/raw/toy.aol-ia -domain msmarco.passage aol-ia
 ```
+### [`['query_refinement']`](./src/refinement/refiner_param.py#L9)
+
+# Refiners
+The objective of query refinement is to produce a set of potential candidate queries that can function as enhanced and improved versions. This involves systematically applying various unsupervised query refinement techniques to each query within the input dataset.
+
+<table align="center" border=0>
+<thead>
+  <tr><td colspan="3" style="background-color: white;"><img src="./misc/classdiagram.png", width="1000", alt="ReQue: Class Diagram"></td></tr>     
+  <tr><td colspan="3">
+      <p align="center">Class Diagram for Query Refiners in <a href="./src/refinement/">src/refinement/</a>. [<a href="https://app.lucidchart.com/documents/view/64fedbb0-b385-4696-9adc-b89bc06e84ba/HWEp-vi-RSFO">zoom in!</a>].</p>
+      <p align="center"> The expanders are initialized by the Expander Factory in <a href="./src/refinement/refiner_factory.py">src/refinement/refiner_factory.py</a></p></td></tr> 
+ </thead>
+</table>
+
+Here is the list of queries:
+| **Expander** 	| **Category** 	| **Analyze type** 	|
+|---	|:---:	|:---:	|
+| adaponfields 	| Top_Documents 	| Local 	|
+| anchor 	| Anchor_Text 	| Global 	|
+| [backtranslation](#Backtranslation) 	| Machine_Translation 	| Global 	|
+| bertqe] 	| Top_Documents 	| Local 	|
+| conceptluster 	| Concept_Clustering 	| Local 	|
+| conceptnet 	| Semantic_Analysis 	| Global 	|
+| docluster 	| Document_Summaries 	| Local 	|
+| glove 	| Semantic_Analysis 	| Global 	|
+| onfields 	| Top_Documents 	| Local 	|
+| relevancefeedback 	| Top_Documents 	| Local 	|
+| rm3 	| Top_Documents 	| Local 	|
+| sensedisambiguation 	| Semantic_Analysis 	| Global 	|
+| stem.krovetz 	| Stemming_Analysis 	| Global 	|
+| stem.lovins 	| Stemming_Analysis 	| Global 	|
+| stem.paicehusk 	| Stemming_Analysis 	| Global 	|
+| stem.porter 	| Stemming_Analysis 	| Global 	|
+| stem.sstemmer 	| Stemming_Analysis 	| Global 	|
+| stem.trunc 	| Stemming_Analysis 	| Global 	|
+| tagmee 	| Wikipedia 	| Global 	|
+| termluster 	| Term_Clustering 	| Local 	|
+| thesaurus 	| Semantic_Analysis 	| Global 	|
+| wiki 	| Wikipedia 	| Global 	|
+| word2vec 	| Semantic_Analysis 	| Global 	|
+| wordnet 	| Semantic_Analysis 	| Global 	|
+
+# Backtranslation
+Back translation, also known as reverse translation or dual translation, involves translating content, whether it is a query or paragraph, from one language to another and retranslating it to the original language. This method provides several options for the owner to make a decision that makes the most sense based on the task at hand.
+For additional details, please refer to this [document](./misc/Backtranslation.pdf).
+
+## Example
+| **q** 	| **map q** 	| **language** 	| **translated q** 	| **backtranslated q** 	| **map q'** 	|
+|---	|:---:	|:---:	|:---:	|:---:	|:---:	|
+| Italian nobel prize winners 	| 0.2282 	| farsi 	| برندهای جایزه نوبل ایتالیایی 	| Italian Nobel laureates 	| 0.5665 	|
+| banana paper making 	| 0.1111 	| korean 	| 바나나 종이 제조 	| Manufacture of banana paper 	| 1 	|
+| figs 	| 0.0419 	| tamil 	|  அத்திமரங்கள்  	| The fig trees 	| 0.0709 	|
+
+
+### [`['similarity']`](./src/param.py#L12)
+
+To evaluate the quality of the refined queries, metrics such as bleu, rouge, and semsim are employed. The bleu score measures the similarity between the backtranslated and original query by analyzing n-grams, while the rouge score considers the overlap of n-grams to capture essential content. Due to their simplicity and effectiveness, these metrics are widely utilized in machine translation tasks. Despite their usefulness, both scores may not accurately capture the overall meaning or fluency of the translated text due to their heavy reliance on n-grams. To address topic drift and evaluate the similarity between the original and refined queries, we additionally employ [declutr](https://aclanthology.org/2021.acl-long.72/) for query embeddings, computing cosine similarity. Declutr, a self-learning technique requiring no labeled data, minimizes the performance gap between unsupervised and supervised pretraining for universal sentence encoders during the extension of transformer-based language model training. The semsim metric, relying on cosine similarity of embeddings, proves highly effective in capturing the subtle semantic nuances of language, establishing itself as a dependable measure of the quality of backtranslated queries.
+
+## Example
+These samples are taken from an ANTIQUE dataset that has been refined using a backtranslation refiner with the German language.
+| **id** 	| **original** 	| **refined** 	| **rouge1** 	| **rouge2** 	| **rougeL** 	| **rougeLsum** 	| **bleu** 	| **precisions** 	| **brevity_penalty** 	| **length_ratio** 	| **translation_length** 	| **reference_length** 	| **semsim** 	|
+|---	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|
+| 1290612 	| why do anxiety and depression seem to coexist? 	| Why do fear and depression seem to be linked 	| 0.705882 	| 0.533333 	| 0.705882 	| 0.705882353 	| 0.315598 	| [0.5555555555555556, 0.375, 0.2857142857142857,   0.16666666666666666] 	| 1 	| 1 	| 9 	| 9 	| 0.8554905 	|
+| 4473331 	| How can I keep my   rabit indoors? 	| How can I keep my   rabbit in the house 	| 0.625 	| 0.571429 	| 0.625 	| 0.625 	| 0.446324 	| [0.5555555555555556,   0.5, 0.42857142857142855, 0.3333333333333333] 	| 1 	| 1.125 	| 9 	| 8 	| 0.7701595 	|
+| 1509982 	| How is th Chemistry is a basic of Science? 	| How is chemistry a principle of science 	| 0.75 	| 0.285714 	| 0.75 	| 0.75 	| 0 	| [0.5714285714285714, 0.16666666666666666, 0.0, 0.0] 	| 0.651439058 	| 0.7 	| 7 	| 10 	| 0.7796929 	|
 
 ### [`['pair']`](./src/param.py#L25)
 We create training sets based on different pairings of queries and relevant passages in the [`./data/preprocessed/{domain name}/`](./data/preprocessed/) for each domain like [`./data/preprocessed/toy.msmarco.passage/`](./data/preprocessed/toy.msmarco.passage/) for `msmarco.passage`.
@@ -109,8 +178,8 @@ After this step, [`./data/`](./data) directory looks like:
 
 ### [`['finetune']`](./src/param.py#L14)
 We have used [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to generate the refinements to the original queries. We can run [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) on local machine (cpu/gpu), or on google cloud (tpu), which is the [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) pereferance,
-> - [`local machine (cpu, gpu)(linux, windows)`](https://github.com/fani-lab/personalized_query_refinement/blob/main/RUNT5.md#localhost-cpu-or-gpu)
-> - [`google cloud (tpu)`](https://github.com/fani-lab/personalized_query_refinement/blob/main/RUNT5.md#google-cloud-tpu)
+> - `local machine (cpu, gpu)(linux, windows)`
+> - `google cloud (tpu)`
 
 We store the finetuned transformer in `./output/{domain name}/{transformer name}.{pairing strategy}`. For instance, for  [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) whose `small` version has been finetuned on a local machine for `toy.msmarco.passage`, we save the model in [`./output/toy.msmarco.passage/t5.small.local.docs.query.passage/`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/)
 
@@ -147,7 +216,7 @@ After this step, prediction files will be added to [`./output`](./output):
 
 ```bash
 ├── output
-│   └── toy.msmarco.passage
+│   └── dataset_name
 │       └── t5.small.local.docs.query.passage
 │           ├── original.-1
 │           ├── pred.0-1000005
@@ -155,6 +224,7 @@ After this step, prediction files will be added to [`./output`](./output):
 │           ├── pred.2-1000005
 │           ├── pred.3-1000005
 │           ├── pred.4-1000005
+│   │   └── refined_queries_files
 ```
 
 ### [`['search']`](./src/param.py#L17)
@@ -162,43 +232,12 @@ We search the relevant documents for both the original query and each of the `po
 
 We store the result of search for the `i`-th potential refined query at same folder in files with names ending with ranker, i.e., `./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}.{ranker name}` like [`./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005.bm25`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005.bm25).
 
-After this step, search results will be added to [`./output`](./output):
-
-```bash
-├── output
-│   └── toy.msmarco.passage
-│       └── t5.small.local.docs.query.passage
-│           ├── original.-1.bm25
-│           ├── original.-1.qld
-│           ├── pred.0-1000005.bm25
-│           ├── pred.0-1000005.qld
-│           ├── pred.1-1000005.bm25
-│           ├── pred.1-1000005.qld
-│           ├── pred.2-1000005.bm25
-│           ├── pred.2-1000005.qld
-│           ├── pred.3-1000005.bm25
-│           ├── pred.3-1000005.qld
-│           ├── pred.4-1000005.bm25
-│           ├── pred.4-1000005.qld
-```
 
 ### [`['eval']`](./src/param.py#L20)
 The search results of each potential refined queries are evaluated based on how they improve the performance with respect to an evaluation metric like `map` or `mrr`. 
 
 We store the result of evaluation for the `i`-th potential refined query at same folder in files with names ending with evaluation metric, i.e., `./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}.{ranker name}.{metric name}` like [`./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005.bm25.map`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005.bm25.map).
 
-
-After this step, evaluation results will be added to [`./output`](./output):
-
-```bash
-├── output
-│   └── toy.msmarco.passage
-│       └── t5.small.local.docs.query.passage
-│           ├── original.-1.bm25.map
-│           ├── original.-1.bm25.success.10
-│           ├── original.-1.qld.map
-│           ├── original.-1.qld.success.10
-```
 
 ### [`['agg', 'box']`](./src/param.py#L12)
 Finaly, we keep those potential refined queries whose performance (metric score) have been better or equal compared to the original query, i.e., `refined_query_metric >= original_query_metric and refined_q_metric > 0`.
@@ -227,43 +266,16 @@ For boxing, since we keep the performances for all the potential queries, we can
         'diamond':  'refined_q_metric > original_q_metric and refined_q_metric == 1'}
 ```
 
-
-After this step, [`./output`](./output) will further include:
+After this step, the final structure of the output will be look like below:
 
 ```bash
 ├── output
-│   └── toy.msmarco.passage
-│       └── t5.small.local.docs.query.passage
-│           ├── qld.map.agg.all.tsv
-│           ├── qld.map.agg.all_.tsv
-│           ├── qld.map.agg.gold.tsv
-│           ├── qld.map.boxes
-│           │   ├── diamond.tsv
-│           │   ├── gold.tsv
-│           │   ├── platinum.tsv
-│           │   └── stamps
-│           │       ├── diamond.change.qld.map
-│           │       ├── diamond.original.qld.map
-│           │       ├── gold.change.qld.map
-│           │       ├── gold.original.qld.map
-│           │       ├── platinum.change.qld.map
-│           │       └── platinum.original.qld.map
-│           ├── qld.success.10.agg.all.tsv
-│           ├── qld.success.10.agg.all_.tsv
-│           ├── qld.success.10.agg.gold.tsv
-│           └── qld.success.10.boxes
-│               ├── diamond.tsv
-│               ├── gold.tsv
-│               ├── platinum.tsv
-│               └── stamps
-│                   ├── diamond.change.qld.success.10
-│                   ├── diamond.original.qld.success.10
-│                   ├── gold.change.qld.success.10
-│                   ├── gold.original.qld.success.10
-│                   ├── platinum.change.qld.success.10
-│                   └── platinum.original.qld.success.10
-```
+│   └── dataset_name
+│       └── refined_queries_files
+│   │   └── ranker.metric [such as bm25.map]
+│   │       └── [This is where all the results from the search, eval, aggregate, and boxing are stored]
 
+```
 
 ### [`['dense_retrieve']`](./src/param.py#L17)
 
@@ -309,54 +321,6 @@ We do not apply `tct_colbert` to our whole dataset instead we attempt to improve
 original_q_metric > refined_q_metric and 0 >= original_q_metric >= 1
 ```
 
-After this step, the [`./output`](./output) folder will have a final structure as below:
-
-```bash
-├── output
-│   └── toy.msmarco.passage
-│       └── t5.small.local.docs.query.passage
-│           ├── qld.map.agg.all.tsv
-│           ├── qld.map.agg.all_.tsv
-│           ├── qld.map.agg.gold.tsv
-|           ├── qld.map.agg.no_pred.tsv
-│           ├── qld.recip_rank.10.agg.all.tsv
-│           ├── qld.recip_rank.10.agg.all_.tsv
-|           ├── qld.recip_rank.agg.no_pred.tsv
-|           ├── original.no_pred.tct_colbert
-|           ├── original.no_pred.tct_colbert.map
-|           ├── original.no_pred.tct_colbert.recip_rank.10
-|           ├── pred.no_pred.tct_colbert
-|           ├── pred.no_pred.tct_colbert.map
-|           ├── pred.no_pred.tct_colbert.recip_rank.10
-|           ├── colbert.comparison.no_pred.map.tsv
-|           ├── colbert.comparison.no_pred.recip_rank.10.tsv
-│           ├── qld.map.boxes
-│           │   ├── diamond.tsv
-│           │   ├── gold.tsv
-│           │   ├── platinum.tsv
-│           │   └── stamps
-│           │       ├── diamond.change.qld.map
-│           │       ├── diamond.original.qld.map
-│           │       ├── gold.change.qld.map
-│           │       ├── gold.original.qld.map
-│           │       ├── platinum.change.qld.map
-│           │       └── platinum.original.qld.map
-│           ├── qld.success.10.agg.all.tsv
-│           ├── qld.success.10.agg.all_.tsv
-│           ├── qld.success.10.agg.gold.tsv
-│           └── qld.success.10.boxes
-│               ├── diamond.tsv
-│               ├── gold.tsv
-│               ├── platinum.tsv
-│               └── stamps
-│                   ├── diamond.change.qld.success.10
-│                   ├── diamond.original.qld.success.10
-│                   ├── gold.change.qld.success.10
-│                   ├── gold.original.qld.success.10
-│                   ├── platinum.change.qld.success.10
-│                   └── platinum.original.qld.success.10
-```
-
 
 ## 3. Gold Standard Datasets 
 
@@ -390,35 +354,7 @@ As seen, `order: -1` shows the original query with its retrieval preformance. Fo
 
 ### Settings
 
-`RePair` has generated gold standard query refinement datasets for `msmarco.passage` and `aol-ia` query sets using `t5.base` transformer on google cloud's tpus (`gc`) with `docs.query` pairing strategy for `bm25` ranker and `map` evaluation metric. The golden datasets along with all the artifacts including preprocessed `docs.query` pairs, model checkpoint, predicted refined queries, their search results and evaluation metric values are available at the above links. The running settings were:
-
-```
-settings = {
-    't5model': 'base.gc'
-    'iter': 4000,       # number of finetuning iteration for t5
-    'nchanges': 10,     # number of changes to a query
-    'ranker': 'bm25',   
-    'batch': 100,       # search per batch of queries using pyserini, if None, search per query
-    'topk': 100,        # number of retrieved documents for a query
-    'large_ds': True,   # set if dataset size is greater than one Million
-    'metric': 'map',    # any valid trec_eval.9.0.4 metric like map, ndcg, recip_rank, ...
-    'box': {'gold':     'refined_q_metric >= original_q_metric and refined_q_metric > 0',
-            'platinum': 'refined_q_metric > original_q_metric',
-            'diamond':  'refined_q_metric > original_q_metric and refined_q_metric == 1'},
-    'msmarco.passage': {
-        'index': '../data/raw/msmarco.passage/lucene-index.msmarco-v1-passage.20220131.9ea315/',
-        'pairing': [None, 'docs', 'query'],     # input=doc(s), output=query, s means concat of relevant docs
-        'lseq':{"inputs": 32, "targets": 256},  # query length and doc length for t5 model,
-    },
-    'aol-ia': {
-        'index_item': ['title'], # ['url'], ['title', 'url'], ['title', 'url', 'text']
-        'index': '../data/raw/aol-ia/lucene-index/title/',
-        'pairing': [None, 'docs', 'query'], #input=doc(s) output=query
-        'lseq':{"inputs": 32, "targets": 256},  # query length and doc length for t5 model,
-        'filter': {'minql': 1, 'mindocl': 10}.  # [min query length, min doc length], after merge queries with relevant 'index_item', if |query| <= minql drop the row, if |'index_item'| < mindocl, drop row
-    }
-}
-```
+`RePair` has generated gold standard query refinement datasets for `msmarco.passage` and `aol-ia` query sets using `t5.base` transformer on google cloud's tpus (`gc`) with `docs.query` pairing strategy for `bm25` ranker and `map` evaluation metric. The golden datasets along with all the artifacts including preprocessed `docs.query` pairs, model checkpoint, predicted refined queries, their search results and evaluation metric values are available at the above links. You can adjust the settings [./src/param.py](./src/param.py)
 
 ### Stats
 
@@ -438,24 +374,5 @@ We benefit from [``trec_eval``](https://github.com/usnistgov/trec_eval), [``pyse
 ## 5. License
 ©2023. This work is licensed under a [CC BY-NC-SA 4.0](license.txt) license.
 
-[Yogeswar Lakshmi Narayanan](https://www.yogeswarl.tech/)<sup>1</sup>, [Hossein Fani](https://hosseinfani.github.io/)<sup>1,2</sup> 
 
-<sup><sup>1</sup>School of Computer Science, Faculty of Science, University of Windsor, ON, Canada.</sup>
-<sup><sup>2</sup>[hfani@uwindsor.ca](mailto:hfani@uwindsor.ca)</sup>
 
-## 6. Citation
-
-```
-@inproceedings{DBLP:conf/cikm/NarayananF23,
-author    = {Yogeswar Lakshmi Narayanan and Hossein Fani},
-title     = {RePair: An Extensible Toolkit to Generate Large-Scale Datasets via Transformers for Query Refinement},
-booktitle = {Proceedings of the 32nd {ACM} International Conference on Information {\&} Knowledge Management, University of Birmingham and Eastside Rooms, UK, October 21-25, 2023},
-pages     = {},
-publisher = {{ACM}},
-year      = {2023},
-url       = {},
-doi       = {10.1145/3583780.3615129},
-biburl    = {},
-bibsource = {dblp computer science bibliography, https://dblp.org}
-}
-```
