@@ -1,5 +1,5 @@
 from scipy.spatial.distance import cosine
-from src.refinement import utils
+from refinement import utils
 import traceback
 import os
 
@@ -37,8 +37,8 @@ class Query:
         self.domain = domain
         self.qid = qid
         self.q = q
-        self.qrel = qrel
         self.q_ = dict()
+        self.qrel = qrel
         self.qret= []
         self.parent = parent
         self.lang = 'English'

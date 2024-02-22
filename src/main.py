@@ -5,7 +5,7 @@ from functools import partial
 from itertools import product
 from os.path import isfile, join, exists
 from multiprocessing import freeze_support
-from src.refinement import refiner_factory as rf
+from refinement import refiner_factory as rf
 import argparse, os, pandas as pd, multiprocessing as mp
 
 
@@ -23,8 +23,6 @@ def run(data_list, domain_list, output_result, corpora, settings):
     for domain in domain_list:
         print('-' * 50, f'Executing the project with the {hex_to_ansi("#BB8FCE")}{domain} {hex_to_ansi(reset=True)}dataset', '-' * 50)
         datapath = data_list[domain_list.index(domain)]
-        prep_output = f'./../data/preprocessed/{os.path.split(datapath)[-1]}'
-        if not os.path.isdir(prep_output): os.makedirs(prep_output)
 
         if domain == 'msmarco.passage':
             from dal.msmarco import MsMarcoPsg
@@ -42,12 +40,7 @@ def run(data_list, domain_list, output_result, corpora, settings):
             pd.concat(all_qrels, ignore_index=True).to_csv(f'{datapath}/qrels.train.tsv_', index=False, sep='\t', header=False)
         else: ds.read_queries(datapath, domain)
 
-        index_item_str = '.'.join(corpora[domain]['index_item'])
-        in_type, out_type = corpora[domain]['pairing'][1], corpora[domain]['pairing'][2]
-        tsv_path = {'train': f'{prep_output}/{ds.user_pairing}{in_type}.{out_type}.{index_item_str}.train.tsv', 'test': f'{prep_output}/{ds.user_pairing}{in_type}.{out_type}.{index_item_str}.test.tsv'}
-        t5_model = settings['t5model']  # {"small", "base", "large", "3B", "11B"} cross {"local", "gc"}
         refined_data_output = f'{output_result}{os.path.split(datapath)[-1]}'
-        # tf_refined = f'{output_result}{os.path.split(datapath)[-1]}/{ds.user_pairing}t5.{t5_model}.{in_type}.{out_type}.{index_item_str}'
 
         qrel_path = f'{datapath}/qrels.train.tsv_'
         copyfile('./param.py', f'{refined_data_output}/refiner_param.py')
@@ -55,10 +48,11 @@ def run(data_list, domain_list, output_result, corpora, settings):
         # Query refinement - refining queries using the selected refiners
         if 'query_refinement' in settings['cmd']:
             refiners = rf.get_nrf_refiner()
-            if rf: refiners += rf.get_rf_refiner(output= refined_data_output, corpus=corpora[domain], ext_corpus=corpora[corpora[domain]['extcorpus']])
+            if rf: refiners += rf.get_rf_refiner(output=refined_data_output, corpus=corpora[domain], ext_corpus=corpora[corpora[domain]['extcorpus']], ds=ds, domain=domain)
             with mp.Pool(settings['ncore']) as p:
                 for refiner in refiners:
                     if refiner.get_model_name() == 'original': refiner_outfile = f'{refined_data_output}/{refiner.get_model_name()}'
+                    if 't5' in refiner.get_model_name(): refiner.get_refined_query(""); continue
                     else: refiner_outfile = f'{refined_data_output}/refiner.{refiner.get_model_name()}'
                     if not exists(refiner_outfile):
                         ds.queries = p.map(partial(refiner.preprocess_query), ds.queries)
@@ -72,51 +66,13 @@ def run(data_list, domain_list, output_result, corpora, settings):
             search_results = [(f'{refined_data_output}/{f}', f'{refined_data_output}/similarity/{f}.similarity.csv') for f in listdir(refined_data_output) if f.startswith('refiner') and f.__contains__('bt') and f'{f}.{metric}' not in listdir(output)]
             with mp.Pool(settings['ncore']) as p: p.starmap(partial(trecw.compare_query_similarity), search_results)
 
-        # Consider t5 as a refiner
-        # TODO: add paring with other expanders
-        if 'pair' in settings['cmd']:
-            print('Pairing queries and relevant passages for training set ...')
-            cat = True if 'docs' in {in_type, out_type} else False
-            query_qrel_doc = ds.pair(datapath, f'{prep_output}/{ds.user_pairing}queries.qrels.doc{"s" if cat else ""}.ctx.{index_item_str}.train.no_dups.tsv', cat=cat)
-            # print(f'Pairing queries and relevant passages for test set ...')
-            # TODO: query_qrel_doc = pair(datapath, f'{prep_output}/queries.qrels.doc.ctx.{index_item_str}.test.tsv')
-            # query_qrel_doc = ds.pair(datapath, f'{prep_output}/queries.qrels.doc{"s" if cat else ""}.ctx.{index_item_str}.test.tsv', cat=cat)
-            query_qrel_doc.to_csv(tsv_path['train'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
-            query_qrel_doc.to_csv(tsv_path['test'], sep='\t', encoding='utf-8', index=False, columns=[in_type, out_type], header=False)
-
-        if {'finetune', 'predict'} & set(settings['cmd']):
-            from mdl import mt5w
-            if 'finetune' in settings['cmd']:
-                print(f"Finetuning {t5_model} for {settings['iter']} iterations and storing the checkpoints at {refined_data_output} ...")
-                mt5w.finetune(
-                    tsv_path=tsv_path,
-                    pretrained_dir=f'./../output/t5-data/pretrained_models/{t5_model.split(".")[0]}',  # "gs://t5-data/pretrained_models/{"small", "base", "large", "3B", "11B"}
-                    steps=settings['iter'],
-                    output=refined_data_output, task_name=f"{domain.replace('-', '')}_cf",  # :DD Task name must match regex: ^[\w\d\.\:_]+$
-                    lseq=corpora[domain]['lseq'],
-                    nexamples=None, in_type=in_type, out_type=out_type, gcloud=False)
-
-            if 'predict' in settings['cmd']:
-                print(f"Predicting {settings['nchanges']} query changes using {t5_model} and storing the results at {refined_data_output} ...")
-                mt5w.predict(
-                    iter=settings['nchanges'],
-                    split='test',
-                    tsv_path=tsv_path,
-                    output=refined_data_output,
-                    lseq=corpora[domain]['lseq'],
-                    gcloud=False)
-
         for ranker, metric in product(param.settings['ranker'], param.settings['metric']):
-            print('-' * 30, f'Ranking and evaluating by {hex_to_ansi("#73C6B6")}{ranker} {hex_to_ansi(reset=True)} and {hex_to_ansi("#73C6B6")}{metric}')
+            print('-' * 30, f'Ranking and evaluating by {hex_to_ansi("#3498DB")}{ranker}{hex_to_ansi(reset=True)} and {hex_to_ansi("#3498DB")}{metric}{hex_to_ansi(reset=True)}')
             output = f'{refined_data_output}/{ranker}.{metric}'
             if not os.path.isdir(output): os.makedirs(output)
 
             if 'search' in settings['cmd']:  # 'bm25 ranker'
                 print(f"Searching documents for query changes using {ranker} ...")
-                # seems for some queries there is no qrels, so they are missed for t5 prediction.
-                # query_originals = pd.read_csv(f'{datapath}/queries.train.tsv', sep='\t', names=['qid', 'query'], dtype={'qid': str})
-                # we use the file after panda.merge that create the training set, so we make sure the mapping of qids
-                # query_originals = pd.read_csv(f'{prep_output}/{ds.user_pairing}queries.qrels.doc{"s" if "docs" in {in_type, out_type} else ""}.ctx.{index_item_str}.train.tsv', sep='\t', usecols=['qid', 'query'], dtype={'qid': str})
 
                 # we can run this logic if shape of queries is greater than split_size
                 if settings['large_ds']:
@@ -146,6 +102,7 @@ def run(data_list, domain_list, output_result, corpora, settings):
                     with mp.Pool(settings['ncore']) as p: p.starmap(partial(ds.search, qids=[query.qid for query in ds.queries], ranker=ranker, topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'], index=ds.settings["index"], settings=corpora[domain]), query_changes)
 
             if 'rag_fusion' in settings['cmd']:
+                from evl import trecw
                 print('RAG Fusion Step ...')
                 columns = ['id', 'Q0', 'doc', 'rank', 'score', 'Pyserini']
                 for categorize in settings['fusion']:

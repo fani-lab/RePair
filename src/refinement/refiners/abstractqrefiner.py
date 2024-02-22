@@ -1,6 +1,6 @@
 import traceback
-from src.refinement import utils
-from src.cmn.query import Query
+from refinement import utils
+from cmn.query import Query
 
 
 class AbstractQRefiner:
