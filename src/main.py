@@ -148,18 +148,15 @@ def run(data_list, domain_list, output_result, corpora, settings):
             if 'rag_fusion' in settings['cmd']:
                 print('RAG Fusion Step ...')
                 columns = ['id', 'Q0', 'doc', 'rank', 'score', 'Pyserini']
-                # For All the refiners
-                mrr_results = pd.concat([pd.read_csv(os.path.join(output, f), sep='\t', names=columns).assign(refiner=('original' if f.split('.')[1] == ranker else f.split('.')[1])) for f in os.listdir(output) if f.endswith(ranker) and not f.startswith('rag_fusion')],ignore_index=True)
-                mrr_results = mrr_results.groupby(['id', 'doc'])
-                ds.reciprocal_rank_fusion(docs=mrr_results, k=0, columns=columns, output=f'{output}/rag_fusion.{ranker}')
-
-                # Only for backtranslation
-                mrr_results = pd.concat([pd.read_csv(os.path.join(output, f), sep='\t', names=columns).assign(refiner=('original' if f.split('.')[1] == ranker else f.split('.')[1])) for f in os.listdir(output) if f.endswith(ranker) and not f.startswith('rag_fusion') and f.__contains__('bt')],ignore_index=True)
-                mrr_results = mrr_results.groupby(['id', 'doc'])
-                ds.reciprocal_rank_fusion(docs=mrr_results, k=0, columns=columns, output=f'{output}/rag_fusion_bt.{ranker}')
+                for categorize in settings['fusion']:
+                    names = ds.get_refiner_list(categorize)
+                    mrr_results = pd.concat([pd.read_csv(os.path.join(output, f), sep='\t', names=columns).assign(refiner=('original' if f.split('.')[1] == ranker else f.split('.')[1])) for f in os.listdir(output) if f.endswith(ranker) and not f.startswith('rag_fusion') and any(name in f for name in names)], ignore_index=True)
+                    mrr_results = mrr_results.groupby(['id', 'doc'])
+                    ds.reciprocal_rank_fusion(docs=mrr_results, k=0, columns=columns, output=f'{output}/rag_fusion.{categorize}.{ranker}')
 
                 # Evaluating results
-                search_results = [(f'{output}/{f}', f'{output}/{f}.{metric}') for f in listdir(f'{output}') if f.startswith('rag_fusion_') and not f.endswith(metric)]
+                print(f'Evaluating new ranked documents by rag fusion using {metric} ...')
+                search_results = [(f'{output}/{f}', f'{output}/{f}.{metric}') for f in listdir(f'{output}') if f.startswith('rag_fusion') and not f.endswith(metric)]
                 with mp.Pool(settings['ncore']) as p: p.starmap(partial(trecw.evaluate, qrels=qrel_path, metric=metric, lib=settings['treclib'], mean=not settings['large_ds']), search_results)
 
             if 'eval' in settings['cmd']:

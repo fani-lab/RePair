@@ -3,6 +3,7 @@ from tqdm import tqdm
 from os.path import join
 import json, pandas as pd
 from cmn.query import Query
+from refinement.refiner_param import refiners
 from pyserini.search.lucene import LuceneSearcher
 from pyserini.search.faiss import FaissSearcher, TctColBertQueryEncoder
 
@@ -149,6 +150,17 @@ class Dataset(object):
                         for i, h in enumerate(hits): o.write(f'{qids[row.name]}\tQ0\t{h.docid:7}\t{i + 1:2}\t{h.score:.5f}\tPyserini\n')
 
                 cls.queries.apply(_docids, axis=1)
+
+    @classmethod
+    def get_refiner_list(cls, category):
+        names = []
+        if category == 'global' or category == 'local':
+            names = list(refiners[category].keys())
+        elif category == 'all':
+            names = list(refiners['global'].keys()) + list(refiners['local'].keys())
+        elif category == 'bt':
+            names = [category]
+        return [re.sub(r'\b(\w+)Stemmer\b', r'stem.\1', re.sub(r'\b\w*BackTranslation\w*\b', 'bt', name)).lower() for name in names]
 
     ''' Fuse Ranking '''
     @classmethod
