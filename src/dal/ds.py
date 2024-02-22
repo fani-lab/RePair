@@ -8,6 +8,11 @@ from pyserini.search.faiss import FaissSearcher, TctColBertQueryEncoder
 
 
 class Dataset(object):
+    domain = None
+    queries = None
+    index = None
+    searcher = None
+    settings = None
 
     def __init__(self, settings, domain):
         # https://github.com/castorini/pyserini/blob/master/docs/prebuilt-indexes.md
@@ -95,13 +100,15 @@ class Dataset(object):
     def set_index(cls, index): cls.index = index
 
     @classmethod
-    def search(cls, in_query:str, out_docids:str, qids:list, ranker='bm25', topk=100, batch=None, ncores=1, encoder=None):
+    def search(cls, in_query:str, out_docids:str, qids:list, ranker='bm25', topk=100, batch=None, ncores=1, encoder=None, index=None, settings=None):
         print(f'Searching docs for {hex_to_ansi("#3498DB")}{in_query} {hex_to_ansi(reset=True)}and writing results in {hex_to_ansi("#F1C40F")}{out_docids}{hex_to_ansi(reset=True)} ...')
         # https://github.com/google-research/text-to-text-transfer-transformer/issues/322
+        # Initialization - All the variables in class cannot be shared!
         if (in_query.split('/')[-1]).split('.')[0] == 'refiner': cls.queries = pd.read_csv(in_query, names=['query'], sep='\t', usecols=[1], skip_blank_lines=False, engine='python')
         else: cls.queries = pd.read_csv(in_query, names=['query'], sep='\r\r', skip_blank_lines=False, engine='python')  # a query might be empty str (output of t5)!!
         assert len(cls.queries) == len(qids)
-
+        if not cls.index: cls.set_index(index)
+        if not cls.settings: cls.settings = settings
         try:
             if not cls.searcher:
                 # Dense Retrieval

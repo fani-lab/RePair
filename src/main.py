@@ -142,10 +142,8 @@ def run(data_list, domain_list, output_result, corpora, settings):
                 else:
                     # Considers generated queries from t5 or refiners and the original queries
                     query_changes = [(f'{refined_data_output}/{f}', f'{output}/{f}.{ranker}') for f in listdir(refined_data_output) if isfile(join(refined_data_output, f)) and ((f.startswith('pred.') and len(f.split('.')) == 2) or (f.startswith('refiner.') or f.startswith('original')) and f'{f}.{ranker}' not in listdir(output))]
-                    ds.set_index(index=ds.settings["index"])
-                    # seems the LuceneSearcher cannot be shared in multiple processes! See dal.ds.py
-                    #TODO: parallel on each file ==> Problem: starmap does not understand inherited Dataset.searcher attribute!
-                    with mp.Pool(settings['ncore']) as p: p.starmap(partial(ds.search, qids=[query.qid for query in ds.queries], ranker=ranker, topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore']), query_changes)
+                    # Seems the LuceneSearcher cannot be shared in multiple processes! All the variables in class cannot be shared!
+                    with mp.Pool(settings['ncore']) as p: p.starmap(partial(ds.search, qids=[query.qid for query in ds.queries], ranker=ranker, topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'], index=ds.settings["index"], settings=corpora[domain]), query_changes)
 
             if 'rag_fusion' in settings['cmd']:
                 print('RAG Fusion Step ...')
@@ -300,8 +298,6 @@ def run(data_list, domain_list, output_result, corpora, settings):
 
 def addargs(parser):
     dataset = parser.add_argument_group('dataset')
-    dataset.add_argument('-data', '--data-list', nargs='+', type=str, default=[], required=False, help='a list of dataset paths; required; (eg. -data ./../data/raw/toy.msmarco.passage)')
-    dataset.add_argument('-domain', '--domain-list', nargs='+', type=str, default=[], required=False, help='a list of dataset paths; required; (eg. -domain msmarco.passage)')
     dataset.add_argument('-data', '--data-list', nargs='+', type=str, default=param.settings['datalist'], help='a list of dataset paths; required; (eg. -data ./../data/raw/toy.msmarco.passage)')
     dataset.add_argument('-domain', '--domain-list', nargs='+', type=str, default=param.settings['domainlist'], help='a list of dataset paths; required; (eg. -domain msmarco.passage)')
 
@@ -320,10 +316,6 @@ if __name__ == '__main__':
     addargs(parser)
     args = parser.parse_args()
 
-    # TODO: domain list and data will be here to
-    # TODO: All the args will be changed in the param also the client can change them as an input
-    run(data_list=param.settings['datalist'],
-        domain_list=param.settings['domainlist'],
     run(data_list=args.data_list,
         domain_list=args.domain_list,
         output_result=args.output,
