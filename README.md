@@ -1,4 +1,4 @@
-# ``No Query Left Behind``: Query Refinement via Language Backtranslation
+# ``No Query Left Behind``: Query Refinement via Backtranslation
 Web users often struggle to express their information needs clearly in short, vague queries, making it hard for search engines to find relevant results. Query refinement, which aims to improve search relevance by adjusting original queries, is crucial in addressing this challenge. However, current evaluation methods for query refinement models may not accurately reflect real-world usage patterns. We propose a novel approach using natural language backtranslation to create benchmark datasets for evaluating query refinement models. Backtranslation involves translating a query from one language to another and then translating it back, ensuring that the meaning remains consistent. We believe that backtranslation can:
 
 1. Identify missing terms in a query that are assumed to be understood due to their common usage in the original language.
@@ -207,50 +207,6 @@ After this step, the final structure of the output will be look like below:
 
 ```
 
-### [`['dense_retrieve']`](./src/param.py#L17)
-
-It is imperative for us to support dense retrieval as a ranker method for which we choose to explore `tct_colbert` the current `state-of-the-art` method.
-
-`tct colbert` is supported directly by `pyserini` , which allows us to index and search.
-
-We explain in detail how to do this for any dataset and release our dense index for `aol.title` and `aol.title.url`, for `msmarco.passage`, we used [the prebuild index](https://github.com/castorini/pyserini/blob/master/docs/experiments-tct_colbert-v2.md) provided by pyserini 
-
-**Indexing**:
-Before building a dense index, we need to encode the passages either in faiss format or jsonl format. We provide a sample command that indexes `aol.title` :
-```
-python -m pyserini.encode \
-  input   --corpus  data/raw/aol-ia/title\
-          --fields text \  
-          --delimiter "\n" \
-          --shard-id 0 \   
-          --shard-num 1 \  
-  output  --embeddings data/raw/aol-ia/dense-encoder/tct_colbert.title \
-          --to-faiss \
-  encoder --encoder castorini/tct_colbert-v2-hnp-msmarco \
-          --fields text \  
-          --batch 32 
-```
-Now once the encoding is done, we need to index this, This indexing will take about 24 hours:
-```
-    python -m pyserini.index.faiss \
-  --input  data/raw/aol-ia/dense-encoder/tct_colbert.title \  
-  --output data/raw/aol-ia/dense-index/tct_colbert.title \
-  --hnsw
-```
-We chose to go with the HNSW file structure,you can explore more about it [here](https://faiss.ai/cpp_api/struct/structfaiss_1_1IndexHNSW.html#struct-faiss-indexhnsw)
-
-[**Searching**:](./src/dal/ds.py#L53)
-We added the searching to our pipeline, since it's very similar as searching in a sparse index. 
-```python
-from pyserini.search.faiss import TctColBertQueryEncoder, FaissSearcher
-encoder = TctColBertQueryEncoder('./data/raw/aol-ia/dense-encoder/tct_colbert.title')
-searcher = FaissSearcher('./data/raw/aol-ia/dense-index/tct_colbert.title',encoder)
-```
-We do not apply `tct_colbert` to our whole dataset instead we attempt to improve our predicted queries which does not meet a certain condition:
-``` 
-original_q_metric > refined_q_metric and 0 >= original_q_metric >= 1
-```
-
 
 ## 3. Gold Standard Datasets 
 
@@ -259,28 +215,6 @@ original_q_metric > refined_q_metric and 0 >= original_q_metric >= 1
 | `msmarco.passage` | [`./output/msmarco.passage/t5.base.gc.docs.query.passage/bm25.map.agg.gold.tsv`](https://uwin365-my.sharepoint.com/:u:/g/personal/lakshmiy_uwindsor_ca/EeMQjTbagV9GplPakERqywYBZqBB6xkJzCXfmYQnS5FABw?e=b9bKRJ) 398 MB | [`./data/raw/msmarco.passage`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EuH9N7rt8CRAhowJbK2CZzUBoWNrzP3sh2ErhavF5p534w?e=p5hvE5)<br>[`./data/preprocessed/msmarco.passage`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EtQG-QohySlAleQ6caEyyTYB3xsCQ3tTnYHTBIj5-fFnFQ?e=8K6Ce8) | [`./output/msmarco.passage/t5.base.gc.docs.query.passage/`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/Enf3gIQZIeBNlgmyWXqob1EBgY7zVZpYagWTFX8JrGe98g?e=YPqYgz) | 
 | `aol-ia.title` | [`./output/aol-ia/t5.base.gc.docs.query.title/bm25.map.agg.gold.tsv`](https://uwin365-my.sharepoint.com/:u:/g/personal/lakshmiy_uwindsor_ca/EVkDvYIyWyFGjEl88GAcKXABKVWSGITtOA8EEBeFAmc9Zw?e=bq3Ydd) <br> 756 MB| [`./data/raw/aol-ia`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EiYYSmz-L-VHqj8x-Zl58LIBl1XKzmgI6hmZHz8rruMfeA?e=VTDsvC) <br>[`./data/preprocessed/aol-ia`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EqGqoB05KMdAn0j1frOkIV4BS2cE7bWwbSysVXtxkiSNrA?e=mf8loW) | [`./output/aol-ia/t5.base.gc.docs.query.title/`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EunaA74D03tMk21oGHlWFccBZBzQuhFCE7J21BRuIUu4Dw?e=XfkcoO) | 
 | `aol-ia.url.title` | [`./output/aol-ia/t5.base.gc.docs.query.url.title/bm25.map.agg.gold.tsv`](https://uwin365-my.sharepoint.com/:u:/g/personal/lakshmiy_uwindsor_ca/Eaf9S3WqvaBNlzu1MZhB8ZwBwFUeLkiKWumy-VNbej_Iqw?e=OwWnEy) <br> 706 MB | [`./data/raw/aol-ia`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EiYYSmz-L-VHqj8x-Zl58LIBl1XKzmgI6hmZHz8rruMfeA?e=VTDsvC) <br>[`./data/preprocessed/aol-ia`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EqGqoB05KMdAn0j1frOkIV4BS2cE7bWwbSysVXtxkiSNrA?e=mf8loW) | [`./output/aol-ia/t5.base.gc.docs.query.url.title/`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/ErGC88ga8VVMj9z49C96pgsBw3l5W6O3px680-ElvyaTWw?e=Fek7LD) | 
-
-### File Structure
-Here is the refined queries for the two original queries in [`./output/aol-ia/t5.base.gc.docs.query.title/bm25.map.agg.gold.tsv`](https://uwin365-my.sharepoint.com/:u:/g/personal/lakshmiy_uwindsor_ca/EVkDvYIyWyFGjEl88GAcKXABKVWSGITtOA8EEBeFAmc9Zw?e=bq3Ydd) for `aol-ia.title`:
-
-```
-qid	        order	query	                        bm25.map
-8c418e7c9e5993	-1	rentdirect com	                0.0
-8c418e7c9e5993	pred.9	hurston apartments	        0.0556
-8c418e7c9e5993	pred.4	rental apartments	        0.0357
-8c418e7c9e5993	pred.8	apartments nyc	                0.0312
-8c418e7c9e5993	pred.6	first class apartments in nyc	0.0135
-8c418e7c9e5993	pred.2	apartments and new york	        0.0068
-0cc411681d1441	-1	staple com	                0.037
-0cc411681d1441	pred.8	staple pubs	                1.0
-0cc411681d1441	pred.7	staple england pub	        0.5
-0cc411681d1441	pred.1	staple east of england	        0.1
-0cc411681d1441	pred.10	staple	                        0.0385
-0cc411681d1441	pred.3	staple england	                0.0385
-0cc411681d1441	pred.4	staple england	                0.0385
-0cc411681d1441	pred.6	staple england	                0.0385
-```
-As seen, `order: -1` shows the original query with its retrieval preformance. For the rest, it shows the refined queries in decreasing retrieval performance. For instance, for the original query `query: staple com`, the retrieval performance is `bm25.map: 0.037` while the best refined query could imporove it to `bm25.map: 1.0`! 
 
 ### Settings
 
