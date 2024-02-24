@@ -148,13 +148,16 @@ For additional details, please refer to this [document](./misc/Backtranslation.p
 
 To evaluate the quality of the refined queries, metrics such as bleu, rouge, and semsim are employed. The bleu score measures the similarity between the backtranslated and original query by analyzing n-grams, while the rouge score considers the overlap of n-grams to capture essential content. Due to their simplicity and effectiveness, these metrics are widely utilized in machine translation tasks. Despite their usefulness, both scores may not accurately capture the overall meaning or fluency of the translated text due to their heavy reliance on n-grams. To address topic drift and evaluate the similarity between the original and refined queries, we additionally employ [declutr](https://aclanthology.org/2021.acl-long.72/) for query embeddings, computing cosine similarity. Declutr, a self-learning technique requiring no labeled data, minimizes the performance gap between unsupervised and supervised pretraining for universal sentence encoders during the extension of transformer-based language model training. The semsim metric, relying on cosine similarity of embeddings, proves highly effective in capturing the subtle semantic nuances of language, establishing itself as a dependable measure of the quality of backtranslated queries.
 
+The below images demonstrate the average token count for the original queries in English and their backtranslated versions across various languages, along with the average pairwise semantic similarities measured using 'rouge' and 'declutr'. It's evident that all languages were able to introduce new terms into the backtranslated queries while maintaining semantic coherence.
+![image](similarity.png)
+
 ## Example
 These samples are taken from an ANTIQUE dataset that has been refined using a backtranslation refiner with the German language.
 | **id** 	| **original** 	| **refined** 	| **rouge1** 	| **rouge2** 	| **rougeL** 	| **rougeLsum** 	| **bleu** 	| **precisions** 	| **brevity_penalty** 	| **length_ratio** 	| **translation_length** 	| **reference_length** 	| **semsim** 	|
 |---	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|
 | 1290612 	| why do anxiety and depression seem to coexist? 	| Why do fear and depression seem to be linked 	| 0.705882 	| 0.533333 	| 0.705882 	| 0.705882353 	| 0.315598 	| [0.5555555555555556, 0.375, 0.2857142857142857,   0.16666666666666666] 	| 1 	| 1 	| 9 	| 9 	| 0.8554905 	|
 | 4473331 	| How can I keep my   rabit indoors? 	| How can I keep my   rabbit in the house 	| 0.625 	| 0.571429 	| 0.625 	| 0.625 	| 0.446324 	| [0.5555555555555556,   0.5, 0.42857142857142855, 0.3333333333333333] 	| 1 	| 1.125 	| 9 	| 8 	| 0.7701595 	|
-| 1509982 	| How is th Chemistry is a basic of Science? 	| How is chemistry a principle of science 	| 0.75 	| 0.285714 	| 0.75 	| 0.75 	| 0 	| [0.5714285714285714, 0.16666666666666666, 0.0, 0.0] 	| 0.651439058 	| 0.7 	| 7 	| 10 	| 0.7796929 	|
+| 1509982 	| How is the Chemistry is a basic of Science? 	| How is chemistry a principle of science 	| 0.75 	| 0.285714 	| 0.75 	| 0.75 	| 0 	| [0.5714285714285714, 0.16666666666666666, 0.0, 0.0] 	| 0.651439058 	| 0.7 	| 7 	| 10 	| 0.7796929 	|
 
 
 ### [`['search']`](./src/param.py#L17)
@@ -217,20 +220,10 @@ After this step, the final structure of the output will be look like below:
 | `aol-ia.url.title` | [`./output/aol-ia/t5.base.gc.docs.query.url.title/bm25.map.agg.gold.tsv`](https://uwin365-my.sharepoint.com/:u:/g/personal/lakshmiy_uwindsor_ca/Eaf9S3WqvaBNlzu1MZhB8ZwBwFUeLkiKWumy-VNbej_Iqw?e=OwWnEy) <br> 706 MB | [`./data/raw/aol-ia`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EiYYSmz-L-VHqj8x-Zl58LIBl1XKzmgI6hmZHz8rruMfeA?e=VTDsvC) <br>[`./data/preprocessed/aol-ia`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EqGqoB05KMdAn0j1frOkIV4BS2cE7bWwbSysVXtxkiSNrA?e=mf8loW) | [`./output/aol-ia/t5.base.gc.docs.query.url.title/`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/ErGC88ga8VVMj9z49C96pgsBw3l5W6O3px680-ElvyaTWw?e=Fek7LD) | 
 
 ### Settings
-
-`RePair` has generated gold standard query refinement datasets for `msmarco.passage` and `aol-ia` query sets using `t5.base` transformer on google cloud's tpus (`gc`) with `docs.query` pairing strategy for `bm25` ranker and `map` evaluation metric. The golden datasets along with all the artifacts including preprocessed `docs.query` pairs, model checkpoint, predicted refined queries, their search results and evaluation metric values are available at the above links. You can adjust the settings [./src/param.py](./src/param.py)
-
-### Stats
-
-| query set={q}   |    #q     |  avg\|q\| | avg`bm25.map`(q) |   #gold   | avg\|q*\| |  %  | avg`bm25.map`(q*) |    Δ%    | #diamond (ap=1)  | %q* |
-|-----------------|:---------:|:---------:|:------:|:---------:|:----------:|:---:|:------:|:--------:|:---------------:|:----------------:|
-| msmarco.passage |  502,939  |   5.9675  | 0.0862 |  414,337  |   7.4419   | 82% | 0.5704 |  +562 %  |     176,922     |        35%       |
-| aol-ia-title    | 4,459,613 |   3.5849  | 0.0252 | 2,583,023 |   3.1270   | 58% | 0.4175 | +1,556 % |     649,764     |        14%       |
-| aol-ia-url-title| 4,672,506 |   3.5817  | 0.0271 | 2,421,347 |   3.5354   | 52% | 0.3997 | +1,374 % |     591,001     |        13%       |
+We've created benchmark query refinement datasets for the 'trec' dataset using the 'backtranslated' refiner with both 'bm25' and 'qld' rankers, along with 'map' and 'qld' evaluation metrics.You can adjust the settings [./src/param.py](./src/param.py)
 
 ### Samples
 
-![image](https://user-images.githubusercontent.com/8619934/221714147-d2c212b8-8e00-47b4-8f3f-89fe805d441a.png)
 
 ## 4. Acknowledgement
 We benefit from [``trec_eval``](https://github.com/usnistgov/trec_eval), [``pyserini``](https://github.com/castorini/pyserini), [``ir-dataset``](https://ir-datasets.com/), and other libraries. We would like to thank the authors of these libraries and helpful resources.
