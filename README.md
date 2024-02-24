@@ -28,11 +28,8 @@ We conducted extensive experiments using widely recognized TREC query sets and m
 - [5. License](#5-license)
 - [6. Citation](#6-citation)
 
-</td>
-<td ><img src='./misc/flow.png' width="80%" /></td>
-<td ><img src='./misc/class.png' width="800" /></td>
-</tr>
 </table>
+![image](flow.png)
 
 ## 1. Setup
 You need to have ``Python=3.8`` and install [`pyserini`](https://github.com/castorini/pyserini/) package (needs `Java`), among others listed in [``requirements.txt``](requirements.txt). 
@@ -63,23 +60,17 @@ cd ..
 ```
 
 ### Lucene Indexes
-To perform fast IR tasks, we need to build the indexes of document corpora or use the [`prebuilt-indexes`](https://github.com/castorini/pyserini/blob/master/docs/prebuilt-indexes.md) like [`msmarco.passage`](https://rgw.cs.uwaterloo.ca/JIMMYLIN-bucket0/pyserini-indexes/lucene-index.msmarco-v1-passage.20220131.9ea315.tar.gz). The path to the index need to be set in [`./src/param.py`](./src/param.py) like [`param.settings['msmarco.passage']['index']`](./src/param.py#L24).
-
-In case there is no prebuilt index, steps include collecting the corpus and building an index as we did for [`aol-ia`](https://dl.acm.org/doi/abs/10.1007/978-3-030-99736-6_42) using [`ir-datasets`](https://ir-datasets.com/aol-ia.html).
+To perform fast IR tasks, we need to build the sparse indexes of document corpora or use the [`prebuilt-indexes`](https://github.com/castorini/pyserini/blob/master/docs/prebuilt-indexes.md). The path to the index need to be set in [`./src/param.py`](./src/param.py).
 
 ## 2. Quickstart
 For using query refinement make sure to add the command to the pipeline in the [./src/param.py](./src/param.py).
 
-Also for refining queries, we use [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to train a model, that when given an input query (origianl query). Currently, we finetuned [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) model on `msmarco.passage` (no context) and `aol` (w/o `userid`). For `yandex` dataset, we will train [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) from scratch since the tokens are anonymized by random numbers. 
-
 As seen in the above [`workflow`](./misc/workflow.png), `RePair` has three pipelined steps: 
-> 1. Refining Quereis: [`query_refinement`, `t5`]
- > 1.1. Query Refinement methods: [`query_refinement`]
- > 1.2. Transformer: [`pair`, `finetune`, `predict`]
+> 1. Refining Quereis: [`query_refinement`]
 > 2. Performance Evaluation: [`search`, `eval`]
 > 3. Dataset Curation: [`agg`, `box`]
 
-To run `RePair` pipeline, we need to set the required parameters of each step in [`./src/param.py`](./src/param.py) such as pairing strategy ([`pairing`](./src/param.py#L28)) for a query set, the choice of transformer ([`t5model`](./src/param.py#L14)), etc. Then, the pipeline can be run by its driver at [`./src/main.py`](./src/main.py):
+To run `RePair` pipeline, we need to set the required parameters of each step in [`./src/param.py`](./src/param.py) such as the ranker used in the search step. Then, the pipeline can be run by its driver at [`./src/main.py`](./src/main.py):
 
 ```sh
 python -u main.py -data ../data/raw/toy.msmarco.passage -domain msmarco.passage
@@ -163,33 +154,19 @@ These samples are taken from an ANTIQUE dataset that has been refined using a ba
 ### [`['search']`](./src/param.py#L17)
 We search the relevant documents for both the original query and each of the `potential` refined queries. We need to set an information retrieval method, called ranker, that retrieves relevant documents and ranks them based on relevance scores. We integrate [`pyserini`](https://github.com/castorini/pyserini), which provides efficient implementations of sparse and dense rankers, including `bm25` and `qld` (query likelihood with Dirichlet smoothing). 
 
-We store the result of search for the `i`-th potential refined query at same folder in files with names ending with ranker, i.e., `./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}.{ranker name}` like [`./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005.bm25`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005.bm25).
-
 
 ### [`['eval']`](./src/param.py#L20)
 The search results of each potential refined queries are evaluated based on how they improve the performance with respect to an evaluation metric like `map` or `mrr`. 
-
-We store the result of evaluation for the `i`-th potential refined query at same folder in files with names ending with evaluation metric, i.e., `./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}.{ranker name}.{metric name}` like [`./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005.bm25.map`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005.bm25.map).
 
 
 ### [`['agg', 'box']`](./src/param.py#L12)
 Finaly, we keep those potential refined queries whose performance (metric score) have been better or equal compared to the original query, i.e., `refined_query_metric >= original_query_metric and refined_q_metric > 0`.
 
-We keep two main datasets as the final outcome of the `RePair` pipeline:
+We keep two main datasets as the outcome of the `RePair` pipeline:
 
 > 1. `./output/{input query set}/{transformer name}.{pairing strategy}/{ranker}.{metric}.agg.gold.tsv`: contains the original queries and their refined queries that garanteed the `better` performance along with the performance metric values
 
 > 2. `./output/{input query set}/{transformer name}.{pairing strategy}/{ranker}.{metric}.agg.all.tsv`: contains the original queries and `all` their predicted refined queries along with the performance metric values
-
-For instance, for `toy` query sets of `msmarco.passage` and `aol-ia.title`, here are the files:
-
-[`./output/toy.msmarco.passage/t5.small.local.docs.query.passage/bm25.map.agg.gold.tsv`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/bm25.map.agg.gold.tsv)
-
-[`./output/toy.msmarco.passage/t5.small.local.docs.query.passage/bm25.map.agg.all.tsv`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/bm25.map.agg.all.tsv)
-
-[`./output/toy.aol-ia/t5.small.local.docs.query.title/bm25.map.agg.gold.tsv`](./output/toy.aol-ia/t5.small.local.docs.query.title/bm25.map.agg.gold.tsv)
-
-[`./output/toy.aol-ia/t5.small.local.docs.query.title/bm25.map.agg.all.tsv`](./output/toy.aol-ia/t5.small.local.docs.query.title/bm25.map.agg.all.tsv)
 
 For boxing, since we keep the performances for all the potential queries, we can change the condition and have a customized selection like having [`diamond`](https://dl.acm.org/doi/abs/10.1145/3459637.3482009) refined queries with maximum possible performance, i.e., `1` by setting the condition: `refined_query_metric >= original_query_metric and refined_q_metric == 1`. The boxing condition can be set at [`./src/param.py`](./src/param.py#L12). 
 
@@ -210,14 +187,6 @@ After this step, the final structure of the output will be look like below:
 
 ```
 
-
-## 3. Gold Standard Datasets 
-
-| query set | final gold standard dataset | data folder (raw and preprocessed) | output folder (model, predictions, ...) | 
-|:---:|:---:|:---:|:---:|
-| `msmarco.passage` | [`./output/msmarco.passage/t5.base.gc.docs.query.passage/bm25.map.agg.gold.tsv`](https://uwin365-my.sharepoint.com/:u:/g/personal/lakshmiy_uwindsor_ca/EeMQjTbagV9GplPakERqywYBZqBB6xkJzCXfmYQnS5FABw?e=b9bKRJ) 398 MB | [`./data/raw/msmarco.passage`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EuH9N7rt8CRAhowJbK2CZzUBoWNrzP3sh2ErhavF5p534w?e=p5hvE5)<br>[`./data/preprocessed/msmarco.passage`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EtQG-QohySlAleQ6caEyyTYB3xsCQ3tTnYHTBIj5-fFnFQ?e=8K6Ce8) | [`./output/msmarco.passage/t5.base.gc.docs.query.passage/`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/Enf3gIQZIeBNlgmyWXqob1EBgY7zVZpYagWTFX8JrGe98g?e=YPqYgz) | 
-| `aol-ia.title` | [`./output/aol-ia/t5.base.gc.docs.query.title/bm25.map.agg.gold.tsv`](https://uwin365-my.sharepoint.com/:u:/g/personal/lakshmiy_uwindsor_ca/EVkDvYIyWyFGjEl88GAcKXABKVWSGITtOA8EEBeFAmc9Zw?e=bq3Ydd) <br> 756 MB| [`./data/raw/aol-ia`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EiYYSmz-L-VHqj8x-Zl58LIBl1XKzmgI6hmZHz8rruMfeA?e=VTDsvC) <br>[`./data/preprocessed/aol-ia`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EqGqoB05KMdAn0j1frOkIV4BS2cE7bWwbSysVXtxkiSNrA?e=mf8loW) | [`./output/aol-ia/t5.base.gc.docs.query.title/`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EunaA74D03tMk21oGHlWFccBZBzQuhFCE7J21BRuIUu4Dw?e=XfkcoO) | 
-| `aol-ia.url.title` | [`./output/aol-ia/t5.base.gc.docs.query.url.title/bm25.map.agg.gold.tsv`](https://uwin365-my.sharepoint.com/:u:/g/personal/lakshmiy_uwindsor_ca/Eaf9S3WqvaBNlzu1MZhB8ZwBwFUeLkiKWumy-VNbej_Iqw?e=OwWnEy) <br> 706 MB | [`./data/raw/aol-ia`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EiYYSmz-L-VHqj8x-Zl58LIBl1XKzmgI6hmZHz8rruMfeA?e=VTDsvC) <br>[`./data/preprocessed/aol-ia`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EqGqoB05KMdAn0j1frOkIV4BS2cE7bWwbSysVXtxkiSNrA?e=mf8loW) | [`./output/aol-ia/t5.base.gc.docs.query.url.title/`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/ErGC88ga8VVMj9z49C96pgsBw3l5W6O3px680-ElvyaTWw?e=Fek7LD) | 
 
 ### Settings
 We've created benchmark query refinement datasets for the 'trec' dataset using the 'backtranslated' refiner with both 'bm25' and 'qld' rankers, along with 'map' and 'qld' evaluation metrics.You can adjust the settings [./src/param.py](./src/param.py)
