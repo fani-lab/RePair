@@ -1,4 +1,4 @@
-# ``RePair``: A Toolkit for Query Refinement Gold Standard Generation Using Transformers
+# ``No Query Left Behind``: Query Refinement via Language Backtranslation
 Web users often struggle to express their information needs clearly in short, vague queries, making it hard for search engines to find relevant results. Query refinement, which aims to improve search relevance by adjusting original queries, is crucial in addressing this challenge. However, current evaluation methods for query refinement models may not accurately reflect real-world usage patterns. We propose a novel approach using natural language backtranslation to create benchmark datasets for evaluating query refinement models. Backtranslation involves translating a query from one language to another and then translating it back, ensuring that the meaning remains consistent. We believe that backtranslation can:
 
 1. Identify missing terms in a query that are assumed to be understood due to their common usage in the original language.
