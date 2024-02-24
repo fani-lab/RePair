@@ -1,5 +1,11 @@
 # ``RePair``: A Toolkit for Query Refinement Gold Standard Generation Using Transformers
-Search engines have difficulty searching into knowledge repositories since they are not tailored to the users' information needs. User's queries are, more often than not, under-specified that also retrieve irrelevant documents. Query refinement, also known as query `reformulation`, or `suggesetion`, is the process of transforming users' queries into new `refined` versions without semantic drift to enhance the relevance of search results. Prior query refiners have been benchmarked on web retrieval datasets following `weak assumptions` that users' input queries improve gradually within a search session. To fill the gap, we contribute `RePair`, an open-source configurable toolkit to generate large-scale gold-standard benchmark datasets from a variety of domains for the task of query refinement. `RePair` takes a dataset of queries and their relevance judgements (e.g. `trec-datasets`, `msmarco` or `aol`), an information retrieval method (e.g., `bm25`), and an evaluation metric (e.g., `map`), and outputs refined versions of queries using supervised and unsupervised methods (e.g., `backtranslation`, [`T5`](https://github.com/google-research/text-to-text-transfer-transformer)), each of which with the relevance improvement guarantees.
+Web users often struggle to express their information needs clearly in short, vague queries, making it hard for search engines to find relevant results. Query refinement, which aims to improve search relevance by adjusting original queries, is crucial in addressing this challenge. However, current evaluation methods for query refinement models may not accurately reflect real-world usage patterns. We propose a novel approach using natural language backtranslation to create benchmark datasets for evaluating query refinement models. Backtranslation involves translating a query from one language to another and then translating it back, ensuring that the meaning remains consistent. We believe that backtranslation can:
+
+1. Identify missing terms in a query that are assumed to be understood due to their common usage in the original language.
+2. Include relevant synonyms from the target language to provide additional context.
+3. Clarify the meaning of ambiguous terms or phrases.
+
+We conducted extensive experiments using widely recognized TREC query sets and multiple languages. Our results, evaluated using various metrics, demonstrate the effectiveness of backtranslation in creating high-quality benchmark datasets for evaluating query refinement methods.
 
 <table align="center" border=0>
 <tr>
@@ -10,13 +16,9 @@ Search engines have difficulty searching into knowledge repositories since they 
 - [2. Quickstart](#2-quickstart)
   * [`query_refinement`](#query_refinement)
   * [`similarity`](#similarity)
-  * [`pair`](#pair)
-  * [`finetune`](#finetune)
-  * [`predict`](#predict)
   * [`search`](#search)
   * [`eval`](#eval)
   * [`agg, box`](#agg-box)
-  * [`dense_retrieve`](#dense_retrieve)
 - [3. Gold Standard Datasets](#3-gold-standard-datasets)
   * [File Structure](#file-structure)
   * [Settings](#settings)
@@ -154,78 +156,6 @@ These samples are taken from an ANTIQUE dataset that has been refined using a ba
 | 4473331 	| How can I keep my   rabit indoors? 	| How can I keep my   rabbit in the house 	| 0.625 	| 0.571429 	| 0.625 	| 0.625 	| 0.446324 	| [0.5555555555555556,   0.5, 0.42857142857142855, 0.3333333333333333] 	| 1 	| 1.125 	| 9 	| 8 	| 0.7701595 	|
 | 1509982 	| How is th Chemistry is a basic of Science? 	| How is chemistry a principle of science 	| 0.75 	| 0.285714 	| 0.75 	| 0.75 	| 0 	| [0.5714285714285714, 0.16666666666666666, 0.0, 0.0] 	| 0.651439058 	| 0.7 	| 7 	| 10 	| 0.7796929 	|
 
-### [`['pair']`](./src/param.py#L25)
-We create training sets based on different pairings of queries and relevant passages in the [`./data/preprocessed/{domain name}/`](./data/preprocessed/) for each domain like [`./data/preprocessed/toy.msmarco.passage/`](./data/preprocessed/toy.msmarco.passage/) for `msmarco.passage`.
-
-1. `ctx.query.docs`: context: query -> _concatenated_ relevant documents (passages) 
-2. `ctx.docs.query`: context: _concatenated_ relevant documents (passages) -> query, like in [docTTTTTTQuery](https://github.com/castorini/docTTTTTquery#learning-a-new-prediction-model-t5-training-with-tensorflow)
-3. `ctx.query.doc`: context: query -> relevant document (passage)
-4. `ctx.doc.query`: context: relevant documents (passages) -> query
-
-where the context will be `userid` (personalized) or empty (context free). For instance, for `msmarco.passage` which has no contextual information, we have [`docs.query`](./data/preprocessed/toy.msmarco.passage/docs.query.passage.train.tsv) or `query.docs` since there is no context. Further, if a query has more than one relevant documents, we can either _concatenate_ all relevant documents into a single document, i.e., `doc`+`s` or _duplicate_ the (query, doc) pairs for each relevant document, i.e., `doc`.
-
-After this step, [`./data/`](./data) directory looks like:
-
-```bash
-├── data
-│   ├── preprocessed
-│   │   └── toy.msmarco.passage
-│   │       ├── docs.query.passage.test.tsv
-│   │       ├── docs.query.passage.train.tsv
-│   │       ├── queries.qrels.docs.ctx.passage.test.tsv
-│   │       └── queries.qrels.docs.ctx.passage.train.tsv
-```
-
-### [`['finetune']`](./src/param.py#L14)
-We have used [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to generate the refinements to the original queries. We can run [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) on local machine (cpu/gpu), or on google cloud (tpu), which is the [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) pereferance,
-> - `local machine (cpu, gpu)(linux, windows)`
-> - `google cloud (tpu)`
-
-We store the finetuned transformer in `./output/{domain name}/{transformer name}.{pairing strategy}`. For instance, for  [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) whose `small` version has been finetuned on a local machine for `toy.msmarco.passage`, we save the model in [`./output/toy.msmarco.passage/t5.small.local.docs.query.passage/`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/)
-
-After this step, [`./output/`](./output) looks like:
-
-```bash
-├── output
-│   ├── t5-data
-│   │   ├── pretrained_models
-│   │   │   └── small
-│   │   └── vocabs
-│   │       ├── cc_all.32000
-│   │       └── cc_en.32000
-│   └── toy.msmarco.passage
-│       └── t5.small.local.docs.query.passage
-│           ├── checkpoint
-│           ├── events.out.tfevents.1675961098.HFANI
-│           ├── graph.pbtxt
-│           ├── model.ckpt-1000000.data-00000-of-00002
-│           ├── model.ckpt-1000000.index
-│           ├── model.ckpt-1000000.meta
-│           ├── model.ckpt-1000005.data-00000-of-00002
-│           ├── model.ckpt-1000005.index
-│           ├── model.ckpt-1000005.meta
-│           ├── operative_config.gin
-```
-
-### [`['predict']`](./src/param.py#L16)
-Once a transformer has been finetuned, we feed input original queries w/ or w/o context to the model and whaterver the model generates is considered as a `potential` refined query. To have a collection of potential refined queries for the same original query, we used the [`top-k random sampling`](https://aclanthology.org/P18-1082/) as opposed to `beam search`, suggested by [`Nogueira and Lin`](https://cs.uwaterloo.ca/~jimmylin/publications/Nogueira_Lin_2019_docTTTTTquery-v2.pdf). So, we ran the transformer for [`nchanges`](./src/param.py#L16) times at inference and generate [`nchanges`](./src/param.py#L16) potential refined queries. 
-
-We store the `i`-th potential refined query of original queries at same folder as the finetuned model, i.e., `./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}` like [`./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005)
-
-After this step, prediction files will be added to [`./output`](./output):
-
-```bash
-├── output
-│   └── dataset_name
-│       └── t5.small.local.docs.query.passage
-│           ├── original.-1
-│           ├── pred.0-1000005
-│           ├── pred.1-1000005
-│           ├── pred.2-1000005
-│           ├── pred.3-1000005
-│           ├── pred.4-1000005
-│   │   └── refined_queries_files
-```
 
 ### [`['search']`](./src/param.py#L17)
 We search the relevant documents for both the original query and each of the `potential` refined queries. We need to set an information retrieval method, called ranker, that retrieves relevant documents and ranks them based on relevance scores. We integrate [`pyserini`](https://github.com/castorini/pyserini), which provides efficient implementations of sparse and dense rankers, including `bm25` and `qld` (query likelihood with Dirichlet smoothing). 
