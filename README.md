@@ -7,6 +7,7 @@ Web users often struggle to express their information needs clearly in short, va
 
 We conducted extensive experiments using widely recognized TREC query sets and multiple languages. Our results, evaluated using various metrics, demonstrate the effectiveness of backtranslation in creating high-quality benchmark datasets for evaluating query refinement methods.
 
+
 <table align="center" border=0>
 <tr>
 <td >
@@ -19,18 +20,12 @@ We conducted extensive experiments using widely recognized TREC query sets and m
   * [`search`](#search)
   * [`eval`](#eval)
   * [`agg, box`](#agg-box)
-- [3. Gold Standard Datasets](#3-gold-standard-datasets)
-  * [File Structure](#file-structure)
-  * [Settings](#settings)
-  * [Stats](#stats)
-  * [Samples](#samples)
 - [4. Acknowledgement](#4-acknowledgement)
 - [5. License](#5-license)
-- [6. Citation](#6-citation)
-
+<td ><img src='./misc/flow.png' width="100%" /></td>
 </table>
 
-![image](misc/flow.png)
+
 
 ## 1. Setup
 You need to have ``Python=3.8`` and install [`pyserini`](https://github.com/castorini/pyserini/) package (needs `Java`), among others listed in [``requirements.txt``](requirements.txt). 
