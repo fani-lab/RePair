@@ -101,12 +101,14 @@ class Dataset(object):
     def set_index(cls, index): cls.index = index
 
     @classmethod
-    def search(cls, in_query:str, out_docids:str, qids:list, ranker='bm25', topk=100, batch=None, ncores=1, encoder=None, index=None, settings=None):
+    def search(cls, in_query, out_docids:str, qids:list, ranker='bm25', topk=100, batch=None, ncores=1, encoder=None, index=None, settings=None):
         print(f'Searching docs for {hex_to_ansi("#3498DB")}{in_query} {hex_to_ansi(reset=True)}and writing results in {hex_to_ansi("#F1C40F")}{out_docids}{hex_to_ansi(reset=True)} ...')
         # https://github.com/google-research/text-to-text-transfer-transformer/issues/322
         # Initialization - All the variables in class cannot be shared!
-        if (in_query.split('/')[-1]).split('.')[0] == 'refiner': cls.queries = pd.read_csv(in_query, names=['query'], sep='\t', usecols=[1], skip_blank_lines=False, engine='python')
-        else: cls.queries = pd.read_csv(in_query, names=['query'], sep='\r\r', skip_blank_lines=False, engine='python')  # a query might be empty str (output of t5)!!
+        if isinstance(in_query, str):
+            if (in_query.split('/')[-1]).split('.')[0] == 'refiner' or in_query.split('/')[-1] == 'original': cls.queries = pd.read_csv(in_query, names=['query'], sep='\t', usecols=[2], skip_blank_lines=False, engine='python')
+            else: cls.queries = pd.read_csv(in_query, names=['query'], sep='\r\r', skip_blank_lines=False, engine='python')  # a query might be empty str (output of t5)!!
+        else: cls.queries = in_query
         assert len(cls.queries) == len(qids)
         if not cls.index: cls.set_index(index)
         if not cls.settings: cls.settings = settings
@@ -181,7 +183,7 @@ class Dataset(object):
         metric = changes[0][1].split('.')[-1]  # e.g., pred.0-1004000.bm25.success.10 => success.10
 
         for change, metric_value in changes:
-            if 'refiner.' in change: pred = pd.read_csv(join(refined_query, change), sep='\t', usecols=[1], skip_blank_lines=False, names=[change], converters={change: cls.clean}, engine='python', index_col=False, header=None)
+            if 'refiner.' in change or 'rag_fusion.' in change: pred = pd.read_csv(f'{refined_query}/{change}', sep='\t', usecols=[1], skip_blank_lines=False, names=[change], converters={change: cls.clean}, engine='python', index_col=False, header=None)
             else: pred = pd.read_csv(join(output, change), sep='\r\r', skip_blank_lines=False, names=[change], converters={change: cls.clean}, engine='python', index_col=False, header=None)
             assert len(original['qid']) == len(pred[change])
             if is_large_ds:#TODO: later we should get rid of this
