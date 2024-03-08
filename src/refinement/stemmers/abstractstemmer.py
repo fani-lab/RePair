@@ -1,12 +1,12 @@
 #!/usr/bin/python
-import gzip
-import codecs
 from collections import defaultdict
+from refinement import utils
 from nltk.tokenize import WordPunctTokenizer
+import codecs
+import gzip
 import re
-import sys
 
-from src.refinement import utils
+
 class AbstractStemmer(object):
     def __init__(self):
         super(AbstractStemmer, self).__init__()

@@ -1,5 +1,5 @@
 #!/bin/python
-from stemmers.abstractstemmer import AbstractStemmer
+from src.refinement.stemmers.abstractstemmer import AbstractStemmer
 import subprocess
 import sys
 

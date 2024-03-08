@@ -1,9 +1,6 @@
 from pywsd import disambiguate
+from src.refinement.refiners.abstractqrefiner import AbstractQRefiner
 
-import sys
-sys.path.extend(['../refinement'])
-
-from refiners.abstractqrefiner import AbstractQRefiner
 
 class SenseDisambiguation(AbstractQRefiner):
     def __init__(self, replace=False):

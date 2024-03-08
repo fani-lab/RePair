@@ -1,11 +1,7 @@
 import requests
-
-import sys
-sys.path.extend(['../refinement'])
 from nltk.stem import PorterStemmer
-
-from refiners.abstractqrefiner import AbstractQRefiner
-import utils
+from src.refinement.refiners.abstractqrefiner import AbstractQRefiner
+from src.refinement import utils
 
 class Conceptnet(AbstractQRefiner):
     def __init__(self, replace=False, topn=3):
@@ -49,7 +45,7 @@ class Conceptnet(AbstractQRefiner):
                         res.append(obj['edges'][i]['start']['label'])
             if not found_flag and self.replace:
                 res.append(q)
-        return super().get_expanded_query(' '.join(res))
+        return super().get_refined_query(' '.join(res))
 
 
 if __name__ == "__main__":
