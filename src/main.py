@@ -103,7 +103,12 @@ def run(data_list, domain_list, output_result, corpora, settings):
                 originals = originals.merge(original_metric_values, how='left', on='qid')
                 originals[f'original.{ranker}.{metric}'].fillna(0, inplace=True)
                 changes = [(f.split(f'.{ranker}.{metric}')[0], f) for f in os.listdir(output) if f.endswith(f'{ranker}.{metric}') and f.startswith('refiner')]
-                ds.aggregate(originals, refined_data_output, changes, output, settings["large_ds"])
+                print(f'Aggregating results for all {hex_to_ansi("#3498DB")}refiners{hex_to_ansi(reset=True)} ...')
+                ds.aggregate(originals, refined_data_output, changes, output)
+                if 'rag' in settings['cmd']:
+                    changes = [f for f in os.listdir(output) if f.endswith(f'{ranker}.{metric}') and (f.startswith('refiner') or f.startswith('rag_fusion'))]
+                    print(f'Aggregating results for all {hex_to_ansi("#3498DB")}refiners{hex_to_ansi(reset=True)} and {hex_to_ansi("#3498DB")}rag_fusion{hex_to_ansi(reset=True)} ...')
+                    ds.aggregate_refiner_rag(original_metric_values, changes, output)
 
             if 'box' in settings['cmd']:
                 from evl import trecw

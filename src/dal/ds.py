@@ -106,10 +106,10 @@ class Dataset(object):
         # https://github.com/google-research/text-to-text-transfer-transformer/issues/322
         # Initialization - All the variables in class cannot be shared!
         if isinstance(in_query, str):
-            if (in_query.split('/')[-1]).split('.')[0] == 'refiner' or in_query.split('/')[-1] == 'original': cls.queries = pd.read_csv(in_query, names=['query'], sep='\t', usecols=[2], skip_blank_lines=False, engine='python')
-            else: cls.queries = pd.read_csv(in_query, names=['query'], sep='\r\r', skip_blank_lines=False, engine='python')  # a query might be empty str (output of t5)!!
-        else: cls.queries = in_query
-        assert len(cls.queries) == len(qids)
+            if (in_query.split('/')[-1]).split('.')[0] == 'refiner' or in_query.split('/')[-1] == 'original': queries = pd.read_csv(in_query, names=['query'], sep='\t', usecols=[2], skip_blank_lines=False, engine='python')
+            else: queries = pd.read_csv(in_query, names=['query'], sep='\r\r', skip_blank_lines=False, engine='python')  # a query might be empty str (output of t5)!!
+        else: queries = in_query
+        assert len(queries) == len(qids)
         if not cls.index: cls.set_index(index)
         if not cls.settings: cls.settings = settings
         try:
@@ -128,9 +128,9 @@ class Dataset(object):
 
         with open(out_docids, 'w', encoding='utf-8') as o:
             if batch:
-                for b in tqdm(range(0, len(cls.queries), batch)):
+                for b in tqdm(range(0, len(queries), batch)):
                     # qids must be in list[str]!
-                    hits = cls.searcher.batch_search(cls.queries.iloc[b: b + batch]['query'].values.tolist(), qids[b: b + batch], k=topk, threads=ncores)
+                    hits = cls.searcher.batch_search(queries.iloc[b: b + batch]['query'].values.tolist(), qids[b: b + batch], k=topk, threads=ncores)
                     for qid in hits.keys():
                         for i, h in enumerate(hits[qid]):  # hits are sorted desc based on score => required for trec_eval.9.0.4
                             o.write(f'{qid}\tQ0\t{h.docid:15}\t{i + 1:2}\t{h.score:.5f}\tPyserini Batch\n')
@@ -151,7 +151,7 @@ class Dataset(object):
                         hits = cls.searcher.search(row.query, k=topk, remove_dups=True)
                         for i, h in enumerate(hits): o.write(f'{qids[row.name]}\tQ0\t{h.docid:7}\t{i + 1:2}\t{h.score:.5f}\tPyserini\n')
 
-                cls.queries.apply(_docids, axis=1)
+                queries.apply(_docids, axis=1)
 
     @classmethod
     def get_refiner_list(cls, category):
@@ -178,19 +178,16 @@ class Dataset(object):
         doc_fusion.to_csv(output, sep='\t', encoding='UTF-8', index=False, header=False)
 
     @classmethod
-    def aggregate(cls, original, refined_query, changes, output, is_large_ds=False):
+    def aggregate(cls, original, refined_query, changes, output):
         ranker = changes[0][1].split('.')[-2]  # e.g., pred.0-1004000.bm25.success.10 => bm25
         metric = changes[0][1].split('.')[-1]  # e.g., pred.0-1004000.bm25.success.10 => success.10
 
         for change, metric_value in changes:
-            if 'refiner.' in change or 'rag_fusion.' in change: pred = pd.read_csv(f'{refined_query}/{change}', sep='\t', usecols=[1], skip_blank_lines=False, names=[change], converters={change: cls.clean}, engine='python', index_col=False, header=None)
-            else: pred = pd.read_csv(join(output, change), sep='\r\r', skip_blank_lines=False, names=[change], converters={change: cls.clean}, engine='python', index_col=False, header=None)
-            assert len(original['qid']) == len(pred[change])
-            if is_large_ds:#TODO: later we should get rid of this
-                pred_metric_values = pd.read_csv(join(output, metric_value), sep='\t', usecols=[1, 2], names=['qid', f'{change}.{ranker}.{metric}'], index_col=False, dtype={'qid': str})
-            else:
-                pred_metric_values = pd.read_csv(join(output, metric_value), sep='\t', usecols=[1, 2], names=['qid', f'{change}.{ranker}.{metric}'], index_col=False,skipfooter=1, dtype={'qid': str}, engine='python')
-            original[change] = pred  # to know the actual change
+            if 'refiner.' in change: refined = pd.read_csv(f'{refined_query}/{change}', sep='\t', usecols=[2], skip_blank_lines=False, names=[change], converters={change: cls.clean}, engine='python', index_col=False, header=None)
+            else: refined = pd.read_csv(join(output, change), sep='\r\r', skip_blank_lines=False, names=[change], converters={change: cls.clean}, engine='python', index_col=False, header=None)
+            assert len(original['qid']) == len(refined[change])
+            pred_metric_values = pd.read_csv(join(output, metric_value), sep='\t', usecols=[1, 2], names=['qid', f'{change}.{ranker}.{metric}'], index_col=False, skipfooter=1, dtype={'qid': str}, engine='python')
+            original[change] = refined  # to know the actual change
             original = original.merge(pred_metric_values, how='left', on='qid')  # to know the metric value of the change
             original[f'{change}.{ranker}.{metric}'].fillna(0, inplace=True)
 
@@ -199,18 +196,56 @@ class Dataset(object):
 
         print(f'Saving original queries, better changes, and {metric} values based on {ranker} ...')
         with open(f'{output}/{ranker}.{metric}.agg.gold.tsv', mode='w', encoding='UTF-8') as agg_gold, \
-                open(f'{output}/{ranker}.{metric}.agg.all.tsv', mode='w', encoding='UTF-8') as agg_all:
+                open(f'{output}/{ranker}.{metric}.agg.all.tsv', mode='w', encoding='UTF-8') as agg_all, \
+                open(f'{output}/{ranker}.{metric}.agg.platinum.tsv', mode='w', encoding='UTF-8') as agg_plat:
             agg_gold.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
             agg_all.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
+            agg_plat.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
             for index, row in tqdm(original.iterrows(), total=original.shape[0]):
                 agg_gold.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\n')
+                agg_plat.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\n')
                 agg_all.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\n')
                 all = list()
                 for change, metric_value in changes: all.append((row[change], row[f'{change}.{ranker}.{metric}'], change))
                 all = sorted(all, key=lambda x: x[1], reverse=True)
                 for i, (query, metric_value, change) in enumerate(all):
+                    change = change[len("refiner."):]
                     agg_all.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
                     if metric_value > 0 and metric_value >= row[f'original.{ranker}.{metric}']: agg_gold.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
+                    if metric_value > 0 and metric_value > row[f'original.{ranker}.{metric}']: agg_plat.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
+
+    @classmethod
+    def aggregate_refiner_rag(cls, original, changes, output):
+        ranker = changes[0].split('.')[-2]  # e.g., pred.0-1004000.bm25.success.10 => bm25
+        metric = changes[0].split('.')[-1]  # e.g., pred.0-1004000.bm25.success.10 => success.10
+        for change in changes:
+            pred_metric_values = pd.read_csv(join(output, change), sep='\t', usecols=[1, 2], names=['qid', ".".join(change.split('.')[1:])], index_col=False,skipfooter=1, dtype={'qid': str}, engine='python')
+            original = original.merge(pred_metric_values, how='left', on='qid')  # to know the metric value of the change
+            original[".".join(change.split('.')[1:])].fillna(0, inplace=True)
+
+        print(f'Saving original queries, all their changes, and their {metric} values based on {ranker} ...')
+        original.to_csv(f'{output}/{ranker}.{metric}.agg.rag.all_.tsv', sep='\t', encoding='UTF-8', index=False)
+
+        print(f'Saving original queries, better changes, and {metric} values based on {ranker} ...')
+        with open(f'{output}/{ranker}.{metric}.agg.rag.gold.tsv', mode='w', encoding='UTF-8') as agg_gold, \
+                open(f'{output}/{ranker}.{metric}.agg.rag.all.tsv', mode='w', encoding='UTF-8') as agg_all, \
+                open(f'{output}/{ranker}.{metric}.agg.rag.platinum.tsv', mode='w', encoding='UTF-8') as agg_plat:
+            agg_all.write(f'qid\torder\t{ranker}.{metric}\n')
+            agg_gold.write(f'qid\torder\t{ranker}.{metric}\n')
+            agg_plat.write(f'qid\torder\t{ranker}.{metric}\n')
+            for index, row in tqdm(original.iterrows(), total=original.shape[0]):
+                agg_all.write(f'{row.qid}\t-1\t{row[f"original.{ranker}.{metric}"]}\n')
+                agg_gold.write(f'{row.qid}\t-1\t{row[f"original.{ranker}.{metric}"]}\n')
+                agg_plat.write(f'{row.qid}\t-1\t{row[f"original.{ranker}.{metric}"]}\n')
+                qid = row['qid']
+                row = row.drop(row.index[0])
+                row = row.sort_values(ascending=False)
+                for change, metric_value in row.items():
+                    if 'original' in change: continue
+                    change = change[:-len(f'.{ranker}.{metric}')]
+                    agg_all.write(f'{qid}\t{change}\t{metric_value}\n')
+                    if metric_value > 0 and metric_value >= row[f'original.{ranker}.{metric}']: agg_gold.write(f'{qid}\t{change}\t{metric_value}\n')
+                    if metric_value > 0 and metric_value > row[f'original.{ranker}.{metric}']: agg_plat.write(f'{qid}\t{change}\t{metric_value}\n')
 
     @classmethod
     def box(cls, input, qrels, output, checks):
