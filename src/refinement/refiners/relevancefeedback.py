@@ -31,7 +31,7 @@ class RelevanceFeedback(AbstractQRefiner):
         self.f.seek(0)
         i = 0
         for x in self.f:
-            x_splited =  x.split()
+            x_splited = x.split()
             try :
                 if (int(x_splited[0]) == qid or x_splited[0] == qid):
                     relevant_documents.append(x_splited[2])

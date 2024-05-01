@@ -9,13 +9,13 @@ extension = '.exe' if platform.system() == 'Windows' else ""
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 settings = {
-    'cmd': ['rag_fusion'],  # steps of pipeline, ['query_refinement', 'similarity', 'search', 'rag_fusion', 'eval','agg', 'box','dense_retrieve', 'stats]
-    'datalist': ['./../data/raw/robust04'], # ['./../data/raw/robust04', './../data/raw/gov2', './../data/raw/antique', './../data/raw/dbpedia'],
-    'domainlist': ['robust04'], # ['robust04', 'gov2', 'antique', 'dbpedia'],
-    'fusion': ['all', 'global', 'local', 'bt'], #['all', 'global', 'local', 'bt']
+    'cmd': ['query_refinement'],  # steps of pipeline, ['query_refinement', 'similarity', 'search', 'rag_fusion', 'eval','agg', 'box','dense_retrieve', 'stats]
+    'datalist': ['./../data/raw/robust04'], # ['./../data/raw/robust04', './../data/raw/gov2', './../data/raw/antique', './../data/raw/dbpedia', './../data/raw/clueweb09b']
+    'domainlist': ['robust04'], # ['robust04', 'gov2', 'antique', 'dbpedia', 'clueweb09b']
+    'fusion': ['all', 'global', 'local', 'bt'],  # ['all', 'global', 'local', 'bt']
     'ncore': 2,
-    'ranker': ['bm25'],           # 'qld', 'bm25', 'tct_colbert'
-    'metric': ['map'],            # any valid trec_eval.9.0.4 metrics like map, ndcg, recip_rank, ...
+    'ranker': ['qld', 'bm25'],           # 'qld', 'bm25', 'tct_colbert'
+    'metric': ['map', 'ndcg', 'recip_rank'],  # any valid trec_eval.9.0.4 metrics like 'map', 'ndcg', 'recip_rank', ...
     'batch': None,              # search per batch of queries for IR search using pyserini, if None, search per query
     'topk': 100,                # number of retrieved documents for a query
     'large_ds': False,
@@ -33,7 +33,7 @@ corpora = {
         'qrels': '../data/raw/msmarco.passage/qrels.train.tsv',
         'dense_index': 'msmarco-passage-tct_colbert-hnsw',
         'extcorpus': 'orcas',
-        'pairing': [None, 'docs', 'query'],     # [context={msmarco does not have userinfo}, input={query, doc, doc(s)}, output={query, doc, doc(s)}], s means concat of docs
+        'pairing': [None, 'docs', 'query'],  # [context={msmarco does not have userinfo}, input={query, doc, doc(s)}, output={query, doc, doc(s)}], s means concat of docs
         'lseq': {"inputs": 32, "targets": 256},  # query length and doc length for t5 model,
     },
     'aol-ia': {
@@ -42,10 +42,10 @@ corpora = {
         'dense_index': '../data/raw/aol-ia/dense-index/tct_colbert.title/',  # change based on index_item
         'qrels': '../data/raw/aol-ia/qrels.train.tsv',
         'dense_encoder':'../data/raw/aol-ia/dense-encoder/tct_colbert.title/',  # change based on index_item
-        'pairing': [None, 'docs', 'query'],     # [context={2 scenarios, one with userID and one without userID). input={'userid','query','doc(s)'} output={'query','doc(s)'}
+        'pairing': [None, 'docs', 'query'],  # [context={2 scenarios, one with userID and one without userID). input={'userid','query','doc(s)'} output={'query','doc(s)'}
         'extcorpus': 'msmarco.passage',
         'lseq': {"inputs": 32, "targets": 256},  # query length and doc length for t5 model,
-        'filter': {'minql': 1, 'mindocl': 10}   # [min query length, min doc length], after merge queries with relevant 'index_item', if |query| <= minql drop the row, if |'index_item'| < mindocl, drop row
+        'filter': {'minql': 1, 'mindocl': 10}  # [min query length, min doc length], after merge queries with relevant 'index_item', if |query| <= minql drop the row, if |'index_item'| < mindocl, drop row
     },
     'robust04': {
         'index': '../data/raw/robust04/lucene-index.robust04.pos+docvectors+rawdocs',

@@ -197,14 +197,17 @@ class Dataset(object):
         print(f'Saving original queries, better changes, and {metric} values based on {ranker} ...')
         with open(f'{output}/{ranker}.{metric}.agg.gold.tsv', mode='w', encoding='UTF-8') as agg_gold, \
                 open(f'{output}/{ranker}.{metric}.agg.all.tsv', mode='w', encoding='UTF-8') as agg_all, \
-                open(f'{output}/{ranker}.{metric}.agg.platinum.tsv', mode='w', encoding='UTF-8') as agg_plat:
-            agg_gold.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
+                open(f'{output}/{ranker}.{metric}.agg.platinum.tsv', mode='w', encoding='UTF-8') as agg_plat, \
+                open(f'{output}/{ranker}.{metric}.neg.example.tsv', mode='w', encoding='UTF-8') as neg_exp:
             agg_all.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
+            agg_gold.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
             agg_plat.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
+            neg_exp.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
             for index, row in tqdm(original.iterrows(), total=original.shape[0]):
+                agg_all.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\n')
                 agg_gold.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\n')
                 agg_plat.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\n')
-                agg_all.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\n')
+                neg_exp.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\n')
                 all = list()
                 for change, metric_value in changes: all.append((row[change], row[f'{change}.{ranker}.{metric}'], change))
                 all = sorted(all, key=lambda x: x[1], reverse=True)
@@ -213,6 +216,7 @@ class Dataset(object):
                     agg_all.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
                     if metric_value > 0 and metric_value >= row[f'original.{ranker}.{metric}']: agg_gold.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
                     if metric_value > 0 and metric_value > row[f'original.{ranker}.{metric}']: agg_plat.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
+                    if ('bt' in change) and metric_value < row[f'original.{ranker}.{metric}']: neg_exp.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
 
     @classmethod
     def aggregate_refiner_rag(cls, original, changes, output):

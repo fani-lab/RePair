@@ -45,8 +45,9 @@ refiners = {
 
 # Backtranslation settings
 backtranslation = {
-    'src_lng': 'eng_Latn',
-    'tgt_lng': ['yue_Hant', 'kor_Hang', 'arb_Arab', 'pes_Arab', 'fra_Latn', 'deu_Latn', 'rus_Cyrl', 'zsm_Latn', 'tam_Taml', 'swh_Latn'], # ['yue_Hant', 'kor_Hang', 'arb_Arab', 'pes_Arab', 'fra_Latn', 'deu_Latn', 'rus_Cyrl', 'zsm_Latn', 'tam_Taml', 'swh_Latn']
+    'translator': ['google'],  # ['google', 'nllb']
+    'src_lng': 'english',
+    'tgt_lng': ['persian', 'french', 'german', 'russian', 'malay', 'tamil', 'swahili', 'chinese_simplified', 'korean', 'arabic'],  # ['persian', 'french', 'german', 'russian', 'malay', 'tamil', 'swahili', 'chinese_simplified', 'korean', 'arabic']
     'max_length': 512,
     'device': 'cpu',
     'model_card': 'facebook/nllb-200-distilled-600M',

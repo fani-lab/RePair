@@ -1,6 +1,7 @@
 from refinement.refiners.abstractqrefiner import AbstractQRefiner
 from refinement.refiners.stem import Stem   # Stem refiner is the wrapper for all stemmers as an refiner :)
 from refinement import refiner_param
+from itertools import product
 from param import settings
 import os
 
@@ -35,7 +36,7 @@ def get_nrf_refiner():
     if refiners_name['SRemovalStemmer']: from refinement.stemmers.sstemmer import SRemovalStemmer; refiners_list.append(Stem(SRemovalStemmer()))
     if refiners_name['Trunc4Stemmer']: from refinement.stemmers.trunc4 import Trunc4Stemmer; refiners_list.append(Stem(Trunc4Stemmer()))
     if refiners_name['Trunc5Stemmer']: from refinement.stemmers.trunc5 import Trunc5Stemmer; refiners_list.append(Stem(Trunc5Stemmer()))
-    if refiners_name['BackTranslation']: from refinement.refiners.backtranslation import BackTranslation; refiners_list.extend([BackTranslation(each_lng) for index, each_lng in enumerate(refiner_param.backtranslation['tgt_lng'])])
+    if refiners_name['BackTranslation']: from refinement.refiners.backtranslation import BackTranslation; refiners_list.extend([BackTranslation(trans, lang) for lang, trans in product(refiner_param.backtranslation['tgt_lng'], refiner_param.backtranslation['translator'])])
     # since RF needs index and search output which depends on ir method and topics corpora, we cannot add this here. Instead, we run it individually
     # RF assumes that there exist abstractqueryexpansion files
 
