@@ -1,6 +1,6 @@
 from refinement.refiners.abstractqrefiner import AbstractQRefiner
 from refinement.refiner_param import backtranslation
-from refinement.lang_code import google, nllb
+from refinement.lang_code import other, nllb
 
 class BackTranslation(AbstractQRefiner):
     def __init__(self, translator, tgt):
@@ -31,8 +31,8 @@ class BackTranslation(AbstractQRefiner):
             translated_query = self.translator(query)
             backtranslated_query = (self.back_translator(translated_query[0]['translation_text']))[0]['translation_text']
         else:
-            translated_query = self.translator.translate_text(query_text=query, translator=self.translator_name, from_language=google[self.src], to_language=google[self.tgt])
-            backtranslated_query = self.translator.translate_text(query_text=translated_query, translator=self.translator_name, from_language=google[self.tgt], to_language=google[self.src])
+            translated_query = self.translator.translate_text(query_text=query, translator=self.translator_name, from_language=other[self.src], to_language=other[self.tgt])
+            backtranslated_query = self.translator.translate_text(query_text=translated_query, translator=self.translator_name, from_language=other[self.tgt], to_language=other[self.src])
         return super().get_refined_query(backtranslated_query)
 
     def get_refined_query_batch(self, queries, args=None):

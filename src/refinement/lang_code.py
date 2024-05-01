@@ -1,4 +1,4 @@
-google = {
+other = {
     'afrikaans': 'af',
     'albanian': 'sq',
     'amharic': 'am',
