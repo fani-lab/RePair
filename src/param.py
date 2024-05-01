@@ -10,8 +10,8 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 settings = {
     'cmd': ['query_refinement'],  # steps of pipeline, ['query_refinement', 'similarity', 'search', 'rag_fusion', 'eval','agg', 'box','dense_retrieve', 'stats]
-    'datalist': ['./../data/raw/robust04'], # ['./../data/raw/robust04', './../data/raw/gov2', './../data/raw/antique', './../data/raw/dbpedia', './../data/raw/clueweb09b']
-    'domainlist': ['robust04'], # ['robust04', 'gov2', 'antique', 'dbpedia', 'clueweb09b']
+    'datalist': ['./../data/raw/antique', './../data/raw/clueweb09b'], # ['./../data/raw/robust04', './../data/raw/gov2', './../data/raw/antique', './../data/raw/dbpedia', './../data/raw/clueweb09b']
+    'domainlist': ['antique', 'clueweb09b'], # ['robust04', 'gov2', 'antique', 'dbpedia', 'clueweb09b']
     'fusion': ['all', 'global', 'local', 'bt'],  # ['all', 'global', 'local', 'bt']
     'ncore': 2,
     'ranker': ['qld', 'bm25'],           # 'qld', 'bm25', 'tct_colbert'

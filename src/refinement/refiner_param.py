@@ -45,7 +45,7 @@ refiners = {
 
 # Backtranslation settings
 backtranslation = {
-    'translator': ['google'],  # ['google', 'nllb']
+    'translator': ['bing'],  # ['nllb', 'alibaba', 'apertium', 'argos', 'baidu', 'bing', 'caiyun', 'cloudTranslation', 'deepl', 'elia', 'google', 'hujiang', 'iciba', 'iflytek', 'iflyrec', 'itranslate', 'judic', 'languageWire', 'lingvanex', 'niutrans', 'mglip', 'mirai', 'modernMt', 'myMemory', 'papago', 'qqFanyi', 'qqTranSmart', 'reverso', 'sogou', 'sysTran', 'tilde', 'translateCom', 'translateMe', 'utibet', 'volcEngine', 'yandex', 'yeekit', 'youdao']
     'src_lng': 'english',
     'tgt_lng': ['persian', 'french', 'german', 'russian', 'malay', 'tamil', 'swahili', 'chinese_simplified', 'korean', 'arabic'],  # ['persian', 'french', 'german', 'russian', 'malay', 'tamil', 'swahili', 'chinese_simplified', 'korean', 'arabic']
     'max_length': 512,
