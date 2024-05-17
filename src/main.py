@@ -6,6 +6,7 @@ from itertools import product
 from os.path import isfile, join, exists
 from multiprocessing import freeze_support
 from refinement import refiner_factory as rf
+from src.refinement.refiner_param import settings as ref_set
 import argparse, os, pandas as pd, multiprocessing as mp
 
 
@@ -62,11 +63,16 @@ def run(data_list, domain_list, output_result, corpora, settings):
 
         if 'similarity' in settings['cmd']:
             from evl import trecw
+            from sentence_transformers import SentenceTransformer
+            transformer_model = SentenceTransformer(ref_set['transformer_model'])
             if not os.path.isdir(f'{refined_data_output}/similarity/'): os.makedirs(f'{refined_data_output}/similarity/')
-            search_results = [(f'{refined_data_output}/{f}', f'{refined_data_output}/similarity/{f}.similarity.csv') for f in listdir(refined_data_output) if f.startswith('refiner') and f.__contains__('bt') and f'{f}.{metric}' not in listdir(output)]
-            with mp.Pool(settings['ncore']) as p: p.starmap(partial(trecw.compare_query_similarity), search_results)
+            search_results = [(f'{refined_data_output}/{f}', f'{refined_data_output}/similarity/{f}.similarity.csv') for f in listdir(refined_data_output) if f.startswith('refiner.bt_bing') and f.__contains__('bt')]
+            # with mp.Pool(settings['ncore']) as p: p.starmap(partial(trecw.compare_query_similarity), search_results)
+            for (infile, outfile) in search_results:
+                print(f'Similarity for {hex_to_ansi("#3498DB")}{infile}{hex_to_ansi(reset=True)}, output in {hex_to_ansi("#3498DB")}{outfile}{hex_to_ansi(reset=True)}')
+                trecw.compare_query_similarity(infile, outfile, transformer_model)
 
-        if any(item in ['search', 'rag_fusion', 'eval', 'agg', 'box'] for item in settings['cmd']):
+        if any(item in ['search', 'rag_fusion', 'eval', 'agg', 'build', 'box'] for item in settings['cmd']):
             for ranker, metric in product(param.settings['ranker'], param.settings['metric']):
                 print('-' * 30, f'Ranking and evaluating by {hex_to_ansi("#3498DB")}{ranker}{hex_to_ansi(reset=True)} and {hex_to_ansi("#3498DB")}{metric}{hex_to_ansi(reset=True)}')
                 output = f'{refined_data_output}/{ranker}.{metric}'
@@ -97,15 +103,21 @@ def run(data_list, domain_list, output_result, corpora, settings):
                     search_results = [(f'{output}/{f}', f'{output}/{f}.{metric}') for f in listdir(output) if f.endswith(ranker) and f'{f}.{metric}' not in listdir(output)]
                     with mp.Pool(settings['ncore']) as p: p.starmap(partial(trecw.evaluate, qrels=qrel_path, metric=metric, lib=settings['treclib'], mean=not settings['large_ds']), search_results)
 
-                if 'agg' in settings['cmd']:
+                if 'agg' in settings['cmd'] or 'build' in settings['cmd']:
                     originals = pd.DataFrame({'qid': [str(query.qid) for query in ds.queries], 'query': [query.q for query in ds.queries]})
                     original_metric_values = pd.read_csv(join(output, f'original.{ranker}.{metric}'), sep='\t', usecols=[1, 2], names=['qid', f'original.{ranker}.{metric}'], index_col=False, dtype={'qid': str})
 
                     originals = originals.merge(original_metric_values, how='left', on='qid')
                     originals[f'original.{ranker}.{metric}'].fillna(0, inplace=True)
-                    changes = [(f.split(f'.{ranker}.{metric}')[0], f) for f in os.listdir(output) if f.endswith(f'{ranker}.{metric}') and f.startswith('refiner')]
                     print(f'Aggregating results for all {hex_to_ansi("#3498DB")}refiners{hex_to_ansi(reset=True)} ...')
-                    ds.aggregate(originals, refined_data_output, changes, output)
+                    if 'agg' in settings['cmd']:
+                        ds.aggregate(originals, refined_data_output, output, ranker, metric, selected_refiner='nllb')
+                        ds.aggregate(originals, refined_data_output, output, ranker, metric, selected_refiner='bt')
+                        ds.aggregate(originals, refined_data_output, output, ranker, metric, selected_refiner='refiner')
+                    if 'build' in settings['cmd']:
+                        ds.aggregate(originals, refined_data_output, output, ranker, metric, selected_refiner='nllb', build=True)
+                        ds.aggregate(originals, refined_data_output, output, ranker, metric, selected_refiner='refiner', build=True)
+
                     if 'rag' in settings['cmd']:
                         changes = [f for f in os.listdir(output) if f.endswith(f'{ranker}.{metric}') and (f.startswith('refiner') or f.startswith('rag_fusion'))]
                         print(f'Aggregating results for all {hex_to_ansi("#3498DB")}refiners{hex_to_ansi(reset=True)} and {hex_to_ansi("#3498DB")}rag_fusion{hex_to_ansi(reset=True)} ...')

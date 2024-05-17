@@ -1,7 +1,10 @@
 import re
+import os
+import math
 from tqdm import tqdm
 from os.path import join
 import json, pandas as pd
+from ftfy import fix_text
 from cmn.query import Query
 from refinement.refiner_param import refiners
 from pyserini.search.lucene import LuceneSearcher
@@ -67,17 +70,79 @@ class Dataset(object):
         queries_qrels = pd.merge(queries, qrels, on='qid', how='inner', copy=False)
         queries_qrels = queries_qrels.sort_values(by='qid')
         cls.create_query_objects(queries_qrels, ['qid', '0', 'did', 'relevancy'], domain)
+        cls.write_queries(queries_qrels, input.split('/')[4])
+
+    @classmethod
+    def write_queries(cls, queries_qrels, domain):
+        cls.index = cls.settings["index"]
+        cls.searcher = LuceneSearcher(cls.index)
+        groups = queries_qrels.groupby(['qid', 'query'])
+        # file_paths = [f'../output/{domain}/{domain}.{i}.query.doc.tsv' for i in range(0, 4)]
+        file_paths_qrel = [f'../output/{domain}/qrel.{i}.tsv' for i in range(0, 4)]
+        file_paths_pairing = [f'../output/{domain}/pairing.{i}.tsv' for i in range(0, 4)]
+        file_paths_original_qid_query = [f'../output/{domain}/original_qid.{i}.tsv' for i in range(0, 4)]
+        file_paths_original_query = [f'../output/{domain}/original.{i}.tsv' for i in range(0, 4)]
+        group_size = len(groups)//4
+        # old = 0
+        # df = pd.DataFrame(columns=['qid', '0', 'did', 'relevancy'])
+        for i, (name, group) in enumerate(groups):
+            # if old != file_index:
+            #     df.to_csv(file_paths[old], sep='\t', index=False, header=False)
+            #     df = pd.DataFrame(columns=['qid', '0', 'did', 'relevancy'])
+            #     old = file_index
+            # else:
+            #     group = group.drop(columns=['query'])
+            #     df = pd.concat([df, group], ignore_index=True)
+
+            file_index = min(i // group_size, 4)
+            print(f'Writing results to ../output/{domain}/{domain}.{file_index}.query.doc.tsv ...')
+            print(f'Writing results to ../output/{domain}/qrel.{file_index}.tsv ...')
+            with open(file_paths_qrel[file_index], 'a', encoding='utf-8') as qrel, \
+                open(file_paths_pairing[file_index], 'a', encoding='utf-8') as pairing, \
+                open(file_paths_original_qid_query[file_index], 'a', encoding='utf-8') as original_qid, \
+                open(file_paths_original_query[file_index], 'a', encoding='utf-8') as original:
+                query = name[1].replace("\t", " ").lower()
+                docs = []
+                for index, row in group.iterrows():
+                    docs.append((cls._txt(row['did'])))
+                doc = ' '.join(docs)
+                doc = doc.encode('utf-8')
+
+                qrel.write(f'{name[0]}\t{row["0"]}\t{row["did"]}\t{row["relevancy"]}\n')
+                pairing.write(f'{query}\t{doc}\n')
+                original_qid.write(f'{name[0]}\t{query}\n')
+                original.write(f'{query}\n')
 
     @classmethod
     def pair(cls, input, output, index_item, cat=True): pass
 
-    # @classmethod
-    # def _txt(cls, pid):
-    #     # The``docid`` is overloaded: if it is of type ``str``, it is treated as an external collection ``docid``;
-    #     # if it is of type ``int``, it is treated as an internal Lucene``docid``. # stupid!!
-    #     try: return json.loads(cls.searcher.doc(str(pid)).raw())['contents'].lower()
-    #     except AttributeError: return ''  # if Dataset.searcher.doc(str(pid)) is None
-    #     except Exception as e: raise e
+    @classmethod
+    def _txt(cls, pid):
+        # The``docid`` is overloaded: if it is of type ``str``, it is treated as an external collection ``docid``;
+        # if it is of type ``int``, it is treated as an internal Lucene``docid``. # stupid!!
+        try:
+            start_tag = '<meta name="description"'
+            end_tag = '">'
+            text = (cls.searcher.doc(str(pid)).raw()).lower()
+
+            while True:
+                start_index = text.find(start_tag)
+                if start_index == -1:
+                    break
+
+                end_index = text.find(end_tag, start_index)
+                if end_index == -1:
+                    break
+
+                text = text[start_index + len(start_tag): end_index]
+
+            text = text.translate(str.maketrans('', '', "<>[]/\\"))
+            return fix_text(text.replace('\n', '').replace(':','').replace('\r', '').replace(',', '').replace('\t', ''))
+            # return fix_text(json.loads(cls.searcher.doc(str(pid)).raw())['contents'].lower().replace('\n', '').replace(':', '').replace('\r', '').replace(',', '').replace('\t', ''))
+        except AttributeError:
+            return ''  # if Dataset.searcher.doc(str(pid)) is None
+        except Exception as e:
+            raise e
 
     @classmethod
     def create_query_objects(cls, queries_qrels, qrel_col, domain):
@@ -102,7 +167,7 @@ class Dataset(object):
 
     @classmethod
     def search(cls, in_query, out_docids:str, qids:list, ranker='bm25', topk=100, batch=None, ncores=1, encoder=None, index=None, settings=None):
-        print(f'Searching docs for {hex_to_ansi("#3498DB")}{in_query} {hex_to_ansi(reset=True)}and writing results in {hex_to_ansi("#F1C40F")}{out_docids}{hex_to_ansi(reset=True)} ...')
+        print(f'Searching docs for {hex_to_ansi("#3498DB")}{in_query}{hex_to_ansi(reset=True)} and writing results in {hex_to_ansi("#F1C40F")}{out_docids}{hex_to_ansi(reset=True)} ...')
         # https://github.com/google-research/text-to-text-transfer-transformer/issues/322
         # Initialization - All the variables in class cannot be shared!
         if isinstance(in_query, str):
@@ -178,45 +243,86 @@ class Dataset(object):
         doc_fusion.to_csv(output, sep='\t', encoding='UTF-8', index=False, header=False)
 
     @classmethod
-    def aggregate(cls, original, refined_query, changes, output):
-        ranker = changes[0][1].split('.')[-2]  # e.g., pred.0-1004000.bm25.success.10 => bm25
-        metric = changes[0][1].split('.')[-1]  # e.g., pred.0-1004000.bm25.success.10 => success.10
+    def aggregate(cls, original, refined_query, output, ranker, metric, selected_refiner='refiner', build=False):
 
+        def select(ref, change):
+            if ref == 'nllb' and not ref in change: return False # only backtranslation with nllb
+            elif ref == 'bt' and 'bt' in change: return False # other refiners than backtranslartion
+            elif ref == 'refiner' and 'bt_bing' in change: return False # all the refiners except bing
+            else: return True
+
+        changes = [(f.split(f'.{ranker}.{metric}')[0], f) for f in os.listdir(output) if f.endswith(f'{ranker}.{metric}') and f.startswith('refiner') and select(selected_refiner, f)]
+        refiners = []
         for change, metric_value in changes:
-            if 'refiner.' in change: refined = pd.read_csv(f'{refined_query}/{change}', sep='\t', usecols=[2], skip_blank_lines=False, names=[change], converters={change: cls.clean}, engine='python', index_col=False, header=None)
-            else: refined = pd.read_csv(join(output, change), sep='\r\r', skip_blank_lines=False, names=[change], converters={change: cls.clean}, engine='python', index_col=False, header=None)
+            refined = pd.read_csv(f'{refined_query}/{change}', sep='\t', usecols=[2], skip_blank_lines=False, names=[change], converters={change: cls.clean}, engine='python', index_col=False, header=None)
             assert len(original['qid']) == len(refined[change])
+            refiners.append(change)
             pred_metric_values = pd.read_csv(join(output, metric_value), sep='\t', usecols=[1, 2], names=['qid', f'{change}.{ranker}.{metric}'], index_col=False, skipfooter=1, dtype={'qid': str}, engine='python')
             original[change] = refined  # to know the actual change
             original = original.merge(pred_metric_values, how='left', on='qid')  # to know the metric value of the change
             original[f'{change}.{ranker}.{metric}'].fillna(0, inplace=True)
 
         print(f'Saving original queries, all their changes, and their {metric} values based on {ranker} ...')
-        original.to_csv(f'{output}/{ranker}.{metric}.agg.all_.tsv', sep='\t', encoding='UTF-8', index=False)
+        original.to_csv(f'{output}/{ranker}.{metric}.agg.{"all" if selected_refiner=="refiner" else selected_refiner}.tsv', encoding='UTF-8', index=False)
+        if build:
+            output = f'../output/supervised/{(output.split("/"))[2]}'
+            if not os.path.isdir(output): os.makedirs(output)
+            cls.build(original, refiners, ranker, metric, f"{output}/{ranker}.{metric}.dataset.{'all' if selected_refiner=='refiner' else selected_refiner}.csv")
+        else:
+            print(f'Saving original queries, better changes, and {metric} values based on {ranker} ...')
+            with open(f'{output}/{ranker}.{metric}.agg.{selected_refiner}.gold.tsv', mode='w', encoding='UTF-8') as agg_gold, \
+                    open(f'{output}/{ranker}.{metric}.agg.{selected_refiner}.all.tsv', mode='w', encoding='UTF-8') as agg_all, \
+                    open(f'{output}/{ranker}.{metric}.agg.{selected_refiner}.platinum.tsv', mode='w', encoding='UTF-8') as agg_plat, \
+                    open(f'{output}/{ranker}.{metric}.neg.{selected_refiner}.example.tsv', mode='w', encoding='UTF-8') as neg_exp:
+                agg_all.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
+                agg_gold.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
+                agg_plat.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
+                neg_exp.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
+                for index, row in tqdm(original.iterrows(), total=original.shape[0]):
+                    agg_all.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\n')
+                    agg_gold.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\n')
+                    agg_plat.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\n')
+                    neg_exp.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\n')
+                    all = list()
+                    for change, metric_value in changes:
+                        all.append((row[change], row[f'{change}.{ranker}.{metric}'], change))
+                    all = sorted(all, key=lambda x: x[1], reverse=True)
+                    for i, (query, metric_value, change) in enumerate(all):
+                        change = change[len("refiner."):]
+                        agg_all.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
+                        if metric_value > 0 and metric_value >= row[f'original.{ranker}.{metric}']: agg_gold.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
+                        if metric_value > 0 and metric_value > row[f'original.{ranker}.{metric}']: agg_plat.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
+                        if ('bt' in change) and metric_value < row[f'original.{ranker}.{metric}']: neg_exp.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
 
-        print(f'Saving original queries, better changes, and {metric} values based on {ranker} ...')
-        with open(f'{output}/{ranker}.{metric}.agg.gold.tsv', mode='w', encoding='UTF-8') as agg_gold, \
-                open(f'{output}/{ranker}.{metric}.agg.all.tsv', mode='w', encoding='UTF-8') as agg_all, \
-                open(f'{output}/{ranker}.{metric}.agg.platinum.tsv', mode='w', encoding='UTF-8') as agg_plat, \
-                open(f'{output}/{ranker}.{metric}.neg.example.tsv', mode='w', encoding='UTF-8') as neg_exp:
-            agg_all.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
-            agg_gold.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
-            agg_plat.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
-            neg_exp.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
-            for index, row in tqdm(original.iterrows(), total=original.shape[0]):
-                agg_all.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\n')
-                agg_gold.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\n')
-                agg_plat.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\n')
-                neg_exp.write(f'{row.qid}\t-1\t{row.query}\t{row[f"original.{ranker}.{metric}"]}\n')
-                all = list()
-                for change, metric_value in changes: all.append((row[change], row[f'{change}.{ranker}.{metric}'], change))
-                all = sorted(all, key=lambda x: x[1], reverse=True)
-                for i, (query, metric_value, change) in enumerate(all):
-                    change = change[len("refiner."):]
-                    agg_all.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
-                    if metric_value > 0 and metric_value >= row[f'original.{ranker}.{metric}']: agg_gold.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
-                    if metric_value > 0 and metric_value > row[f'original.{ranker}.{metric}']: agg_plat.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
-                    if ('bt' in change) and metric_value < row[f'original.{ranker}.{metric}']: neg_exp.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
+    @classmethod
+    def build(cls, df, refiners, ranker, metric, output):
+        base_model_name = 'original'
+        ds_df = df.iloc[:, :3]  # the original query info
+        ds_df['star_model_count'] = 0
+        for idx, row in df.iterrows():
+            star_models = dict()
+            for model_name in refiners:
+                if model_name == base_model_name: continue
+                flag, sum = True, 0
+                v = df.loc[idx, f'{model_name}.{ranker}.{metric}']
+                v = v if not pd.isna(v) else 0
+                v0 = df.loc[idx, f'{base_model_name}.{ranker}.{metric}']
+                v0 = v0 if not pd.isna(v0) else 0
+                if v <= v0: flag = False; continue
+                sum += v ** 2
+                if flag: star_models[model_name] = sum
+
+            if len(star_models) > 0:
+                ds_df.loc[idx, 'star_model_count'] = len(star_models.keys())
+                star_models_sorted = {k: v for k, v in sorted(star_models.items(), key=lambda item: item[1], reverse=True)}
+                for i, star_model in enumerate(star_models_sorted.keys()):
+                    ds_df.loc[idx, f'method.{i + 1}'] = star_model.replace('refiner.', '')
+                    ds_df.loc[idx, f'metric.{i + 1}'] = math.sqrt(star_models[star_model])
+                    ds_df.loc[idx, f'query.{i + 1}'] = df.loc[idx, f'{star_model}']
+            else:
+                ds_df.loc[idx, 'star_model_count'] = 0
+        ds_df.to_csv(output, index=False, encoding='UTF-8')
+
 
     @classmethod
     def aggregate_refiner_rag(cls, original, changes, output):
@@ -252,7 +358,7 @@ class Dataset(object):
                     if metric_value > 0 and metric_value > row[f'original.{ranker}.{metric}']: agg_plat.write(f'{qid}\t{change}\t{metric_value}\n')
 
     @classmethod
-    def box(cls, input, qrels, output, checks):
+    def box(cls, input, qrels, output, checks, sel_ref):
         ranker = input.columns[-1].split('.')[0]  # e.g., bm25.success.10 => bm25
         metric = '.'.join(input.columns[-1].split('.')[1:])  # e.g., bm25.success.10 => success.10
         for c in checks.keys():
@@ -275,10 +381,10 @@ class Dataset(object):
             df = pd.DataFrame.from_dict(ds).astype({'qid':str})
             # df.drop_duplicates(subset=['qid'], inplace=True)
             del ds
-            df.to_csv(f'{output}/{c}.tsv', sep='\t', encoding='utf-8', index=False, header=False)
+            df.to_csv(f'{output}/{c}.{sel_ref}.tsv', sep='\t', encoding='utf-8', index=False, header=False)
             print(f'{c}  has {df.shape[0]} queries\n')
             df = df.merge(qrels, on='qid', how='inner')
-            df.to_csv(f'{output}/{c}.qrels.tsv', sep='\t', encoding='utf-8', index=False, header=False, columns=list(qrels.columns))
+            df.to_csv(f'{output}/{c}.{sel_ref}.qrels.tsv', sep='\t', encoding='utf-8', index=False, header=False, columns=list(qrels.columns))
 
 
 def hex_to_ansi(hex_color_code="", reset=False):

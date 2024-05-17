@@ -1,7 +1,5 @@
 import os
 import evaluate as eval
-from sentence_transformers import SentenceTransformer
-from src.refinement.refiner_param import settings
 from scipy.spatial.distance import cosine
 import pandas as pd
 
@@ -9,23 +7,22 @@ import pandas as pd
 '''
 Calculates the difference between the original and back-translated query
 '''
-def semsim_compute(predictions, references):
-    transformer_model = SentenceTransformer(settings['transformer_model'])
+def semsim_compute(predictions, references, transformer_model):
     me, you = transformer_model.encode([predictions, references])
     return {'semsim': 1 - cosine(me, you)}
 
 
-def compare_query_similarity(refined_q_file, output):
-    refined_list = (pd.read_csv(refined_q_file, sep='\t', header=None, names=['id', 'original', 'refined', 'semsim'])).to_records(index=False)
+def compare_query_similarity(refined_q_file, output, transformer_model):
+    refined_list = (pd.read_csv(refined_q_file, sep='\t', header=None, names=['id', 'original', 'refined']).dropna()).to_records(index=False)
     similarity_results = pd.DataFrame()
     bleu = eval.load("bleu")
     rouge = eval.load('rouge')
-
-    for (id, original, refined, semsim) in refined_list:
+    for (id, original, refined) in refined_list:
         rouge_results = rouge.compute(predictions=[refined], references=[original])
         bleu_results = bleu.compute(predictions=[refined], references=[original])
-        semsim = semsim_compute(predictions=refined, references=original)
-        similarity_results = similarity_results.append({'id':id, 'original':original, 'refined': refined, **rouge_results, **bleu_results, **semsim}, ignore_index=True)
+        semsim = semsim_compute(predictions=refined, references=original, transformer_model=transformer_model)
+        new_row_df = pd.DataFrame([{'id':id, 'original':original, 'refined': refined, **rouge_results, **bleu_results, **semsim}])
+        similarity_results = pd.concat([similarity_results, new_row_df], ignore_index=True)
 
     similarity_results.to_csv(output, index=False)
 

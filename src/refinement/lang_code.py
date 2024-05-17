@@ -307,7 +307,7 @@ nllb = {
     'xhosa': 'xho_Latn',
     'eastern yiddish': 'ydd_Hebr',
     'yoruba': 'yor_Latn',
-    'yue chinese': 'yue_Hant',
+    'chinese_yue': 'yue_Hant',
     'chinese_simplified': 'zho_Hans',
     'chinese_traditional': 'zho_Hant',
     'malay': 'zsm_Latn',
