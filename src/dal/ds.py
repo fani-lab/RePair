@@ -73,28 +73,17 @@ class Dataset(object):
         cls.write_queries(queries_qrels, input.split('/')[4])
 
     @classmethod
-    def write_queries(cls, queries_qrels, domain):
+    def write_queries(cls, queries_qrels, domain, chunks):
         cls.index = cls.settings["index"]
         cls.searcher = LuceneSearcher(cls.index)
         groups = queries_qrels.groupby(['qid', 'query'])
-        # file_paths = [f'../output/{domain}/{domain}.{i}.query.doc.tsv' for i in range(0, 4)]
-        file_paths_qrel = [f'../output/{domain}/qrel.{i}.tsv' for i in range(0, 4)]
-        file_paths_pairing = [f'../output/{domain}/pairing.{i}.tsv' for i in range(0, 4)]
-        file_paths_original_qid_query = [f'../output/{domain}/original_qid.{i}.tsv' for i in range(0, 4)]
-        file_paths_original_query = [f'../output/{domain}/original.{i}.tsv' for i in range(0, 4)]
-        group_size = len(groups)//4
-        # old = 0
-        # df = pd.DataFrame(columns=['qid', '0', 'did', 'relevancy'])
+        file_paths_qrel = [f'../output/{domain}/qrels{f".{i}" if chunks!=0 else ""}.tsv' for i in range(0, chunks)]
+        file_paths_pairing = [f'../output/{domain}/pairing{f".{i}" if chunks!=0 else ""}.tsv' for i in range(0, chunks)]
+        file_paths_original_qid_query = [f'../output/{domain}/original_qid{f".{i}" if chunks!=0 else ""}.tsv' for i in range(0, chunks)]
+        file_paths_original_query = [f'../output/{domain}/original{f".{i}" if chunks!=0 else ""}.tsv' for i in range(0, chunks)]
+        group_size = len(groups)//chunks
         for i, (name, group) in enumerate(groups):
-            # if old != file_index:
-            #     df.to_csv(file_paths[old], sep='\t', index=False, header=False)
-            #     df = pd.DataFrame(columns=['qid', '0', 'did', 'relevancy'])
-            #     old = file_index
-            # else:
-            #     group = group.drop(columns=['query'])
-            #     df = pd.concat([df, group], ignore_index=True)
-
-            file_index = min(i // group_size, 4)
+            file_index = min(i // group_size, chunks)
             print(f'Writing results to ../output/{domain}/{domain}.{file_index}.query.doc.tsv ...')
             print(f'Writing results to ../output/{domain}/qrel.{file_index}.tsv ...')
             with open(file_paths_qrel[file_index], 'a', encoding='utf-8') as qrel, \
@@ -104,45 +93,51 @@ class Dataset(object):
                 query = name[1].replace("\t", " ").lower()
                 docs = []
                 for index, row in group.iterrows():
-                    docs.append((cls._txt(row['did'])))
+                    docs.append((cls._txt(row['did'], domain)))
                 doc = ' '.join(docs)
                 doc = doc.encode('utf-8')
 
-                qrel.write(f'{name[0]}\t{row["0"]}\t{row["did"]}\t{row["relevancy"]}\n')
-                pairing.write(f'{query}\t{doc}\n')
-                original_qid.write(f'{name[0]}\t{query}\n')
-                original.write(f'{query}\n')
+                # qrel.write(f'{name[0]}\t{row["0"]}\t{row["did"]}\t{row["relevancy"]}\n')
+                # pairing.write(f'{query}\t{doc}\n')
+                # original_qid.write(f'{name[0]}\t{query}\n')
+                # original.write(f'{query}\n')
 
     @classmethod
     def pair(cls, input, output, index_item, cat=True): pass
 
     @classmethod
-    def _txt(cls, pid):
+    def _txt(cls, pid, domain):
         # The``docid`` is overloaded: if it is of type ``str``, it is treated as an external collection ``docid``;
         # if it is of type ``int``, it is treated as an internal Lucene``docid``. # stupid!!
         try:
-            start_tag = '<meta name="description"'
-            end_tag = '">'
             text = (cls.searcher.doc(str(pid)).raw()).lower()
+            if domain == 'antique': return fix_text(json.loads(cls.searcher.doc(str(pid)).raw())['contents'].lower().replace('\n', '').replace(':', '').replace('\r', '').replace(',', '').replace('\t', ''))
+            elif domain == 'robust04':
+                start_tags = ['[text]', '<text>']
+                end_tag = '</text>'
+            elif domain == 'dbpedia':
+                start_tags = ['<meta name="description"content="']
+                end_tag = '">'
+            elif domain == 'gov2':
+                start_tags = ['<meta name="description"']
+                end_tag = '">'
 
             while True:
-                start_index = text.find(start_tag)
-                if start_index == -1:
-                    break
-
+                start_index = -1
+                start_tag = None
+                for tag in start_tags:
+                    idx = text.find(tag)
+                    if idx != -1 and (start_index == -1 or idx < start_index):
+                        start_index = idx
+                        start_tag = tag
+                if start_index == -1: break
                 end_index = text.find(end_tag, start_index)
-                if end_index == -1:
-                    break
-
+                if end_index == -1: break
                 text = text[start_index + len(start_tag): end_index]
-
             text = text.translate(str.maketrans('', '', "<>[]/\\"))
             return fix_text(text.replace('\n', '').replace(':','').replace('\r', '').replace(',', '').replace('\t', ''))
-            # return fix_text(json.loads(cls.searcher.doc(str(pid)).raw())['contents'].lower().replace('\n', '').replace(':', '').replace('\r', '').replace(',', '').replace('\t', ''))
-        except AttributeError:
-            return ''  # if Dataset.searcher.doc(str(pid)) is None
-        except Exception as e:
-            raise e
+        except AttributeError: return ''  # if Dataset.searcher.doc(str(pid)) is None
+        except Exception as e: raise e
 
     @classmethod
     def create_query_objects(cls, queries_qrels, qrel_col, domain):
@@ -166,14 +161,17 @@ class Dataset(object):
     def set_index(cls, index): cls.index = index
 
     @classmethod
-    def search(cls, in_query, out_docids:str, qids:list, ranker='bm25', topk=100, batch=None, ncores=1, encoder=None, index=None, settings=None):
+    def search(cls, in_query, out_docids:str, qids:list=[], ranker='bm25', topk=100, batch=None, ncores=1, encoder=None, index=None, settings=None):
         print(f'Searching docs for {hex_to_ansi("#3498DB")}{in_query}{hex_to_ansi(reset=True)} and writing results in {hex_to_ansi("#F1C40F")}{out_docids}{hex_to_ansi(reset=True)} ...')
         # https://github.com/google-research/text-to-text-transfer-transformer/issues/322
         # Initialization - All the variables in class cannot be shared!
         if isinstance(in_query, str):
-            if (in_query.split('/')[-1]).split('.')[0] == 'refiner' or in_query.split('/')[-1] == 'original': queries = pd.read_csv(in_query, names=['query'], sep='\t', usecols=[2], skip_blank_lines=False, engine='python')
+            # if (in_query.split('/')[-1]).split('.')[0] == 'refiner' or in_query.split('/')[-1] == 'original': queries = pd.read_csv(in_query, names=['query'], sep='\t', usecols=[2], skip_blank_lines=False, engine='python')
+            if (in_query.split('/')[-1]).split('.')[0] == 'super' or in_query.split('/')[-1] == 'original': queries = pd.read_csv(in_query, names=['query'], sep='\t', usecols=[1], skip_blank_lines=False, engine='python')
             else: queries = pd.read_csv(in_query, names=['query'], sep='\r\r', skip_blank_lines=False, engine='python')  # a query might be empty str (output of t5)!!
         else: queries = in_query
+        qids = (pd.read_csv(in_query, names=['qid'], sep='\t', usecols=[0], skip_blank_lines=False, engine='python'))['qid'].tolist()
+
         assert len(queries) == len(qids)
         if not cls.index: cls.set_index(index)
         if not cls.settings: cls.settings = settings
@@ -227,6 +225,8 @@ class Dataset(object):
             names = list(refiners['global'].keys()) + list(refiners['local'].keys())
         elif category == 'bt':
             names = [category]
+        elif category == 'bt_nllb':
+            names = [category]
         return [re.sub(r'\b(\w+)Stemmer\b', r'stem.\1', re.sub(r'\b\w*BackTranslation\w*\b', 'bt', name)).lower() for name in names]
 
     ''' Fuse Ranking '''
@@ -243,15 +243,33 @@ class Dataset(object):
         doc_fusion.to_csv(output, sep='\t', encoding='UTF-8', index=False, header=False)
 
     @classmethod
-    def aggregate(cls, original, refined_query, output, ranker, metric, selected_refiner='refiner', build=False):
+    def aggregate(cls, original, refined_query, output, ranker, metric, selected_refiner='allref', cmd='agg'):
 
+        if cmd == 'rag':
+            globallist = cls.get_refiner_list('global')
+            locallist = cls.get_refiner_list('local')
+            alllist = cls.get_refiner_list('all')
         def select(ref, change):
-            if ref == 'nllb' and not ref in change: return False # only backtranslation with nllb
-            elif ref == 'bt' and 'bt' in change: return False # other refiners than backtranslartion
-            elif ref == 'refiner' and 'bt_bing' in change: return False # all the refiners except bing
-            else: return True
+            if change.startswith('refiner'):
+                if ref == 'nllb' and not ref in change: return False        # only backtranslation with nllb
+                elif ref == '-bt' and 'bt' in change: return False          # other refiners than backtranslartion
+                elif ref == '+bt' and 'bt_bing' in change: return False     # all the refiners except bing
+                else:
+                    if cmd == 'rag':
+                        if selected_refiner == 'all' and any(item in change for item in alllist): return True
+                        elif selected_refiner == 'global' and any(item in change for item in globallist): return True
+                        elif selected_refiner == 'local' and any(item in change for item in locallist): return True
+                        elif selected_refiner == 'bt' and 'bt_nllb' in change: return True
+                        else: return False
+                    else: return True                                        # all the refiners
 
-        changes = [(f.split(f'.{ranker}.{metric}')[0], f) for f in os.listdir(output) if f.endswith(f'{ranker}.{metric}') and f.startswith('refiner') and select(selected_refiner, f)]
+            elif change.startswith('rag_fusion') and 'rag' in cmd:
+                if ref in change: return True
+                else: return False
+
+            return False
+        changes = [(f.split(f'.{ranker}.{metric}')[0], f) for f in os.listdir(output) if f.endswith(f'{ranker}.{metric}') and select(selected_refiner, f)]
+
         refiners = []
         for change, metric_value in changes:
             refined = pd.read_csv(f'{refined_query}/{change}', sep='\t', usecols=[2], skip_blank_lines=False, names=[change], converters={change: cls.clean}, engine='python', index_col=False, header=None)
@@ -264,16 +282,19 @@ class Dataset(object):
 
         print(f'Saving original queries, all their changes, and their {metric} values based on {ranker} ...')
         original.to_csv(f'{output}/{ranker}.{metric}.agg.{"all" if selected_refiner=="refiner" else selected_refiner}.tsv', encoding='UTF-8', index=False)
-        if build:
+        if 'build' in cmd:
             output = f'../output/supervised/{(output.split("/"))[2]}'
             if not os.path.isdir(output): os.makedirs(output)
             cls.build(original, refiners, ranker, metric, f"{output}/{ranker}.{metric}.dataset.{'all' if selected_refiner=='refiner' else selected_refiner}.csv")
         else:
+            output = f'{output}/agg{f"/rag" if cmd=="rag" else ""}'
+            if cmd == 'rag' and selected_refiner == 'all': selected_refiner = 'allref'
+            if not os.path.isdir(output): os.makedirs(output)
             print(f'Saving original queries, better changes, and {metric} values based on {ranker} ...')
-            with open(f'{output}/{ranker}.{metric}.agg.{selected_refiner}.gold.tsv', mode='w', encoding='UTF-8') as agg_gold, \
-                    open(f'{output}/{ranker}.{metric}.agg.{selected_refiner}.all.tsv', mode='w', encoding='UTF-8') as agg_all, \
-                    open(f'{output}/{ranker}.{metric}.agg.{selected_refiner}.platinum.tsv', mode='w', encoding='UTF-8') as agg_plat, \
-                    open(f'{output}/{ranker}.{metric}.neg.{selected_refiner}.example.tsv', mode='w', encoding='UTF-8') as neg_exp:
+            with open(f'{output}/{ranker}.{metric}.agg.{selected_refiner}.all.tsv', mode='w', encoding='UTF-8') as agg_all, \
+                 open(f'{output}/{ranker}.{metric}.agg.{selected_refiner}.gold.tsv', mode='w', encoding='UTF-8') as agg_gold, \
+                 open(f'{output}/{ranker}.{metric}.agg.{selected_refiner}.platinum.tsv', mode='w', encoding='UTF-8') as agg_plat, \
+                 open(f'{output}/{ranker}.{metric}.agg.{selected_refiner}.negative.tsv', mode='w', encoding='UTF-8') as neg_exp:
                 agg_all.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
                 agg_gold.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
                 agg_plat.write(f'qid\torder\tquery\t{ranker}.{metric}\n')
@@ -322,40 +343,6 @@ class Dataset(object):
             else:
                 ds_df.loc[idx, 'star_model_count'] = 0
         ds_df.to_csv(output, index=False, encoding='UTF-8')
-
-
-    @classmethod
-    def aggregate_refiner_rag(cls, original, changes, output):
-        ranker = changes[0].split('.')[-2]  # e.g., pred.0-1004000.bm25.success.10 => bm25
-        metric = changes[0].split('.')[-1]  # e.g., pred.0-1004000.bm25.success.10 => success.10
-        for change in changes:
-            pred_metric_values = pd.read_csv(join(output, change), sep='\t', usecols=[1, 2], names=['qid', ".".join(change.split('.')[1:])], index_col=False,skipfooter=1, dtype={'qid': str}, engine='python')
-            original = original.merge(pred_metric_values, how='left', on='qid')  # to know the metric value of the change
-            original[".".join(change.split('.')[1:])].fillna(0, inplace=True)
-
-        print(f'Saving original queries, all their changes, and their {metric} values based on {ranker} ...')
-        original.to_csv(f'{output}/{ranker}.{metric}.agg.rag.all_.tsv', sep='\t', encoding='UTF-8', index=False)
-
-        print(f'Saving original queries, better changes, and {metric} values based on {ranker} ...')
-        with open(f'{output}/{ranker}.{metric}.agg.rag.gold.tsv', mode='w', encoding='UTF-8') as agg_gold, \
-                open(f'{output}/{ranker}.{metric}.agg.rag.all.tsv', mode='w', encoding='UTF-8') as agg_all, \
-                open(f'{output}/{ranker}.{metric}.agg.rag.platinum.tsv', mode='w', encoding='UTF-8') as agg_plat:
-            agg_all.write(f'qid\torder\t{ranker}.{metric}\n')
-            agg_gold.write(f'qid\torder\t{ranker}.{metric}\n')
-            agg_plat.write(f'qid\torder\t{ranker}.{metric}\n')
-            for index, row in tqdm(original.iterrows(), total=original.shape[0]):
-                agg_all.write(f'{row.qid}\t-1\t{row[f"original.{ranker}.{metric}"]}\n')
-                agg_gold.write(f'{row.qid}\t-1\t{row[f"original.{ranker}.{metric}"]}\n')
-                agg_plat.write(f'{row.qid}\t-1\t{row[f"original.{ranker}.{metric}"]}\n')
-                qid = row['qid']
-                row = row.drop(row.index[0])
-                row = row.sort_values(ascending=False)
-                for change, metric_value in row.items():
-                    if 'original' in change: continue
-                    change = change[:-len(f'.{ranker}.{metric}')]
-                    agg_all.write(f'{qid}\t{change}\t{metric_value}\n')
-                    if metric_value > 0 and metric_value >= row[f'original.{ranker}.{metric}']: agg_gold.write(f'{qid}\t{change}\t{metric_value}\n')
-                    if metric_value > 0 and metric_value > row[f'original.{ranker}.{metric}']: agg_plat.write(f'{qid}\t{change}\t{metric_value}\n')
 
     @classmethod
     def box(cls, input, qrels, output, checks, sel_ref):
