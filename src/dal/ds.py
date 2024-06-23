@@ -1,6 +1,8 @@
 import re
 import os
 import math
+import numpy as np
+from itertools import product, combinations
 from tqdm import tqdm
 from os.path import join
 import json, pandas as pd
@@ -25,6 +27,7 @@ class Dataset(object):
         # sometimes we need to manually build the index ==> Aol.init()
         Dataset.domain = domain
         Dataset.queries = []
+        Dataset.queries_qrels = pd.DataFrame({})
         Dataset.index = ""
         Dataset.searcher = None
         Dataset.settings = settings
@@ -56,8 +59,6 @@ class Dataset(object):
                     queries = pd.concat([queries, pd.DataFrame([new_line])], ignore_index=True)
                     q, qid = '', ''
         infile = f'{input}/qrels.{domain}.txt'
-
-        #TODO: use python engine in panda read_csv to infer the seperator
         with open(infile, 'r') as file:
             line = file.readline()
             if '\t' in line: separator = '\t'
@@ -69,41 +70,66 @@ class Dataset(object):
         else: qrels.to_csv(f'{input}/qrels.train.tsv_', index=False, sep='\t', header=False)
         queries_qrels = pd.merge(queries, qrels, on='qid', how='inner', copy=False)
         queries_qrels = queries_qrels.sort_values(by='qid')
-        cls.create_query_objects(queries_qrels, ['qid', '0', 'did', 'relevancy'], domain)
-        cls.write_queries(queries_qrels, input.split('/')[4])
+        cls.queries_qrels = pd.concat([cls.queries_qrels, queries], axis=0)
+        # cls.create_query_objects(queries_qrels, ['qid', '0', 'did', 'relevancy'], domain)
 
     @classmethod
-    def write_queries(cls, queries_qrels, domain, chunks):
+    def pairing(cls, input):
+        queries = cls.queries_qrels
         cls.index = cls.settings["index"]
         cls.searcher = LuceneSearcher(cls.index)
-        groups = queries_qrels.groupby(['qid', 'query'])
-        file_paths_qrel = [f'../output/{domain}/qrels{f".{i}" if chunks!=0 else ""}.tsv' for i in range(0, chunks)]
-        file_paths_pairing = [f'../output/{domain}/pairing{f".{i}" if chunks!=0 else ""}.tsv' for i in range(0, chunks)]
-        file_paths_original_qid_query = [f'../output/{domain}/original_qid{f".{i}" if chunks!=0 else ""}.tsv' for i in range(0, chunks)]
-        file_paths_original_query = [f'../output/{domain}/original{f".{i}" if chunks!=0 else ""}.tsv' for i in range(0, chunks)]
-        group_size = len(groups)//chunks
-        for i, (name, group) in enumerate(groups):
-            file_index = min(i // group_size, chunks)
-            print(f'Writing results to ../output/{domain}/{domain}.{file_index}.query.doc.tsv ...')
-            print(f'Writing results to ../output/{domain}/qrel.{file_index}.tsv ...')
-            with open(file_paths_qrel[file_index], 'a', encoding='utf-8') as qrel, \
-                open(file_paths_pairing[file_index], 'a', encoding='utf-8') as pairing, \
-                open(file_paths_original_qid_query[file_index], 'a', encoding='utf-8') as original_qid, \
-                open(file_paths_original_query[file_index], 'a', encoding='utf-8') as original:
-                query = name[1].replace("\t", " ").lower()
-                docs = []
-                for index, row in group.iterrows():
-                    docs.append((cls._txt(row['did'], domain)))
-                doc = ' '.join(docs)
-                doc = doc.encode('utf-8')
+        docs_content = dict()
+        # for index, row in qrels.iterrows(): docs_content[row['did']] = cls._txt(row['did'], input.split('/')[4])
+        for ranker, metric in product(['bm25'], ['map']):
+            print(f'Pairing results for {ranker}.{metric} ...')
+            for category in ['all', 'global', 'local', 'bt_nllb', 'bt']:
+                print(f'Pairing results for {category} ...')
+                doc_list = pd.read_csv(f'../output/{input.split("/")[4]}/{ranker}.{metric}/rag/rag.{category}.k{60}.{ranker}', sep='\t', usecols=[0, 2], names=['qid', 'did'], index_col=False, skipfooter=1, dtype={'qid': str, 'did': str}, engine='python')
+                doc_list['did'] = doc_list['did'].str.strip()
 
-                # qrel.write(f'{name[0]}\t{row["0"]}\t{row["did"]}\t{row["relevancy"]}\n')
-                # pairing.write(f'{query}\t{doc}\n')
-                # original_qid.write(f'{name[0]}\t{query}\n')
-                # original.write(f'{query}\n')
+                # doc_list = pd.read_csv(f'../output/{input.split("/")[4]}/{ranker}.{metric}/rag/rag.{category}.k{60}.{ranker}', sep=' ', usecols=[0, 1], names=['qid', 'did'], index_col=False, skipfooter=1, dtype={'qid': str}, engine='python')
+                # doc_list['did'] = doc_list['did'].str.replace(r'^Q0\t', '', regex=True).str.strip()
+
+                queries_qrels = pd.merge(queries, doc_list, on='qid', how='inner', copy=False)
+                queries_qrels = queries_qrels.sort_values(by='qid')
+                cls.write_queries(queries_qrels, input.split('/')[4], 4, ranker, metric, category, docs_content)
+
 
     @classmethod
-    def pair(cls, input, output, index_item, cat=True): pass
+    def write_queries(cls, queries_qrels, domain, chunks, ranker, metric, category, docs_content):
+        groups = queries_qrels.groupby(['qid', 'query'])
+
+        output = f'../output/{domain}/{ranker}.{metric}/rag/initial_t5'
+        if not os.path.isdir(output): os.makedirs(output)
+
+        file_paths_qrel = [f'../output/{domain}/qrels{f".{i}" if chunks!=0 else ""}.tsv' for i in range(0, chunks)]
+        file_paths_pairing = [f'{output}/pairing.{category}{f".{i}" if chunks!=0 else ""}.tsv' for i in range(0, chunks)]
+        file_paths_original_qid_query = [f'{output}/original_qid.{category}{f".{i}" if chunks!=0 else ""}.tsv' for i in range(0, chunks)]
+        file_paths_original_query = [f'{output}/original.{category}{f".{i}" if chunks!=0 else ""}.tsv' for i in range(0, chunks)]
+
+        group_size = len(groups)//chunks
+        for i, (name, group) in enumerate(groups):
+            file_index = min(i // group_size, chunks-1)
+            print(f'{name[0]}: Writing results to ../output/{domain}/{ranker}.{metric}/rag/initial_t5, index {file_index} ...')
+            with open(file_paths_qrel[file_index], 'a', encoding='utf-8') as qrel, \
+                 open(file_paths_pairing[file_index], 'a', encoding='utf-8') as pairing, \
+                 open(file_paths_original_qid_query[file_index], 'a', encoding='utf-8') as original_qid, \
+                 open(file_paths_original_query[file_index], 'a', encoding='utf-8') as original:
+                query = name[1].replace("\t", " ").lower()
+
+                docs = []
+                # for index, row in group.iterrows(): docs.append((cls._txt(row['did'], domain)))
+                for index, row in group.iterrows():
+                    if row['did'] in docs_content:
+                        docs.append(docs_content[row['did']])
+                    else: docs.append((cls._txt(row['did'], domain)))
+                doc = ' '.join(docs)
+                doc = doc.encode('utf-8')
+                qrel.write(f'{name[0]}\t{row["0"]}\t{row["did"]}\t{row["relevancy"]}\n')
+                pairing.write(f'{query}\t{doc}\n')
+                original_qid.write(f'{name[0]}\t{query}\n')
+                original.write(f'{query}\n')
+
 
     @classmethod
     def _txt(cls, pid, domain):
@@ -116,10 +142,10 @@ class Dataset(object):
                 start_tags = ['[text]', '<text>']
                 end_tag = '</text>'
             elif domain == 'dbpedia':
-                start_tags = ['<meta name="description"content="']
-                end_tag = '">'
+                start_tags = ['<!-- rc -->\n<p>']
+                end_tag = '</p>\n<!-- rc -->'
             elif domain == 'gov2':
-                start_tags = ['<meta name="description"']
+                start_tags = ['<meta name="description"\ncontent="']
                 end_tag = '">'
 
             while True:
@@ -232,47 +258,98 @@ class Dataset(object):
     ''' Fuse Ranking '''
     @classmethod
     def reciprocal_rank_fusion(cls, docs, k, columns, output):
+        docs = docs.groupby(['qid', 'did'])
         doc_fusion = pd.DataFrame(columns=columns)
         for group_name, group_df in docs:
             score = 0
             for index, row in group_df.iterrows():
                 score += 1/(k+row['rank'])
             doc_fusion.loc[len(doc_fusion)] = [group_name[0], 'Q0', group_name[1], 0, score, 'Pyserini']
+        doc_fusion = doc_fusion.sort_values(by=['qid', 'score'], ascending=[True, False])
+        doc_fusion['rank'] = doc_fusion.groupby('qid').cumcount() + 1
+        doc_fusion.to_csv(output, sep='\t', encoding='UTF-8', index=False, header=False)
+
+    @classmethod
+    def condorcet_fusion(cls, docs, columns, output):
+        did_list = docs['did'].unique().tolist()
+        docs = docs.groupby(['qid', 'refiner'])
+        score_metrix = {did: 0 for did in did_list}
+        pairwise_list = list(combinations(did_list, 2))
+
+        doc_fusion = pd.DataFrame(columns=columns)
+        for group_name, group_df in docs:
+            for (did1, did2) in pairwise_list:
+                r1 = (group_df.loc[group_df['did'] == did1, 'rank'].values)[0]
+                r2 = (group_df.loc[group_df['did'] == did2, 'rank'].values)[0]
+                if r1 > r2: score_metrix[did1] += 1
+                else: score_metrix[did2] += 1
+            for did in score_metrix.keys():
+                doc_fusion.loc[len(doc_fusion)] = [group_name[0], 'Q0', did, 0, score_metrix[did], 'Pyserini']
+                score_metrix[did] = 0
+
         doc_fusion = doc_fusion.sort_values(by=['id', 'score'], ascending=[True, False])
         doc_fusion['rank'] = doc_fusion.groupby('id').cumcount() + 1
         doc_fusion.to_csv(output, sep='\t', encoding='UTF-8', index=False, header=False)
 
     @classmethod
+    def random(cls, docs, columns, output):
+        docs = docs.groupby(['qid'])
+        doc_fusion = pd.DataFrame(columns=columns)
+
+        for qid, group_df in docs:
+            df = group_df.drop_duplicates(subset='did', keep='first')
+            df = df.sample(frac=1).reset_index(drop=True)
+            df['score'] = np.random.rand(len(df))
+            doc_fusion = pd.concat([doc_fusion, df], ignore_index=True)
+
+        doc_fusion['rank'] = doc_fusion.groupby('id').cumcount() + 1
+        doc_fusion.to_csv(output, sep='\t', encoding='UTF-8', index=False, header=False)
+
+
+    # Example usage:
+    # reciprocal_rank_fusion(cls, docs, [1, 2, 3], columns, 'output')
+    def reciprocal_rank_fusion_multi_k(cls, docs, k_list, columns, output):
+        docs = docs.groupby(['qid', 'did'])
+
+        doc_fusion_dict = {k: pd.DataFrame(columns=columns) for k in k_list}
+
+        for group_name, group_df in docs:
+            scores = {k: 0 for k in k_list}
+
+            for index, row in group_df.iterrows():
+                for k in k_list:
+                    scores[k] += 1 / (k + row['rank'])
+
+            for k in k_list:
+                doc_fusion_dict[k].loc[len(doc_fusion_dict[k])] = [group_name[0], 'Q0', group_name[1], 0, scores[k], 'Pyserini']
+        for k, doc_fusion in doc_fusion_dict.items():
+            doc_fusion = doc_fusion.sort_values(by=['qid', 'score'], ascending=[True, False])
+            doc_fusion['rank'] = doc_fusion.groupby('qid').cumcount() + 1
+            output_filename = output.split('.k.')[0] + '.k' + str(k) + '.' + output.split('.k.')[1]
+            doc_fusion.to_csv(output_filename, sep='\t', encoding='UTF-8', index=False, header=False)
+
+
+    @classmethod
     def aggregate(cls, original, refined_query, output, ranker, metric, selected_refiner='allref', cmd='agg'):
-
-        if cmd == 'rag':
-            globallist = cls.get_refiner_list('global')
-            locallist = cls.get_refiner_list('local')
-            alllist = cls.get_refiner_list('all')
         def select(ref, change):
-            if change.startswith('refiner'):
-                if ref == 'nllb' and not ref in change: return False        # only backtranslation with nllb
-                elif ref == '-bt' and 'bt' in change: return False          # other refiners than backtranslartion
-                elif ref == '+bt' and 'bt_bing' in change: return False     # all the refiners except bing
-                else:
-                    if cmd == 'rag':
-                        if selected_refiner == 'all' and any(item in change for item in alllist): return True
-                        elif selected_refiner == 'global' and any(item in change for item in globallist): return True
-                        elif selected_refiner == 'local' and any(item in change for item in locallist): return True
-                        elif selected_refiner == 'bt' and 'bt_nllb' in change: return True
-                        else: return False
-                    else: return True                                        # all the refiners
-
-            elif change.startswith('rag_fusion') and 'rag' in cmd:
+            if change.startswith('rag') and 'rag' in cmd:
                 if ref in change: return True
                 else: return False
 
-            return False
+            elif change.startswith('refiner') and not 'rag' in cmd:
+                if ref == 'nllb' and not ref in change: return False        # only backtranslation with nllb
+                elif ref == '-bt' and 'bt' in change: return False          # other refiners than backtranslartion
+                elif ref == '+bt' and 'bt_bing' in change: return False     # all the refiners except bing
+                else: return True                                           # all the refiners
+
+            else: return False
+
         changes = [(f.split(f'.{ranker}.{metric}')[0], f) for f in os.listdir(output) if f.endswith(f'{ranker}.{metric}') and select(selected_refiner, f)]
 
         refiners = []
         for change, metric_value in changes:
-            refined = pd.read_csv(f'{refined_query}/{change}', sep='\t', usecols=[2], skip_blank_lines=False, names=[change], converters={change: cls.clean}, engine='python', index_col=False, header=None)
+            if 'rag' in cmd: refined = pd.DataFrame({change: [change] * len(original['qid'])})
+            else: refined = pd.read_csv(f'{refined_query}/{change}', sep='\t', usecols=[2], skip_blank_lines=False, names=[change], converters={change: cls.clean}, engine='python', index_col=False, header=None)
             assert len(original['qid']) == len(refined[change])
             refiners.append(change)
             pred_metric_values = pd.read_csv(join(output, metric_value), sep='\t', usecols=[1, 2], names=['qid', f'{change}.{ranker}.{metric}'], index_col=False, skipfooter=1, dtype={'qid': str}, engine='python')
@@ -287,7 +364,7 @@ class Dataset(object):
             if not os.path.isdir(output): os.makedirs(output)
             cls.build(original, refiners, ranker, metric, f"{output}/{ranker}.{metric}.dataset.{'all' if selected_refiner=='refiner' else selected_refiner}.csv")
         else:
-            output = f'{output}/agg{f"/rag" if cmd=="rag" else ""}'
+            output = f'{output}/agg'
             if cmd == 'rag' and selected_refiner == 'all': selected_refiner = 'allref'
             if not os.path.isdir(output): os.makedirs(output)
             print(f'Saving original queries, better changes, and {metric} values based on {ranker} ...')
@@ -309,7 +386,7 @@ class Dataset(object):
                         all.append((row[change], row[f'{change}.{ranker}.{metric}'], change))
                     all = sorted(all, key=lambda x: x[1], reverse=True)
                     for i, (query, metric_value, change) in enumerate(all):
-                        change = change[len("refiner."):]
+                        change = change if cmd == 'rag' else change[len("refiner."):]
                         agg_all.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
                         if metric_value > 0 and metric_value >= row[f'original.{ranker}.{metric}']: agg_gold.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')
                         if metric_value > 0 and metric_value > row[f'original.{ranker}.{metric}']: agg_plat.write(f'{row.qid}\t{change}\t{query}\t{metric_value}\n')

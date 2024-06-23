@@ -37,9 +37,10 @@ def run(data_list, domain_list, output_result, corpora, settings):
             ds = Dataset(corpora[domain], domain)
         if 'trec' in corpora[domain]:
             [ds.read_queries(datapath, t, trec=True) for t in corpora[domain]['trec']]
-            all_qrels = [pd.read_csv(os.path.join(datapath, f), sep='\t', index_col=False, names=ds.queries[0].qrel.keys()) for f in os.listdir(datapath) if f.endswith('train.tsv_') and f != 'qrels.train.tsv_']
-            pd.concat(all_qrels, ignore_index=True).to_csv(f'{datapath}/qrels.train.tsv_', index=False, sep='\t', header=False)
+            # all_qrels = [pd.read_csv(os.path.join(datapath, f), sep='\t', index_col=False, names=ds.queries[0].qrel.keys()) for f in os.listdir(datapath) if f.endswith('train.tsv_') and f != 'qrels.train.tsv_']
+            # pd.concat(all_qrels, ignore_index=True).to_csv(f'{datapath}/qrels.train.tsv_', index=False, sep='\t', header=False)
         else: ds.read_queries(datapath, domain)
+        ds.pairing(datapath)
 
         refined_data_output = f'{output_result}{os.path.split(datapath)[-1]}'
 
@@ -56,7 +57,7 @@ def run(data_list, domain_list, output_result, corpora, settings):
                     if 't5' in refiner.get_model_name(): refiner.get_refined_query(""); continue
                     else: refiner_outfile = f'{refined_data_output}/refiner.{refiner.get_model_name()}'
                     if not exists(refiner_outfile):
-                        ds.queries = p.map(partial(refiner.preprocess_query), ds.queries)
+                        for q in ds.queries: refiner.preprocess_query(q)
                         print(f'Writing results from {refiner.get_model_name()} queries in {refiner_outfile}')
                         refiner.write_queries(queries=ds.queries, outfile=refiner_outfile)
                     else: print(f'Results from {refiner.get_model_name()} queries in {refiner_outfile}')
@@ -87,22 +88,31 @@ def run(data_list, domain_list, output_result, corpora, settings):
                     with mp.Pool(settings['ncore']) as p: p.starmap(partial(ds.search, qids=[query.qid for query in ds.queries], ranker=ranker, topk=settings['topk'], batch=settings['batch'], ncores=settings['ncore'], index=ds.settings["index"], settings=corpora[domain]), query_changes)
 
                 if 'rag_fusion' in settings['cmd']:
-                    rag_output = f'{output}/rag'
+                    rag_output = f'{output}/rag/multi' if settings['fusion_method'] == 'rrf_multi_k' else f'{output}/rag'
                     if not os.path.isdir(rag_output): os.makedirs(rag_output)
                     print('RAG Fusion Step ...')
-                    columns = ['id', 'Q0', 'doc', 'rank', 'score', 'Pyserini']
-                    for categorize in settings['fusion']:
-                        if any(file.startswith(f'rag_fusion.{categorize}.{ranker}') for file in os.listdir(rag_output)): continue
+                    columns = ['qid', 'Q0', 'did', 'rank', 'score', 'Pyserini']
+                    for categorize in settings['fusion_category']:
+                        if any(file.startswith(f'rag.{categorize}.') for file in os.listdir(rag_output)): continue
                         print(f'RAG Fusion for {hex_to_ansi("#3498DB")}"{categorize}"{hex_to_ansi(reset=True)} category')
                         names = ds.get_refiner_list(categorize)
-                        results = pd.concat([pd.read_csv(os.path.join(output, f), sep='\t', names=columns).assign(refiner=('original' if 'original' in f else ('.'.join(f.split('.')[1:3]) if 'stem' in f else f.split('.')[1]))) for f in os.listdir(output) if f.endswith(ranker) and not f.startswith('rag_fusion') and any(name in f for name in names)], ignore_index=True)
-                        results = results.groupby(['id', 'doc'])
-                        ds.reciprocal_rank_fusion(docs=results, k=60, columns=columns, output=f'{rag_output}/rag.{categorize}.k{60}.{ranker}')
+                        results = pd.concat([pd.read_csv(os.path.join(output, f), sep='\t', names=columns).assign(refiner=('original' if 'original' in f else ('.'.join(f.split('.')[1:3]) if 'stem' in f else f.split('.')[1]))) for f in os.listdir(output) if f.endswith(ranker) and not f.startswith('rag') and any(name in f for name in names)], ignore_index=True)
+                        if settings['fusion_method'] == 'rrf':
+                            ds.reciprocal_rank_fusion(docs=results, k=60, columns=columns, output=f'{rag_output}/rag.{categorize}.k.{ranker}')
+                        if settings['fusion_method'] == 'rrf_multi_k':
+                            ds.reciprocal_rank_fusion_multi_k(docs=results, k_list=[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100], columns=columns, output=f'{rag_output}/rag.{categorize}.k.{ranker}')
+                        elif settings['fusion_method'] == 'condorcet':
+                            ds.condorcet_fusion(docs=results, columns=columns, output=f'{rag_output}/rag.{categorize}.cond.{ranker}')
+                        elif settings['fusion_method'] == 'random':
+                            ds.random(docs=results, columns=columns, output=f'{rag_output}/rag.{categorize}.rand.{ranker}')
 
                 if 'eval' in settings['cmd']:
                     from evl import trecw
                     print(f'Evaluating documents for query changes using {hex_to_ansi("#3498DB")}{metric}{hex_to_ansi(reset=True)} ...')
-                    search_results = [(f'{output}/{f}', f'{output}/{f}.{metric}') for f in listdir(output) if f.endswith(ranker) and f.startswith('refiner.') and f'{f}.{metric}' not in listdir(output)]
+                    if 'rag_fusion' in settings['cmd']:
+                        search_results = [(f'{output}/rag/{f}', f'{output}/rag/{f}.{metric}') for f in listdir(f'{output}/rag/') if f.endswith(ranker) and f.startswith('rag.') and f'{f}.{metric}' not in listdir(f'{output}/rag/')]
+                        search_results.extend([(f'{output}/rag/multi/{f}', f'{output}/rag/multi/{f}.{metric}') for f in listdir(f'{output}/rag/multi/') if f.endswith(ranker) and f.startswith('rag.') and f'{f}.{metric}' not in listdir(f'{output}/rag/multi/')])
+                    else: search_results = [(f'{output}/{f}', f'{output}/{f}.{metric}') for f in listdir(output) if f.endswith(ranker) and f.startswith('refiner.') and f'{f}.{metric}' not in listdir(output)]
                     with mp.Pool(settings['ncore']) as p: p.starmap(partial(trecw.evaluate, qrels=qrel_path, metric=metric, lib=settings['treclib'], mean=not settings['large_ds']), search_results)
 
                 if 'agg' in settings['cmd'] or 'build' in settings['cmd']:
@@ -124,12 +134,12 @@ def run(data_list, domain_list, output_result, corpora, settings):
                         ds.aggregate(originals, refined_data_output, output, ranker, metric, selected_refiner='nllb', cmd='build')
                         ds.aggregate(originals, refined_data_output, output, ranker, metric, selected_refiner='refiner', cmd='build')
 
-                    if 'rag' in settings['cmd']:
+                    if 'rag_fusion' in settings['cmd']:
                         print(f'Aggregating results for all {hex_to_ansi("#3498DB")}refiners{hex_to_ansi(reset=True)} and {hex_to_ansi("#3498DB")}rag_fusion{hex_to_ansi(reset=True)} ...')
-                        ds.aggregate(originals, refined_data_output, output, ranker, metric, selected_refiner='all', cmd='rag')
-                        ds.aggregate(originals, refined_data_output, output, ranker, metric, selected_refiner='global', cmd='rag')
-                        ds.aggregate(originals, refined_data_output, output, ranker, metric, selected_refiner='local', cmd='rag')
-                        ds.aggregate(originals, refined_data_output, output, ranker, metric, selected_refiner='bt', cmd='rag')
+                        ds.aggregate(originals, output, f'{output}/rag', ranker, metric, selected_refiner='all', cmd='rag')
+                        ds.aggregate(originals, output, f'{output}/rag', ranker, metric, selected_refiner='global', cmd='rag')
+                        ds.aggregate(originals, output, f'{output}/rag', ranker, metric, selected_refiner='local', cmd='rag')
+                        ds.aggregate(originals, output, f'{output}/rag', ranker, metric, selected_refiner='bt', cmd='rag')
 
                 if 'box' in settings['cmd']:
                     from evl import trecw
