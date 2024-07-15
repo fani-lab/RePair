@@ -71,7 +71,7 @@ class Dataset(object):
         queries_qrels = pd.merge(queries, qrels, on='qid', how='inner', copy=False)
         queries_qrels = queries_qrels.sort_values(by='qid')
         cls.queries_qrels = pd.concat([cls.queries_qrels, queries], axis=0)
-        # cls.create_query_objects(queries_qrels, ['qid', '0', 'did', 'relevancy'], domain)
+        cls.create_query_objects(queries_qrels, ['qid', '0', 'did', 'relevancy'], domain)
 
     @classmethod
     def pairing(cls, input):
@@ -80,7 +80,7 @@ class Dataset(object):
         cls.searcher = LuceneSearcher(cls.index)
         docs_content = dict()
         # for index, row in qrels.iterrows(): docs_content[row['did']] = cls._txt(row['did'], input.split('/')[4])
-        for ranker, metric in product(['bm25'], ['map']):
+        for ranker, metric in product(['qld'], ['map']):
             print(f'Pairing results for {ranker}.{metric} ...')
             for category in ['all', 'global', 'local', 'bt_nllb', 'bt']:
                 print(f'Pairing results for {category} ...')
@@ -102,7 +102,7 @@ class Dataset(object):
         output = f'../output/{domain}/{ranker}.{metric}/rag/initial_t5'
         if not os.path.isdir(output): os.makedirs(output)
 
-        file_paths_qrel = [f'../output/{domain}/qrels{f".{i}" if chunks!=0 else ""}.tsv' for i in range(0, chunks)]
+        # file_paths_qrel = [f'../output/{domain}/qrels{f".{i}" if chunks!=0 else ""}.tsv' for i in range(0, chunks)]
         file_paths_pairing = [f'{output}/pairing.{category}{f".{i}" if chunks!=0 else ""}.tsv' for i in range(0, chunks)]
         file_paths_original_qid_query = [f'{output}/original_qid.{category}{f".{i}" if chunks!=0 else ""}.tsv' for i in range(0, chunks)]
         file_paths_original_query = [f'{output}/original.{category}{f".{i}" if chunks!=0 else ""}.tsv' for i in range(0, chunks)]
@@ -111,8 +111,8 @@ class Dataset(object):
         for i, (name, group) in enumerate(groups):
             file_index = min(i // group_size, chunks-1)
             print(f'{name[0]}: Writing results to ../output/{domain}/{ranker}.{metric}/rag/initial_t5, index {file_index} ...')
-            with open(file_paths_qrel[file_index], 'a', encoding='utf-8') as qrel, \
-                 open(file_paths_pairing[file_index], 'a', encoding='utf-8') as pairing, \
+            # with open(file_paths_qrel[file_index], 'a', encoding='utf-8') as qrel, \
+            with open(file_paths_pairing[file_index], 'a', encoding='utf-8') as pairing, \
                  open(file_paths_original_qid_query[file_index], 'a', encoding='utf-8') as original_qid, \
                  open(file_paths_original_query[file_index], 'a', encoding='utf-8') as original:
                 query = name[1].replace("\t", " ").lower()
@@ -125,7 +125,7 @@ class Dataset(object):
                     else: docs.append((cls._txt(row['did'], domain)))
                 doc = ' '.join(docs)
                 doc = doc.encode('utf-8')
-                qrel.write(f'{name[0]}\t{row["0"]}\t{row["did"]}\t{row["relevancy"]}\n')
+                # qrel.write(f'{name[0]}\t{row["0"]}\t{row["did"]}\t{row["relevancy"]}\n')
                 pairing.write(f'{query}\t{doc}\n')
                 original_qid.write(f'{name[0]}\t{query}\n')
                 original.write(f'{query}\n')
@@ -328,6 +328,22 @@ class Dataset(object):
             output_filename = output.split('.k.')[0] + '.k' + str(k) + '.' + output.split('.k.')[1]
             doc_fusion.to_csv(output_filename, sep='\t', encoding='UTF-8', index=False, header=False)
 
+    def get_extra_info(self, output):
+        import wikipedia
+        print('Getting extra info ...')
+        # Get the relevant information
+        initial_df = pd.DataFrame(columns=['qid', 'query'])
+        for query in self.queries:
+            try:
+                content = wikipedia.page(query.q).content
+                content = content.translate(str.maketrans('', '', "<>[]/\\"))
+                content = fix_text(content.replace('\n', '').replace(':', '').replace('\r', '').replace(',', '').replace('\t', '').replace("'", '').replace('"', ''))
+            except Exception as e:
+                content = 'None'
+            initial_df.loc[len(initial_df)] = [query.qid, f'{query.q}, {content}']
+
+        # initial_df.to_csv(f'{rag_output}/preprocessed_rag.tsv', index=False)
+        initial_df.to_csv(f'{output}/{self.domain}_rag.tsv', index=False, sep='\t', header=0, encoding='utf-8')
 
     @classmethod
     def aggregate(cls, original, refined_query, output, ranker, metric, selected_refiner='allref', cmd='agg'):

@@ -9,13 +9,14 @@ extension = '.exe' if platform.system() == 'Windows' else ""
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 settings = {
-    'cmd': ['query_refinement'],  # steps of pipeline, ['query_refinement', 'similarity', 'search', 'rag_fusion', 'eval','agg', 'box','dense_retrieve', 'stats]
-    'datalist': ['./../data/raw/antique', './../data/raw/clueweb09b'], # ['./../data/raw/robust04', './../data/raw/gov2', './../data/raw/antique', './../data/raw/dbpedia', './../data/raw/clueweb09b']
-    'domainlist': ['antique', 'clueweb09b'], # ['robust04', 'gov2', 'antique', 'dbpedia', 'clueweb09b']
-    'fusion': ['all', 'global', 'local', 'bt'],  # ['all', 'global', 'local', 'bt']
+    'cmd': ['rag', 'search'],  # steps of pipeline, ['query_refinement', 'similarity', 'rag', 'search', 'rag_fusion', 'eval', 'agg', 'build', 'box','dense_retrieve', 'stats]
+    'datalist': ['./../data/raw/robust04', './../data/raw/gov2', './../data/raw/antique', './../data/raw/dbpedia', './../data/raw/clueweb09b'], # ['./../data/raw/robust04', './../data/raw/gov2', './../data/raw/antique', './../data/raw/dbpedia', './../data/raw/clueweb09b']
+    'domainlist': ['robust04', 'gov2', 'antique', 'dbpedia', 'clueweb09b'], # ['robust04', 'gov2', 'antique', 'dbpedia', 'clueweb09b']
+    'fusion_category': ['global', 'local'],  # ['all', 'global', 'local', 'bt_nllb', 'bt']
+    'fusion_method': 'rrf_multi_k',  # 'rrf_multi_k, rrf', 'condorcet', 'random'
     'ncore': 2,
-    'ranker': ['qld', 'bm25'],           # 'qld', 'bm25', 'tct_colbert'
-    'metric': ['map', 'ndcg', 'recip_rank'],  # any valid trec_eval.9.0.4 metrics like 'map', 'ndcg', 'recip_rank', ...
+    'ranker': ['bm25'],           # ['qld', 'bm25', 'tct_colbert']
+    'metric': ['map'],  # any valid trec_eval.9.0.4 metrics like ['map', 'ndcg', 'recip_rank']
     'batch': None,              # search per batch of queries for IR search using pyserini, if None, search per query
     'topk': 100,                # number of retrieved documents for a query
     'large_ds': False,
@@ -120,8 +121,7 @@ corpora = {
     'trec09mq': {
         'index': '/data/raw/clueweb09b/lucene-index.cw09b.pos+docvectors+rawdocs',
         'size': 50000000,
-        # 'topics': '../ds/trec2009mq/prep/09.mq.topics.20001-60000.prep.tsv',
-        'topics': '../data/raw/trec09mq/09.mq.topics.20001-60000.prep',
+        'topics': '../ds/trec2009mq/prep/09.mq.topics.20001-60000.prep.tsv',
         'prels': '',  # this will be generated after a retrieval {bm25, qld}
         'w_t': 2.25,  # OnFields # to be tuned
         'w_a': 1,  # OnFields # to be tuned

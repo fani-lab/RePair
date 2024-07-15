@@ -28,7 +28,8 @@ refiners = {
             'Trunc4Stemmer':        0,
             'Trunc5Stemmer':        0,
 
-            'BackTranslation':      1,
+            'BackTranslation':      0,
+            'Bing':                 1,
         },
         'local': {
             'RelevanceFeedback':    0,
@@ -54,12 +55,16 @@ backtranslation = {
 }
 
 t5transformer = {
-    'pair': 1,
-    'finetune': 1,
+    'pair': 0,
+    'finetune': 0,
     'predict': 1,
-    't5model': 'small.local',  # 'base.gc' on google cloud tpu, 'small.local' on local machine
+    't5model': 'base.local',  # exp. 'small.gc' on google cloud tpu, 'small.local' on local machine
     'iter': 5,  # number of finetuning iteration for t5
-    'nchanges': 5,  # number of changes to a query
-    'pretrained_dir': f'./../output/t5-data/pretrained_models/',
+    'nchanges': 10,  # number of changes to a query
+    'pretrained_dir': f'./../output/t5-data/pretrained_models/base',
+    'lseq': {"inputs": 32, "targets": 256},
 }
 
+bing = {
+    'subscription_key ': '',
+}

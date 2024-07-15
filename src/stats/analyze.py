@@ -4,16 +4,21 @@ import matplotlib.pyplot as plt
 from src.param import settings
 from itertools import product
 import pandas as pd
+import shutil
 import json
 import sys
 import os
 import re
 
-sys.path.extend(["./src/output"])
+# sys.path.extend(["./output"])
 
 
 def get_refiner_list(category):
     names = list(refiners[category].keys())
+    if 'BackTranslation' in names:
+        names.remove('BackTranslation')
+        names.append('bt_nllb_')
+        names.append('bt_bing_')
     return [re.sub(r'\b(\w+)Stemmer\b', r'stem.\1', re.sub(r'\b\w*BackTranslation\w*\b', 'bt', name)).lower() for name in names]
 
 
@@ -34,7 +39,8 @@ def combine_refiner_results(infile, output, datasets, ranker_metrics):
     on the 'refiner' column, and writes the combined results to CSV files for each ranker-metric combination.
     """
     for r, m in ranker_metrics:
-        df_list = [pd.read_csv(f'{infile}.{ds}.{r}.{m}.csv', skiprows=1, names=['category', 'refiner', f'{ds}_|q**|', f'{ds}_%']) for ds in datasets]
+        # df_list = [pd.read_csv(f'{infile}.{ds}.{r}.{m}.csv', skiprows=1, names=['category', 'refiner', f'{ds}_|q**|', f'{ds}_%']) for ds in datasets]
+        df_list = [pd.read_csv(f'{infile}/{f}', skiprows=1, names=['category', 'refiner', f'{f.split(".")[0]}_|q**|', f'{f.split(".")[0]}_%']) for f in os.listdir(infile) if f'{r}.{m}' in f]
         merged_df = df_list[0]
         for df in df_list[1:]: merged_df = pd.merge(merged_df, df, on=['refiner', 'category'], how='outer')
         merged_df = merged_df.fillna(0)
@@ -64,19 +70,15 @@ def compare_refiners(infile, output, globalr, ranker, metric, refiners_list=[], 
     """
     df = pd.read_csv(infile, sep='\t', header=0)
     num_q = df['qid'].nunique()  # Number of queries in the dataset
-    if len(refiners_list) == 0: refiners_list = get_refiner_list('global') + get_refiner_list('local') + ['-1']
+    # if len(refiners_list) == 0: refiners_list = get_refiner_list('global') + get_refiner_list('local') + ['-1'] + ['msmarco', 'base'] + [f"rag.{second}.{third}" for second in ['all', 'bt_nllb', 'bt', 'global', 'local'] for third in ['k60', 'k0']]
     if agg:
-        # df['order'] = df['order'].apply(lambda x: 'bt' if 'bt' in x else x)
-        # bt_rows = df[df['order'] == 'bt']
-        # max_indices = bt_rows.groupby(['qid', 'order'])[f'{ranker}.{metric}'].idxmax()
-        # df_bt = bt_rows.loc[max_indices]
-        # df = pd.concat([df_bt, df[df['order'] != 'bt']], ignore_index=True)
         filtered_dfs = []
-        for refiner_name in refiners_list:
-            filtered_df = df.loc[df[df['order'].str.contains(refiner_name)].groupby('qid')[f'{ranker}.{metric}'].idxmax()]
-            filtered_df['order'] = refiner_name
-            filtered_dfs.append(filtered_df)
-        df = pd.concat(filtered_dfs, ignore_index=True)
+        # for refiner_name in refiners_list:
+        #     filtered_df = df.loc[df[df['order'].str.contains(refiner_name)].groupby('qid')[f'{ranker}.{metric}'].idxmax()]
+        #     filtered_df['order'] = refiner_name
+        #     filtered_dfs.append(filtered_df)
+        # df = pd.concat(filtered_dfs, ignore_index=True)
+        df = df.loc[df.groupby('qid')[f'{ranker}.{metric}'].idxmax()]
         df.reset_index(drop=True, inplace=True)
 
     # df = df[df['order'].str.contains('|'.join(refiners_list))]
@@ -87,15 +89,21 @@ def compare_refiners(infile, output, globalr, ranker, metric, refiners_list=[], 
 
     df.reset_index(drop=True, inplace=True)
     # plot_chart(df, ranker, metric, f'{output}.png')
-    df['order'] = df['order'].apply(lambda x: 'q^' if '-1' in x else x)
+    # df['order'] = df['order'].apply(lambda x: 'q^' if '-1' in x else x)
+    df['order'] = df['order'].apply(lambda x: 'original' if '-1' in x else x)
 
     # Write results in a file
     final_table = pd.DataFrame(columns=['category', 'refiner', '|q**|', '%'])
     for refiner, group in df.groupby('order'):
-        c = 'global 'if any(name in refiner for name in globalr) else 'local'
+        if 'rag' in refiner: c = 'rag'
+        elif 't5' in refiner: c = 'llm'
+        elif 'original' in refiner: c = 'original'
+        else: c = 'global 'if any(name in refiner for name in globalr) else 'local'
+        if refiner.startswith('bt_'):
+            refiner = refiner[:-1]
         final_table.loc[len(final_table)] = [c, refiner, len(group), (len(group)/num_q)*100]
     final_table = final_table.sort_values(by=['category', 'refiner'], ascending=[True, True])
-    final_table.to_csv(f'{output}.csv', index=False)
+    final_table.to_csv(f'{output}', index=False)
 
 def count_query_len():
     is_tag_file = False
@@ -211,39 +219,23 @@ def plot_chart(df, ranker, metric, output):
     # plt.show()
 
 
-def rename_files_with_nllb(folder_path, ranker='', metric=''):
-    def get_key_from_value(value):
-        for key, val in nllb.items():
-            if val.lower() == value:
-                return key
-        return None
-
-        # Get list of files in the folder
-    files = os.listdir(folder_path)
-
-    # Filter files that contain 'bt' but not 'bing'
-    filtered_files = [file for file in files if 'nllb' in file]
-
-    # Rename files
-    for file in filtered_files:
-        # Split the filename into parts
-        parts = file.split('nllb_')
-        if len(parts) == 2:
-            dots = parts[1].split('.')
-            lang = get_key_from_value(dots[0])
-            # Construct the new filename with 'nllb' added between 'bt_' and the rest of the filename
-            if lang is None: continue
-            if ranker == '' and metric == '': new_name = f"{parts[0]}nllb_{lang}"
-            else: new_name = f"{parts[0]}nllb_{lang}.{('.').join(dots[1:])}"
-            # Rename the file
-            os.rename(os.path.join(folder_path, file), os.path.join(folder_path, new_name))
-            print(f"Renamed {file} to {new_name}")
-
-
 def get_predictions(infile, output, original):
     for baseline in ['acg', 'seq2seq', 'hredqs']:
-        prediction = pd.read_json(f'{infile}/{baseline}/{baseline}.e100.json')
-        reference = pd.DataFrame(original, names=['qid', 'previous_queries', ])
+        prediction = pd.read_json(f'{infile}/{baseline}/{baseline}.e100_test.json', lines=True)
+        prediction['previous_queries'] = prediction['previous_queries'].apply(lambda x: ', '.join(x))
+        prediction['session_id'] = prediction['session_id'].astype(str)
+        prediction['session_id'] = prediction['session_id'].apply(lambda x: x[:-1])
+        prediction['predictions'] = prediction['predictions'].apply(lambda x: ', '.join(x))
+
+        reference = pd.read_csv(original, names=['session_id', 'nnn', 'references'], sep='\t', header=0)
+        reference['session_id'] = reference['session_id'].astype(str)
+        reference = reference.drop(columns=['nnn'])
+
+        df = pd.merge(prediction, reference, on='session_id', how='inner', copy=False)
+        new_df = df[['session_id', 'predictions']]
+        new_df = new_df.sort_values(by='session_id')
+
+        new_df.to_csv(f'{output}.{baseline}',  index=False, header=False, sep='\t')
 
 
 def analyze_similarity(infile, output):
@@ -259,24 +251,180 @@ def analyze_similarity(infile, output):
     result.to_csv(f'{output}/similarity.bing.all.csv', index=False)
 
 
+def get_qid(dataset):
+    infile_bt = f'./output/{dataset}/bm25.map/bm25.map.agg.bt.platinum.tsv'
+    infile_refiner = f'./output/{dataset}/bm25.map/bm25.map.agg.refiner.platinum.tsv'
+
+    df_bt = pd.read_csv(infile_bt, sep='\t', usecols=[0, 1], names=['qid', 'order'], header=0)
+    df_refiner = pd.read_csv(infile_refiner, sep='\t', usecols=[0, 1], names=['qid', 'order'], header=0)
+
+    groups_bt = df_bt.groupby(['qid'])
+    groups_refiner = df_refiner.groupby(['qid'])
+
+    list_bt = []
+    for qid, group in groups_bt:
+        if len(group) == 1:
+            list_bt.append(qid)
+
+    list_refiner = []
+    for qid, group in groups_refiner:
+        if len(group) == 1:
+            list_refiner.append(qid)
+
+    qids =  set(list_bt) & set(list_refiner)
+    return [str(x[0]) for x in qids]
+
+
+def get_avg(ranker_list, metric_list, ds_list, output):
+    headers = ['cat', 'ranker', 'metric', 'avg']
+    for ds in ds_list:
+        df_result = pd.DataFrame(columns=headers) #['dataset', 'bm25.map', 'bm25.ndcg', 'bm25.recip_rank', 'qld.map', 'qld.ndcg', 'qld.recip_rank']
+        for ranker, metric in product(ranker_list, metric_list):
+            inpath = f'./output/{ds}/{ranker}.{metric}'
+            files = [f'{inpath}/original.{ranker}.{metric}']
+            files.extend([(f'{inpath}/rag/fusion/{f}') for f in os.listdir(f'{inpath}/rag/fusion') if f.startswith('rag') and f.endswith(f'{ranker}.{metric}')])
+            for f in files:
+                df = pd.read_csv(f, sep='\t', usecols=[1, 2], names=['qid', metric], index_col=False, skipfooter=1, dtype={'qid': str}, engine='python')
+                df_result.loc[len(df_result)] = [(f.split('/')[-1]).rsplit('.', 2)[0], ranker, metric, df[metric].mean()]
+        df_result.to_csv(f'{output}/rag.vs.original.{ds}.csv', index=False)
+
+
+def rename_files(folder_path, ranker, metric):
+    def get_key_from_value(value):
+        for key, val in nllb.items():
+            if val.lower() == value:
+                return key
+        return None
+
+    # Filter files that contain 'bt' but not 'bing'
+    filtered_files = [f for f in os.listdir(folder_path) if f.startswith('rag_fusion') and os.path.isfile(os.path.join(folder_path, f))]
+
+    # Rename files
+    for file in filtered_files:
+        # Split the filename into parts
+        parts = file.split(f'rag_fusion')
+        if len(parts) == 2:
+            new_name = 'rag' + parts[1]
+            # Rename the file
+            os.rename(os.path.join(folder_path, file), os.path.join(folder_path, new_name))
+            print(f"Renamed {file} to {new_name}")
+
+
+def move_files(source_dir, target_dir):
+    """
+    Args:
+    source_dir (str): The path to the source directory.
+    target_dir (str): The path to the target directory.
+    """
+    filtered_files = [f'{source_dir}/{f}' for f in os.listdir(source_dir)]
+    if not os.path.isdir(output): os.makedirs(output)
+    for file in filtered_files:
+        shutil.move(file, target_dir)
+        print(f'Moved file: {file} from {source_dir} to {target_dir}')
+
+
+def get_agg(infile, output, ranker, metric, refiners=['nllb', 'refiner', 'bt']):
+    for ref in refiners:
+        df = pd.read_csv(f'{infile}/{ranker}.{metric}/{ranker}.{metric}.agg.{ref}.platinum.tsv', sep='\t', header=0)
+        max_indices = df.groupby('qid')[f'{ranker}.{metric}'].idxmax()
+        df = df.loc[max_indices]
+        df = df.drop(columns=['order', f'{ranker}.{metric}'])
+        df.to_csv(f'{output}/{ref}.original', sep='\t', index=False)
+
+
+def merge_plat_files(infiles, output, rm):
+    final_df = pd.DataFrame()
+    for i, file in enumerate(infiles):
+        df = pd.read_csv(file, sep='\t', header=0, index_col=False, skipfooter=1, dtype={'qid': str})
+        if i != 0: df = df[df['order'] != '-1']
+        if 't5' in file:
+            folder = 'base' if 'base' in file else 'msmarco'
+            df['order'] = df['order'].apply(lambda x: '-1' if str(x) == '-1' else (f'{folder}.{".".join(x.split(".")[-2:])}') if file.split('/')[4] != 'original' else f'{folder}.{x.split(".")[-1]}')
+        final_df = pd.concat([final_df, df], axis=0)
+    final_df['qid'] = final_df['qid'].str.strip()
+    final_df = final_df.sort_values(by=['qid', rm], ascending=[True, False])
+    final_df.to_csv(output, sep='\t', index=False)
+
+
+def get_plat_files(infile, ds, ranker, metric, llm=False):
+    files = []
+    if llm:
+        # original t5 base
+        files.extend([f'{infile}/t5/base/original/{ds}/{ranker}.{metric}.agg.plat.tsv'])
+        # original t5 msmarco
+        files.extend([f'{infile}/t5/finetuned.msmarco/original/{ds}/{ranker}.{metric}.agg.plat.tsv'])
+        # predict t5 base
+        files.extend([f'{infile}/t5/base/predict/{ds}/{ranker}.{metric}.agg.plat.tsv'])
+        # predict t5 msmarco
+        files.extend([f'{infile}/t5/finetuned.msmarco/predict/{ds}/{ranker}.{metric}.agg.plat.tsv'])
+    else:
+        # No rag - allref
+        # files.extend([f'{infile}/{ds}/{ranker}.{metric}/agg/{ranker}.{metric}.agg.allref.platinum.tsv'])
+        # rag - all category
+        for category in ['allref', 'bt', 'global', 'local']:
+            files.extend([f'{infile}/{ds}/{ranker}.{metric}/rag/fusion/{ranker}.{metric}.agg.{category}.platinum.tsv'])
+    return files
+
+
+def get_k_parameters(infile, output):
+    if not os.path.isdir(output): os.makedirs(output)
+    for ds in ['dbpedia', 'robust04', 'antique', 'gov2', 'clueweb09b']:  # ['dbpedia', 'robust04', 'antique', 'gov2', 'clueweb09b']
+        df_result = pd.DataFrame(columns=['category', 'k', 'bm25.map', 'qld.map'])
+        for category in ['bt', 'bt_nllb', 'global', 'local']:  # ['bt', 'bt_nllb', 'global', 'local']
+            for k in [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:  # [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+                dict = {'category':category, 'k':k}
+                for ranker, metric in product(['bm25', 'qld'], ['map']):  # product(settings['ranker'], settings['metric'])
+                    df_read = pd.read_csv(f'{infile}/{ds}/{ranker}.{metric}/rag/fusion/multi/rag.{category}.k{k}.{ranker}.{metric}', sep='\t', usecols=[1, 2], names=['qid', metric], index_col=False, skipfooter=1, dtype={'qid': str}, engine='python')
+                    dict[f'{ranker}.{metric}'] = df_read[metric].mean()
+                df_result.loc[len(df_result)] = dict
+        df_result.to_csv(f'{output}/analyze/rag/{ds}.multi_k_results.csv', index=False)
+
+            # df_read = pd.read_csv(f'./output/{ds}/{ranker}.{metric}/rag/fusion/multi/rag.{category}.k{k}.{ranker}', sep='\t', names=['qid', 'Q0', 'docid', 'rank', 'score', 'Pyserini'], index_col=False, skipfooter=1, dtype={'qid': str, 'docid': str, 'rank':str}, engine='python')
+            # print(f'Reading rag.{category}.k{k}.{ranker}...')
+            # df_read['docid'] = df_read['docid'].str.strip()
+            # df_read = df_read.sort_values(by=['qid', 'docid', 'rank'])
+            # mask = df_read['docid'] != df_read['docid'].shift()
+            # df_read = df_read[mask]
+            # df_read = df_read.sort_values(by=['qid', 'rank'])
+            # df_read['qid_Q0'] = df_read['qid'] + ' ' + df_read['Q0']
+            # df_read = df_read.drop(['qid', 'Q0'], axis=1)
+            #
+            # df_read['docid_rank'] = df_read['docid'] + ' ' + df_read['rank']
+            # df_read = df_read.drop(['docid', 'rank'], axis=1)
+            #
+            # df_read = df_read.reindex(columns=['qid_Q0', 'docid_rank', 'score', 'Pyserini'])
+            #
+            # df_read.to_csv(f'./output/{ds}/{ranker}.{metric}/rag/fusion/multi/rag.{category}.k{k}.{ranker}', sep='\t', index=False, header=False)
+            # print(f'Writing rag.{category}.k{k}.{ranker}...')
+
 if __name__ == '__main__':
     globalr = get_refiner_list('global')
-    localr = get_refiner_list('local')
-    selected_refiner = 'nllb'
-    # for ds in ['dbpedia', 'robust04', 'antique', 'gov2', 'clueweb09b']:
-    # #     infile = f'./output/{ds}'
-    #     output = f'./output/analyze/supervised'
-    #     if not os.path.isdir(output): os.makedirs(output)
-        # rename_files_with_nllb(f'{infile}')
-        # [rename_files_with_nllb(f'{infile}/{ranker}.{metric}', ranker, metric) for ranker, metric in product(settings['ranker'], settings['metric'])]
-        # [compare_refiners(infile=f'{infile}/{ranker}.{metric}/{ranker}.{metric}.agg.platinum.tsv', output=f'{output}/compare.bt.refiners.{ds}.{ranker}.{metric}', globalr=globalr, ranker=ranker, metric=metric, refiners_list=['bt_nllb', 'bt_bing'], overlap=False, agg=True) for ranker, metric in product(settings['ranker'], settings['metric'])]
-        # [compare_refiners(infile=f'{infile}/{ranker}.{metric}/{ranker}.{metric}.agg.rag.platinum.tsv', output=f'{output}/compare.refiners.rag.{ds}.{ranker}.{metric}', globalr=globalr, ranker=ranker, metric=metric, overlap=False, agg=True) for ranker, metric in product(settings['ranker'], settings['metric'])]
-        # [get_predictions(infile=f'./output/supervised/{ds}/{ranker}.{metric}.{selected_refiner}', output=f'{output}/{ds}/super.{ranker}.{metric}.{selected_refiner}', original=f'./output/{ds}/refiner.original') for ranker, metric in product(settings['ranker'], settings['metric'])]
+    # localr = get_refiner_list('local')
+    # selected_refiner = 'refiner'
+    infile = f'./output'
+    output = f'./output/analyze/rag'
+    ranker_list = ['bm25', 'qld']
+    metric_list = ['map', 'ndcg', 'recip_rank']
+    ds_list = ['dbpedia', 'robust04', 'antique', 'gov2', 'clueweb09b'] # ['dbpedia', 'robust04', 'antique', 'gov2', 'clueweb09b']
+    if not os.path.isdir(output): os.makedirs(output)
+    # for ds in ds_list:
+        # rename_files(f'{infile}')
+        # [rename_files(f'{infile}/{ranker}.{metric}/rag', ranker, metric) for ranker, metric in product(settings['ranker'], settings['metric'])]
+        # [move_files(f'{infile}/{ds}/{ranker}.{metric}/rag', f'{infile}/{ds}/{ranker}.{metric}/rag/fusion') for ranker, metric in product(ranker_list, metric_list)]
+        # [compare_refiners(infile=f'{infile}/{ranker}.{metric}/agg/{ranker}.{metric}.agg.allref.platinum.tsv', output=f'{output}/compare.allref.{ds}.{ranker}.{metric}', globalr=globalr, ranker=ranker, metric=metric, refiners_list=['bt_nllb', 'bt_bing'], overlap=True, agg=True) for ranker, metric in product(settings['ranker'], settings['metric'])]
+        # for ranker, metric in product(ranker_list, metric_list):
+        #     files = get_plat_files(infile, ds, ranker, metric, False)
+        #     merge_plat_files(infiles=files, output=f'{output}/rag.vs.original/merge/{ds}.{ranker}.{metric}.agg.platinum.merged.tsv', rm=f'{ranker}.{metric}')
+        #     compare_refiners(infile=f'{output}/rag.vs.original/merge/{ds}.{ranker}.{metric}.agg.platinum.merged.tsv', output=f'{output}/rag.vs.original/compare/{ds}.{ranker}.{metric}.agg.platinum.compare.csv', globalr=globalr, ranker=ranker, metric=metric, overlap=False, agg=False)
+        # get_predictions(infile=f'./output/supervised/test/{ds}/bm25.map.{selected_refiner}', output=f'./output/{ds}/super.{selected_refiner}', original=f'./output/{ds}/original')
+        # [get_agg(infile, output, ranker, metric) for ranker, metric in product(settings['ranker'], settings['metric'])]
 
-    # combine_refiner_results(infile='./output/analyze/compare.bt.refiners', output='./output/analyze/compare.bt.refiners.all.datasets', datasets=['dbpedia', 'robust04', 'antique', 'gov2', 'clueweb09b'], ranker_metrics=product(settings['ranker'], settings['metric']))
-    # combine_refiner_results(infile='./output/analyze/compare.refiners.rag', output='./output/analyze/compare.refiners.rag.all.datasets', datasets=['robust04', 'antique', 'dbpedia'], ranker_metrics=product(settings['ranker'], settings['metric']))
+    # get_avg(ranker_list, metric_list, ds_list, output)
+    # combine_refiner_results(infile=f'{output}', output=f'{output}/all.platinum.compare.tsv', datasets=['dbpedia', 'robust04', 'antique', 'gov2', 'clueweb09b'], ranker_metrics=product(['qld', 'bm25'], ['map', 'ndcg', 'recip_rank']))
+    # combine_refiner_results(infile=f'{output}/rag.vs.original/compare/', output=f'{output}/rag.vs.original/compare.rag.all.datasets', datasets=ds_list, ranker_metrics=product(ranker_list, metric_list))
     # create_analyze_table('pred.')
-    analyze_similarity(infile=f'./output/', output=f'./output/analyze')
+    # analyze_similarity(infile=f'./output/', output=f'./output/analyze')
     # create_analyze_table('bt_bing')
     # refiner_distribution_table(infile='./output', output='./output/analyze/chart')
     # count_query_len()
+    get_k_parameters(infile=f'./output', output='./output')

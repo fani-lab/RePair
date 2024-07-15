@@ -1,6 +1,6 @@
 import functools, os
 import tensorflow.compat.v1 as tf
-# import tensorflow_datasets as tfds
+# import tensorflow astfds
 
 import t5
 import t5.models
@@ -96,12 +96,12 @@ def finetune(tsv_path, pretrained_dir, steps, output, lseq, task_name, nexamples
     return model
 
 
-def predict(iter, split, tsv_path, output, lseq, model_name, vocab_model_path='./../output/t5-data/vocabs/cc_en.32000/sentencepiece.model', gcloud=False):
+def predict(t5_model, model_dir, iter, query_file, output, lseq, model_name, vocab_model_path='./../output/t5-data/vocabs/cc_en.32000/sentencepiece.model', gcloud=False):
 
     if gcloud: import gcloud
-    model_parallelism, train_batch_size, keep_checkpoint_max = {"small": (1, 256, 16), "base": (2, 128, 8), "large": (8, 64, 4), "3B": (8, 16, 1), "11B": (8, 16, 1)}[output.split('.')[-5]]
+    model_parallelism, train_batch_size, keep_checkpoint_max = {"small": (1, 256, 16), "base": (2, 128, 8), "large": (8, 64, 4), "3B": (8, 16, 1), "11B": (8, 16, 1)}[t5_model.split('.')[0]]
     model = t5.models.MtfModel(
-        model_dir=f'{output}/model'.replace('/', os.path.sep),
+        model_dir=model_dir,             #    f'{output}/model'.replace('/', os.path.sep),
         tpu=gcloud.TPU_ADDRESS if gcloud else None,
         tpu_topology=gcloud.TPU_TOPOLOGY if gcloud else None,
         model_parallelism=model_parallelism,
@@ -111,9 +111,9 @@ def predict(iter, split, tsv_path, output, lseq, model_name, vocab_model_path='.
 
     with tf_verbosity_level('ERROR'):#There might be empty '' predictions!
         for i in range(iter):
-            print(f'{output}/{model_name}.{str(i)}'.replace('/', os.path.sep))
+            print(f'Predicting {str(i)}...')
             model.predict(
-                input_file=tsv_path[split],
+                input_file=query_file,
                 output_file=f'{output}/{model_name}.{str(i)}'.replace('/', os.path.sep),
                 checkpoint_steps=-1,#the last one
                 beam_size=1, #int, a number >= 1 specifying the number of beams to use for
