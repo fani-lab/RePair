@@ -12,26 +12,18 @@ Specifically, for an original query,
    1. we generate its backtranslated versions via different languages, 
    2. retrieve an ordered list of relevant documents for each backtranslated version
    3. finally, merge the lists of retrieved documents into a single ranked list via reciprocal rank fusion.
-
+  
 <table align="center" border=0>
-<tr>
-<td >
-
-- [1. Setup](#1-setup)
-  * [Lucene Indexes](#lucene-indexes)
-- [2. Quickstart](#2-quickstart)
-  * [`query_refinement`](#query_refinement)
-  * [`similarity`](#similarity)
-  * [`rag`](#rag)
-  * [`search`](#search)
-  * [`rag_fusion`](#rag_fusion)
-  * [`eval`](#eval)
-  * [`agg, box`](#agg-box)
-- [4. Acknowledgement](#4-acknowledgement)
-- [5. License](#5-license)
-<td ><img src='./misc/flow.jpg' width="100%" /></td>
+<thead>
+  <tr><td colspan="3" style="background-color: white;"><img src='./misc/flow.jpg' width="100%" /></td></tr>     
+  <tr><td colspan="3">
+      <p align="center">Generating backtranslated versions of an original query and fusing retrieved document sets for rag-based query refinement.</p>
+ </thead>
 </table>
-
+   
+- [1. Setup](#1-setup) [[`lucene indexes`](#lucene-indexes)]
+- [2. Quickstart](#2-quickstart) [[`query_refinement`](#query_refinement), [`similarity`](#similarity), [`rag`](#rag), [`search`](#search), [`rag_fusion`](#rag_fusion), [`eval`](#eval), [`agg, box`](#agg-box)]
+- [4. Acknowledgement](#4-acknowledgement)
 
 
 ## 1. Setup
@@ -62,7 +54,7 @@ make
 cd ..
 ```
 
-### Lucene Indexes
+### lucene indexes
 To perform fast IR tasks, we need to build the sparse indexes of document corpora or use the [`prebuilt-indexes`](https://github.com/castorini/pyserini/blob/master/docs/prebuilt-indexes.md). The path to the index need to be set in [`./src/param.py`](./src/param.py).
 
 ## 2. Quickstart
