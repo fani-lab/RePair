@@ -22,7 +22,7 @@ We conducted extensive experiments using widely recognized TREC query sets and m
   * [`agg, box`](#agg-box)
 - [4. Acknowledgement](#4-acknowledgement)
 - [5. License](#5-license)
-<td ><img src='./misc/flow.png' width="100%" /></td>
+<td ><img src='./misc/flow.jpg' width="100%" /></td>
 </table>
 
 
