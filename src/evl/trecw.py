@@ -1,4 +1,30 @@
 import os
+import evaluate as eval
+from scipy.spatial.distance import cosine
+import pandas as pd
+
+
+'''
+Calculates the difference between the original and back-translated query
+'''
+def semsim_compute(predictions, references, transformer_model):
+    me, you = transformer_model.encode([predictions, references])
+    return {'semsim': 1 - cosine(me, you)}
+
+
+def compare_query_similarity(refined_q_file, output, transformer_model):
+    refined_list = (pd.read_csv(refined_q_file, sep='\t', header=None, names=['id', 'original', 'refined']).dropna()).to_records(index=False)
+    similarity_results = pd.DataFrame()
+    bleu = eval.load("bleu")
+    rouge = eval.load('rouge')
+    for (id, original, refined) in refined_list:
+        rouge_results = rouge.compute(predictions=[refined], references=[original])
+        bleu_results = bleu.compute(predictions=[refined], references=[original])
+        semsim = semsim_compute(predictions=refined, references=original, transformer_model=transformer_model)
+        new_row_df = pd.DataFrame([{'id':id, 'original':original, 'refined': refined, **rouge_results, **bleu_results, **semsim}])
+        similarity_results = pd.concat([similarity_results, new_row_df], ignore_index=True)
+
+    similarity_results.to_csv(output, index=False)
 
 
 def evaluate(in_docids, out_metrics, qrels, metric, lib, mean=False, topk=10):
@@ -16,19 +42,10 @@ def evaluate(in_docids, out_metrics, qrels, metric, lib, mean=False, topk=10):
     # ndcg                    all     1.0000
     #
     # However, no duplicate [qid, docid] can be in qrels!!
-
-    print(f'Evaluating retrieved docs for {in_docids} with {metric} ...')
+    print(f'Evaluating retrieved docs for {in_docids} ...')
     if 'trec_eval' in lib:
         cli_cmd = f'{lib} {"-n" if not mean else ""} -q -m {metric} {qrels} {in_docids} > {out_metrics}'
         print(cli_cmd)
         stream = os.popen(cli_cmd)
         print(stream.read())
     else: raise NotImplementedError
-
-# unit test
-# evaluate('../../output/toy.msmarco.passage/t5.small.local.docs.query/original.bm25',
-#          '../../output/toy.msmarco.passage/t5.small.local.docs.query/original.bm25.map',
-#          '../../data/raw/toy.msmarco.passage/qrels.train.tsv_',
-#          'map',
-#          '../trec_eval.9.0.4/trec_eval',
-#          mean=False)

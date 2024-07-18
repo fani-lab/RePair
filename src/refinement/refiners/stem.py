@@ -1,8 +1,8 @@
 import sys
 sys.path.extend(['../refinement'])
 
-from src.refinement.refiners.abstractqrefiner import AbstractQRefiner
-from src.refinement.stemmers.abstractstemmer import AbstractStemmer
+from refinement.refiners.abstractqrefiner import AbstractQRefiner
+from refinement.stemmers.abstractstemmer import AbstractStemmer
 class Stem(AbstractQRefiner):
     def __init__(self, stemmer:AbstractStemmer):
         AbstractQRefiner.__init__(self, replace=False)

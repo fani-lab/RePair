@@ -12,6 +12,7 @@ dependencies:
   - tqdm
   - openjdk=11
   - faiss-cpu=1.7.2
+  - translators
   - pip:
       - pyserini==0.20.0
       - torch==1.13.0
@@ -21,3 +22,4 @@ dependencies:
       - tensorflow==2.11.0
       - protobuf==3.19.6
       - filesplit
+

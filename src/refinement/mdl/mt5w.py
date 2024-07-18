@@ -1,6 +1,6 @@
-import functools, os, sys, time
+import functools, os
 import tensorflow.compat.v1 as tf
-# import tensorflow_datasets as tfds
+# import tensorflow astfds
 
 import t5
 import t5.models
@@ -9,13 +9,15 @@ import seqio
 
 tf.disable_v2_behavior()
 from contextlib import contextmanager
-import logging as py_logging
+
+
 @contextmanager
 def tf_verbosity_level(level):
   og_level = tf.logging.get_verbosity()
   tf.logging.set_verbosity(level)
   yield
   tf.logging.set_verbosity(og_level)
+
 
 def prep(ds, task_name, in_type, out_type):
     def to_inputs_and_targets(line, task_name, in_type, out_type):
@@ -25,6 +27,7 @@ def prep(ds, task_name, in_type, out_type):
             "targets": line[out_type]
         }
     return ds.map(functools.partial(to_inputs_and_targets, task_name=task_name, in_type=in_type, out_type=out_type), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
 
 #in_type or out_type \in {ctx}.{query, doc, docs}
 def def_task(tsv_path, task_name, nexamples, in_type, out_type, vocab_model_path):
@@ -51,6 +54,7 @@ def def_task(tsv_path, task_name, nexamples, in_type, out_type, vocab_model_path
     # ds = task.get_dataset(split="test", sequence_length={"inputs": 32, "targets": 256})
     # print("A few preprocessed validation examples...")
     # for ex in tfds.as_numpy(ds.take(5)): print(ex)
+
 
 def finetune(tsv_path, pretrained_dir, steps, output, lseq, task_name, nexamples=None, in_type='query', out_type='doc', vocab_model_path='./../output/t5-data/vocabs/cc_en.32000/sentencepiece.model', gcloud=False):
 
@@ -91,13 +95,13 @@ def finetune(tsv_path, pretrained_dir, steps, output, lseq, task_name, nexamples
     # TODO: we can export the model
     return model
 
-def predict(iter, split, tsv_path, output, lseq, vocab_model_path='./../output/t5-data/vocabs/cc_en.32000/sentencepiece.model', gcloud=False):
-# def predict(iter, split, tsv_path, pretrained_dir, steps, output, lseq, task_name, nexamples=None, in_type='query', out_type='doc', vocab_model_path='./../output/t5-data/vocabs/cc_en.32000/sentencepiece.model', gcloud=False):
+
+def predict(t5_model, model_dir, iter, query_file, output, lseq, model_name, vocab_model_path='./../output/t5-data/vocabs/cc_en.32000/sentencepiece.model', gcloud=False):
 
     if gcloud: import gcloud
-    model_parallelism, train_batch_size, keep_checkpoint_max = {"small": (1, 256, 16), "base": (2, 128, 8), "large": (8, 64, 4), "3B": (8, 16, 1), "11B": (8, 16, 1)}[output.split('.')[-5]]
+    model_parallelism, train_batch_size, keep_checkpoint_max = {"small": (1, 256, 16), "base": (2, 128, 8), "large": (8, 64, 4), "3B": (8, 16, 1), "11B": (8, 16, 1)}[t5_model.split('.')[0]]
     model = t5.models.MtfModel(
-        model_dir=output.replace('/', os.path.sep),
+        model_dir=model_dir,             #    f'{output}/model'.replace('/', os.path.sep),
         tpu=gcloud.TPU_ADDRESS if gcloud else None,
         tpu_topology=gcloud.TPU_TOPOLOGY if gcloud else None,
         model_parallelism=model_parallelism,
@@ -107,10 +111,10 @@ def predict(iter, split, tsv_path, output, lseq, vocab_model_path='./../output/t
 
     with tf_verbosity_level('ERROR'):#There might be empty '' predictions!
         for i in range(iter):
-            print(f'{output}/pred.{str(i)}'.replace('/', os.path.sep))
+            print(f'Predicting {str(i)}...')
             model.predict(
-                input_file=tsv_path[split],
-                output_file=f'{output}/pred.{str(i)}'.replace('/', os.path.sep),
+                input_file=query_file,
+                output_file=f'{output}/{model_name}.{str(i)}'.replace('/', os.path.sep),
                 checkpoint_steps=-1,#the last one
                 beam_size=1, #int, a number >= 1 specifying the number of beams to use for
                 temperature=1.0, #float, a value between 0 and 1 (must be 0 if beam_size > 1) 0.0 means argmax/most probable, 1.0 means sample according to predicted distribution.

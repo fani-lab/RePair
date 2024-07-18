@@ -3,7 +3,7 @@ from nltk.tokenize import word_tokenize
 from nltk.stem import PorterStemmer
 import re
 from contextlib import contextmanager
-import os, sys, threading, io, tempfile
+import os, sys, io, tempfile
 
 stop_words = set(stopwords.words('english'))
 l = ['.', ',', '!', '?', ';', 'a', 'an', '(', ')', "'", '_', '-', '<', '>', 'if', '/', '[', ']', '&nbsp;']
@@ -11,10 +11,12 @@ stop_words.update(l)
 
 ps = PorterStemmer()
 
+
 def get_tokenized_query(q):
     word_tokens = word_tokenize(q)
     q_ = [w.lower() for w in word_tokens if w.lower() not in stop_words]
     return q_
+
 
 def valid(word):
     """
@@ -27,9 +29,13 @@ def valid(word):
         return True
     return False
 
+
 def clean(str):
-    result = [ch if ch.isalpha() else ' ' for ch in str]
-    return ''.join(result)
+    # Just keeping the alphabet
+    processed_str = [ch if ch.isalpha() else ' ' for ch in str]
+    # Remove extra spaces
+    return ' '.join((''.join(processed_str)).strip().split())
+
 
 def insert_row(df, idx, row):
     import pandas as pd
@@ -39,6 +45,7 @@ def insert_row(df, idx, row):
     df = pd.concat([df1, df2])
     df.index = [*range(df.shape[0])]
     return df
+
 
 def get_raw_query(topicreader,Q_filename):
     q_file=open(Q_filename,'r').readlines()
@@ -62,6 +69,7 @@ def get_raw_query(topicreader,Q_filename):
             raw_queries[qid]=line.split('\t')[1].rstrip().lower()
     return raw_queries
 
+
 def get_ranker_name(ranker):
     return ranker.replace('-', '').replace(' ', '.')
 
@@ -71,6 +79,7 @@ def get_ranker_name(ranker):
 
 # libc = ctypes.CDLL(None)
 # c_stdout = ctypes.c_void_p.in_dll(libc, 'stdout')
+
 @contextmanager
 def stdout_redirector_2_stream(stream):
     # The original fd stdout points to. Usually 1 on POSIX systems.
@@ -103,6 +112,7 @@ def stdout_redirector_2_stream(stream):
     finally:
         tfile.close()
         os.close(saved_stdout_fd)
+
 
 @contextmanager
 def stdout_redirected_2_file(to=os.devnull):

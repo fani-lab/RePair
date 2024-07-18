@@ -31,8 +31,8 @@ import utils
 # }
 
 class OnFields(RelevanceFeedback):
-    def __init__(self, ranker, prels, anserini, index, w_t, w_a, corpus_size, replace=False, topn=3, topw=10,adap=False):
-        RelevanceFeedback.__init__(self, ranker, prels, anserini, index, topn=topn)
+    def __init__(self, ranker, prels, index, w_t, w_a, corpus_size, replace=False, topn=3, topw=10,adap=False):
+        RelevanceFeedback.__init__(self, ranker, prels, index, topn=topn)
         self.index_reader = pyserini.index.IndexReader(self.index)
         self.topw=10
         self.adap=adap

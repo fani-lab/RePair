@@ -12,3 +12,4 @@ ir_datasets
 filesplit
 flake8
 pylint
+translators

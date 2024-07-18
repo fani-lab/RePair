@@ -33,10 +33,8 @@ import utils
 
 class AdapOnFields(OnFields):
 
-    def __init__(self, ranker, prels, anserini, index, w_t, w_a,corpus_size, collection_tokens,  
-                 ext_index, ext_corpus, ext_collection_tokens, ext_w_t, ext_w_a, ext_corpus_size,
-                 replace=False, topn=3, topw=10, adap=False):
-        OnFields.__init__(self, ranker, prels, anserini, index, w_t, w_a,corpus_size, topn=topn, replace=replace, topw=topw, adap=adap)
+    def __init__(self, ranker, prels, index, w_t, w_a,corpus_size, collection_tokens, ext_index, ext_corpus, ext_collection_tokens, ext_w_t, ext_w_a, ext_corpus_size, replace=False, topn=3, topw=10, adap=False):
+        OnFields.__init__(self, ranker, prels, index, w_t, w_a,corpus_size, topn=topn, replace=replace, topw=topw, adap=adap)
 
         self.collection_tokens = collection_tokens  # number of tokens in the collection
 

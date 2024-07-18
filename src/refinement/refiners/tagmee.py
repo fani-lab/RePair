@@ -4,8 +4,8 @@ tagme.GCUBE_TOKEN = "10df41c6-f741-45fc-88dd-9b24b2568a7b"
 import sys, os
 sys.path.extend(['../refinement'])
 
-from refiners.abstractqrefiner import AbstractQRefiner
-import utils
+from src.refinement.refiners.abstractqrefiner import AbstractQRefiner
+from src.refinement import utils
 
 class Tagmee(AbstractQRefiner):
     def __init__(self, topn=3, replace=False):

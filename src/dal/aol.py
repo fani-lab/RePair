@@ -3,19 +3,56 @@ from tqdm import tqdm
 from shutil import copyfile
 from ftfy import fix_text
 from pyserini.search.lucene import LuceneSearcher
-from dal.ir_dataset import IR_Dataset
-from dal.query import Query
+from ds import Dataset
+
 tqdm.pandas()
 
 
-class Aol(IR_Dataset):
+class Aol(Dataset):
 
     def __init__(self, settings, domain, homedir, ncore):
-        try: super(Aol, self).__init__(settings=settings, homedir=homedir, domain=domain, ncore=ncore)
-        except: self._build_index(homedir, IR_Dataset.settings, ncore)
+        try: super(Aol, self).__init__(setiing=settings, domain=domain)
+        except: self._build_index(homedir, settings['index_item'], settings['index'], ncore)
+        Aol.user_pairing = "user/" if "user" in Aol.settings["pairing"] else ""
+        Aol.index_item_str = '.'.join(Aol.settings["index_item"])
 
     @classmethod
-    def read_queries(cls, input, domain):
+    def _build_index(cls, homedir, index_item, indexdir, ncore):
+        print("Creating index from scratch using ir-dataset ...")
+        # https://github.com/allenai/ir_datasets
+        os.environ['IR_DATASETS_HOME'] = '/'.join(homedir.split('/')[:-1])
+        if not os.path.isdir(os.environ['IR_DATASETS_HOME']): os.makedirs(os.environ['IR_DATASETS_HOME'])
+        index_item_str = '.'.join(index_item)
+        if not os.path.isdir(f'{indexdir}/{cls.user_pairing}{index_item_str}'): os.makedirs(f'{indexdir}/{cls.user_pairing}{index_item_str}')
+        import ir_datasets
+        from src.cmn.lucenex import lucenex
+
+        print(f"Setting up aol corpus using ir-datasets at {homedir}...")
+        aolia = ir_datasets.load("aol-ia")
+        print('Getting queries and qrels ...')
+        # the column order in the file is [qid, uid, did, uid]!!!! STUPID!!
+        qrels = pd.DataFrame.from_records(aolia.qrels_iter(), columns=['qid', 'did', 'rel', 'uid'], nrows=1)  # namedtuple<query_id, doc_id, relevance, iteration>
+        queries = pd.DataFrame.from_records(aolia.queries_iter(), columns=['qid', 'query'], nrows=1)  # namedtuple<query_id, text>
+
+        print('Creating jsonl collections for indexing ...')
+        print(f'Raw documents should be downloaded already at {homedir}/aol-ia/downloaded_docs/ as explained here: https://github.com/terrierteam/aolia-tools')
+        print('But it had bugs: https://github.com/allenai/ir_datasets/issues/222')
+        print('Sean MacAvaney provided us with the downloaded_docs.tar file. Thanks Sean!')
+
+        Aol.create_jsonl(aolia, index_item, f'{homedir}/{cls.user_pairing}{index_item_str}')
+        if len(os.listdir(f'{indexdir}/{cls.user_pairing}{index_item_str}')) == 0:
+            lucenex(f'{homedir}/{cls.user_pairing}{index_item_str}', f'{indexdir}/{cls.user_pairing}{index_item_str}/', ncore)
+        # do NOT rename qrel to qrel.tsv or anything else as aol-ia does not like it!!
+        # if os.path.isfile(f'{homedir}/qrels'): os.rename(f'{homedir}/qrels', f'{homedir}/qrels')
+        if os.path.isfile(f'{homedir}/qrels'): copyfile(f'{homedir}/qrels', f'{homedir}/qrels.train.tsv')
+        if os.path.isfile(f'{homedir}/queries.tsv'): copyfile(f'{homedir}/queries.tsv', f'{homedir}/queries.train.tsv')
+        cls.searcher = LuceneSearcher(f'{indexdir}/{index_item_str}')
+        # dangerous cleaning!
+        # for d in os.listdir(homedir):
+        #     if not (d.find('aol-ia') > -1) and os.path.isdir(f'./../data/raw/{d}'): shutil.rmtree(f'./../data/raw/{d}')
+
+    @classmethod
+    def read_queries(cls, input, domain, trec=False):
         queries = pd.read_csv(f'{input}/queries.train.tsv', encoding='UTF-8', sep='\t', index_col=False, names=['qid', 'query'], converters={'query': str.lower}, header=None)
         # the column order in the file is [qid, uid, did, uid]!!!! STUPID!!
         qrels = pd.read_csv(f'{input}/qrels.train.tsv', encoding='UTF-8', sep='\t', index_col=False, names=['qid', 'uid', 'did', 'rel'], header=None)
@@ -45,6 +82,9 @@ class Aol(IR_Dataset):
                 output_jsonl_file.write(json.dumps({'id': did, 'contents': doc}) + '\n')
                 if i % 100000 == 0: print(f'Converted {i:,} docs, writing into file {output_jsonl_file.name} ...')
             output_jsonl_file.close()
+
+    @classmethod
+    def set_index(cls, index): super().search_init(f'{index}{Dataset.user_pairing}{Dataset.index_item_str}')
 
     @classmethod
     def pair(cls, queries, output, cat=True):
@@ -91,3 +131,4 @@ class Aol(IR_Dataset):
                 qrels_splits.to_csv(f'../output/aol-ia/{cls.user_pairing}t5.base.gc.docs.query.{index_item_str}/qrels/qrels.splits.{_}.tsv_', sep='\t',
                              encoding='utf-8', index=False, header=False, columns=['qid', 'uid', 'did', 'rel'])
         return queries_qrels
+        pass

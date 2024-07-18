@@ -1,6 +1,6 @@
 #!/bin/python
-from stemmers.abstractstemmer import AbstractStemmer
-import stemmers.lovinsstemmer as lovinsstemmer
+from src.refinement.stemmers.abstractstemmer import AbstractStemmer
+from src.refinement.stemmers import lovinsstemmer
 import sys
 
 

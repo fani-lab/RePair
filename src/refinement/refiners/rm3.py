@@ -1,53 +1,28 @@
-import os, sys, re, io
-sys.path.extend(['../refinement'])
+from pyserini.search.lucene import LuceneSearcher
+from src.refinement.refiners.relevancefeedback import RelevanceFeedback
 
-from pyserini.search import SimpleSearcher
-import utils #although it's not used here, this is required!
-from refiners.relevancefeedback import RelevanceFeedback
 
 class RM3(RelevanceFeedback):
     def __init__(self, ranker, index, topn=10, topw=10, original_q_w=0.5):
-        RelevanceFeedback.__init__(self, ranker=ranker, prels=None, anserini=None, index=index, topn=topn)
-        self.topw=topw
-        self.searcher = SimpleSearcher(index)
-        self.ranker=ranker
-        self.original_q_w=original_q_w
+        RelevanceFeedback.__init__(self, ranker=ranker, prels=None, index=index, topn=topn)
+        self.topw = topw
+        self.index = index
+        self.ranker = ranker
+        self.original_q_w = original_q_w
 
-
-    def get_refined_query(self, q, args=None):
-        
-        if self.ranker=='bm25':
-            self.searcher.set_bm25()
-        elif self.ranker=='qld':
-            self.searcher.set_qld()
-
-        self.searcher.set_rm3(fb_terms=self.topw, fb_docs=self.topn, original_query_weight=self.original_q_w, rm3_output_query=True)
-        
-        f = io.BytesIO()
-        with utils.stdout_redirector_2_stream(f):
-            self.searcher.search(q)
-        print('RM3 Log: {0}"'.format(f.getvalue().decode('utf-8')))
-        q_= self.parse_rm3_log(f.getvalue().decode('utf-8'))
-
-        # with stdout_redirected(to='rm3.log'):
-        #     self.searcher.search(q)
-        # rm3_log = open('rm3.log', 'r').read()
-        # q_ = self.parse_rm3_log(rm3_log)
-        # os.remove("rm3.log")
-
-        return super().get_refined_query(q_)
+    def get_topn_relevant_docids(self, q=None, qid=None):
+        self.searcher = LuceneSearcher(self.index)
+        if self.ranker =='bm25' : self.searcher.set_bm25()
+        elif self.ranker =='qld': self.searcher.set_qld()
+        self.searcher.set_rm3(fb_terms=self.topw, fb_docs=self.topn, original_query_weight=self.original_q_w)
+        hits = self.searcher.search(q)
+        return [h.docid for h in hits]
 
     def get_model_name(self):
-        return super().get_model_name().replace('topn{}'.format(self.topn), 'topn{}.{}.{}'.format(self.topn, self.topw, self.original_q_w))
-
-    def parse_rm3_log(self,rm3_log):
-        new_q=rm3_log.split('Running new query:')[1]
-        new_q_clean=re.findall('\(([^)]+)', new_q)
-        new_q_clean=" ".join(new_q_clean)
-        return new_q_clean
+        return super().get_model_name().replace(f'topn{self.topn}', f'topn{self.topn}.{self.topw}.{self.original_q_w}')
 
 
 if __name__ == "__main__":
-    qe = RM3(index='../ds/robust04/index-robust04-20191213/' )
+    qe = RM3(ranker='bm25', index='./lucene-index.gov2.pos+docvectors+rawdocs')
     print(qe.get_model_name())
-    print(qe.get_refined_query('International Crime Organization'))
+    print(qe.get_refined_query('Dam removal'))

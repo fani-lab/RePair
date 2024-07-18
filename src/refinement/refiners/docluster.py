@@ -1,14 +1,12 @@
 import networkx as nx
 from networkx.algorithms import community
 import math
+from src.refinement.refiners.relevancefeedback import RelevanceFeedback
 
-import sys
-sys.path.extend(['../refinement'])
 
-from refiners.relevancefeedback import RelevanceFeedback
 class Docluster(RelevanceFeedback):
-    def __init__(self, ranker, prels, anserini, index, topn=10, topw=3):
-        RelevanceFeedback.__init__(self, ranker, prels, anserini, index, topn=topn)
+    def __init__(self, ranker, prels, index, topn=10, topw=3):
+        RelevanceFeedback.__init__(self, ranker, prels, index, topn=topn)
         self.topw = topw
 
     def get_model_name(self):
@@ -61,10 +59,9 @@ class Docluster(RelevanceFeedback):
 
         return result
 
-    def get_refined_query(self, q, args):
-        qid = args[0]
+    def get_refined_query(self, q, args=None):
         selected_words = []
-        docids = self.get_topn_relevant_docids(qid)
+        docids = self.get_topn_relevant_docids(args[0])
         tfidfs = []
         for docid in docids:
             tfidfs.append(self.get_tfidf(docid))
@@ -93,7 +90,7 @@ class Docluster(RelevanceFeedback):
             if word.lower() not in query_splited:
                 query_splited.append(word)
 
-        return super().get_refined_query(' '.join(query_splited))
+        return super().get_refined_query(' '.join(query_splited), args[0])
 
     def get_top_k(self, pairlist, k):
         output = []
@@ -115,10 +112,10 @@ class Docluster(RelevanceFeedback):
             from_index = from_index + 1
         return output
 
+
 if __name__ == "__main__":
     qe = Docluster(ranker='bm25',
                    prels='./output/robust04/topics.robust04.abstractqueryexpansion.bm25.txt',
-                   anserini='../anserini/',
                    index='../ds/robust04/index-robust04-20191213')
     for i in range(5):
         print(qe.get_model_name())
