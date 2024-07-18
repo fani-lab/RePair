@@ -15,7 +15,7 @@ Specifically, for an original query,
   
 <table align="center" border=0>
 <thead>
-  <tr><td colspan="3" style="background-color: white;"><img src='./misc/flow.jpg' width="100%" /></td></tr>     
+  <tr><td colspan="3" style="background-color: white;"><img src='/misc/flow.jpg' width="100%" /></td></tr>     
   <tr><td colspan="3">
       <p align="center">Generating backtranslated versions of an original query and fusing retrieved document sets for rag-based query refinement.</p>
  </thead>
