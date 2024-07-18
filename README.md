@@ -22,7 +22,7 @@ We conducted extensive experiments using widely recognized TREC query sets and m
   * [`agg, box`](#agg-box)
 - [4. Acknowledgement](#4-acknowledgement)
 - [5. License](#5-license)
-<td ><img src='./misc/flow.png' width="100%" /></td>
+<td ><img src='misc/flow.jpg' width="100%" /></td>
 </table>
 
 
@@ -61,7 +61,7 @@ To perform fast IR tasks, we need to build the sparse indexes of document corpor
 ## 2. Quickstart
 For using query refinement make sure to add the command to the pipeline in the [./src/param.py](./src/param.py).
 
-As seen in the above [`workflow`](./misc/workflow.png), `RePair` has three pipelined steps: 
+As seen in the above [`workflow`](misc/workflow.jpg), `RePair` has three pipelined steps: 
 > 1. Refining Quereis: [`query_refinement`]
 > 2. Performance Evaluation: [`search`, `eval`]
 > 3. Dataset Curation: [`agg`, `box`]
@@ -84,7 +84,7 @@ The objective of query refinement is to produce a set of potential candidate que
 
 <table align="center" border=0>
 <thead>
-  <tr><td colspan="3" style="background-color: white;"><img src="./misc/classdiagram.png", width="1000", alt="ReQue: Class Diagram"></td></tr>     
+  <tr><td colspan="3" style="background-color: white;"><img src="misc/classdiagram.jpg", width="1000", alt="ReQue: Class Diagram"></td></tr>     
   <tr><td colspan="3">
       <p align="center">Class Diagram for Query Refiners in <a href="./src/refinement/">src/refinement/</a>. [<a href="https://app.lucidchart.com/documents/view/64fedbb0-b385-4696-9adc-b89bc06e84ba/HWEp-vi-RSFO">zoom in!</a>].</p>
       <p align="center"> The expanders are initialized by the Expander Factory in <a href="./src/refinement/refiner_factory.py">src/refinement/refiner_factory.py</a></p></td></tr> 
@@ -136,7 +136,7 @@ For additional details, please refer to this [document](./misc/Backtranslation.p
 To evaluate the quality of the refined queries, metrics such as bleu, rouge, and semsim are employed. The bleu score measures the similarity between the backtranslated and original query by analyzing n-grams, while the rouge score considers the overlap of n-grams to capture essential content. Due to their simplicity and effectiveness, these metrics are widely utilized in machine translation tasks. Despite their usefulness, both scores may not accurately capture the overall meaning or fluency of the translated text due to their heavy reliance on n-grams. To address topic drift and evaluate the similarity between the original and refined queries, we additionally employ [declutr](https://aclanthology.org/2021.acl-long.72/) for query embeddings, computing cosine similarity. Declutr, a self-learning technique requiring no labeled data, minimizes the performance gap between unsupervised and supervised pretraining for universal sentence encoders during the extension of transformer-based language model training. The semsim metric, relying on cosine similarity of embeddings, proves highly effective in capturing the subtle semantic nuances of language, establishing itself as a dependable measure of the quality of backtranslated queries.
 
 The below images demonstrate the average token count for the original queries in English and their backtranslated versions across various languages, along with the average pairwise semantic similarities measured using 'rouge' and 'declutr'. It's evident that all languages were able to introduce new terms into the backtranslated queries while maintaining semantic coherence.
-![image](misc/similarity.png)
+![image](./misc/similarity.jpg)
 
 ## Example
 These samples are taken from an ANTIQUE dataset that has been refined using a backtranslation refiner with the German language.
@@ -155,22 +155,27 @@ We search the relevant documents for both the original query and each of the `po
 The search results of each potential refined queries are evaluated based on how they improve the performance with respect to an evaluation metric like `map` or `mrr`. 
 
 
-### [`['agg', 'box']`](./src/param.py#L12)
-Finaly, we keep those potential refined queries whose performance (metric score) have been better or equal compared to the original query, i.e., `refined_query_metric >= original_query_metric and refined_q_metric > 0`.
+### [`['agg']`](./src/param.py#L12)
+Finaly, we keep those potential refined queries whose performance (metric score) have been better or equal compared to the original query.
 
-We keep two main datasets as the outcome of the `RePair` pipeline:
+We keep two these datasets as the outcome of the `RePair` pipeline:
 
-> 1. `./output/{input query set}/{transformer name}.{pairing strategy}/{ranker}.{metric}.agg.gold.tsv`: contains the original queries and their refined queries that garanteed the `better` performance along with the performance metric values
-
-> 2. `./output/{input query set}/{transformer name}.{pairing strategy}/{ranker}.{metric}.agg.all.tsv`: contains the original queries and `all` their predicted refined queries along with the performance metric values
-
-For boxing, since we keep the performances for all the potential queries, we can change the condition and have a customized selection like having [`diamond`](https://dl.acm.org/doi/abs/10.1145/3459637.3482009) refined queries with maximum possible performance, i.e., `1` by setting the condition: `refined_query_metric >= original_query_metric and refined_q_metric == 1`. The boxing condition can be set at [`./src/param.py`](./src/param.py#L12). 
+> 1. `./output/{input query set}/{ranker}.{metric}.agg/{ranker}.{metric}.agg.{selected refiner}.all.tsv`
+> 2. `./output/{input query set}/{ranker}.{metric}.agg/{ranker}.{metric}.agg.{selected refiner}.gold.tsv`
+> 3. `./output/{input query set}/{ranker}.{metric}.agg/{ranker}.{metric}.agg.{selected refiner}.platinum.tsv`
+> 4. `./output/{input query set}/{ranker}.{metric}.agg/{ranker}.{metric}.agg.{selected refiner}.negative.tsv`
 
 ```
-'box': {'gold':     'refined_q_metric >= original_q_metric and refined_q_metric > 0',
-        'platinum': 'refined_q_metric > original_q_metric',
-        'diamond':  'refined_q_metric > original_q_metric and refined_q_metric == 1'}
+'agg': {'all':               'all predicted refined queries along with the performance metric values',
+        'gold':              'refined_q_metric >= original_q_metric and refined_q_metric > 0',
+        'platinum':          'refined_q_metric > original_q_metric',
+        'negative':          'refined_q_metric < original_q_metric}
 ```
+The 'selected refiner' option refers to the categories we experiment on and the create a datasets:
+ - nllb: Only backtranslation with nllb
+ - -bt: Other refiners than backtranslartion
+ - +bt: All the refiners except bing translator
+ - allref: All the refiners
 
 After this step, the final structure of the output will be look like below:
 
@@ -179,10 +184,10 @@ After this step, the final structure of the output will be look like below:
 │   └── dataset_name
 │       └── refined_queries_files
 │   │   └── ranker.metric [such as bm25.map]
-│   │       └── [This is where all the results from the search, eval, aggregate, and boxing are stored]
+│   │       └── [This is where all the results from the search, eval, and aggregate]
 
 ```
-
+The results are available in the [./output](./output) file.
 
 ### Settings
 We've created benchmark query refinement datasets for the 'trec' dataset using the 'backtranslated' refiner with both 'bm25' and 'qld' rankers, along with 'map' and 'qld' evaluation metrics.You can adjust the settings [./src/param.py](./src/param.py)
@@ -193,6 +198,3 @@ We've created benchmark query refinement datasets for the 'trec' dataset using t
 ## 4. Acknowledgement
 We benefit from [``trec_eval``](https://github.com/usnistgov/trec_eval), [``pyserini``](https://github.com/castorini/pyserini), [``ir-dataset``](https://ir-datasets.com/), and other libraries. We would like to thank the authors of these libraries and helpful resources.
   
-
-
-
