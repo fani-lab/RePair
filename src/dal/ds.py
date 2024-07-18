@@ -255,104 +255,10 @@ class Dataset(object):
             names = [category]
         return [re.sub(r'\b(\w+)Stemmer\b', r'stem.\1', re.sub(r'\b\w*BackTranslation\w*\b', 'bt', name)).lower() for name in names]
 
-    ''' Fuse Ranking '''
-    @classmethod
-    def reciprocal_rank_fusion(cls, docs, k, columns, output):
-        docs = docs.groupby(['qid', 'did'])
-        doc_fusion = pd.DataFrame(columns=columns)
-        for group_name, group_df in docs:
-            score = 0
-            for index, row in group_df.iterrows():
-                score += 1/(k+row['rank'])
-            doc_fusion.loc[len(doc_fusion)] = [group_name[0], 'Q0', group_name[1], 0, score, 'Pyserini']
-        doc_fusion = doc_fusion.sort_values(by=['qid', 'score'], ascending=[True, False])
-        doc_fusion['rank'] = doc_fusion.groupby('qid').cumcount() + 1
-        doc_fusion.to_csv(output, sep='\t', encoding='UTF-8', index=False, header=False)
-
-    @classmethod
-    def condorcet_fusion(cls, docs, columns, output):
-        did_list = docs['did'].unique().tolist()
-        docs = docs.groupby(['qid', 'refiner'])
-        score_metrix = {did: 0 for did in did_list}
-        pairwise_list = list(combinations(did_list, 2))
-
-        doc_fusion = pd.DataFrame(columns=columns)
-        for group_name, group_df in docs:
-            for (did1, did2) in pairwise_list:
-                r1 = (group_df.loc[group_df['did'] == did1, 'rank'].values)[0]
-                r2 = (group_df.loc[group_df['did'] == did2, 'rank'].values)[0]
-                if r1 > r2: score_metrix[did1] += 1
-                else: score_metrix[did2] += 1
-            for did in score_metrix.keys():
-                doc_fusion.loc[len(doc_fusion)] = [group_name[0], 'Q0', did, 0, score_metrix[did], 'Pyserini']
-                score_metrix[did] = 0
-
-        doc_fusion = doc_fusion.sort_values(by=['id', 'score'], ascending=[True, False])
-        doc_fusion['rank'] = doc_fusion.groupby('id').cumcount() + 1
-        doc_fusion.to_csv(output, sep='\t', encoding='UTF-8', index=False, header=False)
-
-    @classmethod
-    def random(cls, docs, columns, output):
-        docs = docs.groupby(['qid'])
-        doc_fusion = pd.DataFrame(columns=columns)
-
-        for qid, group_df in docs:
-            df = group_df.drop_duplicates(subset='did', keep='first')
-            df = df.sample(frac=1).reset_index(drop=True)
-            df['score'] = np.random.rand(len(df))
-            doc_fusion = pd.concat([doc_fusion, df], ignore_index=True)
-
-        doc_fusion['rank'] = doc_fusion.groupby('id').cumcount() + 1
-        doc_fusion.to_csv(output, sep='\t', encoding='UTF-8', index=False, header=False)
-
-
-    # Example usage:
-    # reciprocal_rank_fusion(cls, docs, [1, 2, 3], columns, 'output')
-    def reciprocal_rank_fusion_multi_k(cls, docs, k_list, columns, output):
-        docs = docs.groupby(['qid', 'did'])
-
-        doc_fusion_dict = {k: pd.DataFrame(columns=columns) for k in k_list}
-
-        for group_name, group_df in docs:
-            scores = {k: 0 for k in k_list}
-
-            for index, row in group_df.iterrows():
-                for k in k_list:
-                    scores[k] += 1 / (k + row['rank'])
-
-            for k in k_list:
-                doc_fusion_dict[k].loc[len(doc_fusion_dict[k])] = [group_name[0], 'Q0', group_name[1], 0, scores[k], 'Pyserini']
-        for k, doc_fusion in doc_fusion_dict.items():
-            doc_fusion = doc_fusion.sort_values(by=['qid', 'score'], ascending=[True, False])
-            doc_fusion['rank'] = doc_fusion.groupby('qid').cumcount() + 1
-            output_filename = output.split('.k.')[0] + '.k' + str(k) + '.' + output.split('.k.')[1]
-            doc_fusion.to_csv(output_filename, sep='\t', encoding='UTF-8', index=False, header=False)
-
-    def get_extra_info(self, output):
-        import wikipedia
-        print('Getting extra info ...')
-        # Get the relevant information
-        initial_df = pd.DataFrame(columns=['qid', 'query'])
-        for query in self.queries:
-            try:
-                content = wikipedia.page(query.q).content
-                content = content.translate(str.maketrans('', '', "<>[]/\\"))
-                content = fix_text(content.replace('\n', '').replace(':', '').replace('\r', '').replace(',', '').replace('\t', '').replace("'", '').replace('"', ''))
-            except Exception as e:
-                content = 'None'
-            initial_df.loc[len(initial_df)] = [query.qid, f'{query.q}, {content}']
-
-        # initial_df.to_csv(f'{rag_output}/preprocessed_rag.tsv', index=False)
-        initial_df.to_csv(f'{output}/{self.domain}_rag.tsv', index=False, sep='\t', header=0, encoding='utf-8')
-
     @classmethod
     def aggregate(cls, original, refined_query, output, ranker, metric, selected_refiner='allref', cmd='agg'):
         def select(ref, change):
-            if change.startswith('rag') and 'rag' in cmd:
-                if ref in change: return True
-                else: return False
-
-            elif change.startswith('refiner') and not 'rag' in cmd:
+            if change.startswith('refiner') and not 'rag' in cmd:
                 if ref == 'nllb' and not ref in change: return False        # only backtranslation with nllb
                 elif ref == '-bt' and 'bt' in change: return False          # other refiners than backtranslartion
                 elif ref == '+bt' and 'bt_bing' in change: return False     # all the refiners except bing
@@ -364,8 +270,7 @@ class Dataset(object):
 
         refiners = []
         for change, metric_value in changes:
-            if 'rag' in cmd: refined = pd.DataFrame({change: [change] * len(original['qid'])})
-            else: refined = pd.read_csv(f'{refined_query}/{change}', sep='\t', usecols=[2], skip_blank_lines=False, names=[change], converters={change: cls.clean}, engine='python', index_col=False, header=None)
+            refined = pd.read_csv(f'{refined_query}/{change}', sep='\t', usecols=[2], skip_blank_lines=False, names=[change], converters={change: cls.clean}, engine='python', index_col=False, header=None)
             assert len(original['qid']) == len(refined[change])
             refiners.append(change)
             pred_metric_values = pd.read_csv(join(output, metric_value), sep='\t', usecols=[1, 2], names=['qid', f'{change}.{ranker}.{metric}'], index_col=False, skipfooter=1, dtype={'qid': str}, engine='python')
@@ -381,7 +286,6 @@ class Dataset(object):
             cls.build(original, refiners, ranker, metric, f"{output}/{ranker}.{metric}.dataset.{'all' if selected_refiner=='refiner' else selected_refiner}.csv")
         else:
             output = f'{output}/agg'
-            if cmd == 'rag' and selected_refiner == 'all': selected_refiner = 'allref'
             if not os.path.isdir(output): os.makedirs(output)
             print(f'Saving original queries, better changes, and {metric} values based on {ranker} ...')
             with open(f'{output}/{ranker}.{metric}.agg.{selected_refiner}.all.tsv', mode='w', encoding='UTF-8') as agg_all, \
