@@ -1,12 +1,17 @@
 # Enhancing RAG’s Retrieval via Query Backtranslations
-Web users often struggle to express their information needs clearly in short, vague queries, making it hard for search engines to find relevant results. Query refinement, which aims to improve search relevance by adjusting original queries, is crucial in addressing this challenge. However, current evaluation methods for query refinement models may not accurately reflect real-world usage patterns. We propose a novel approach using natural language backtranslation to create benchmark datasets for evaluating query refinement models. Backtranslation involves translating a query from one language to another and then translating it back, ensuring that the meaning remains consistent. We believe that backtranslation can:
+Retrieval-augmented generation (rag) systems extend the capabilities of generating responses beyond the pretrained knowledge of large language models by augmenting the input prompt with relevant documents retrieved by an information retrieval system, which is of particular importance when knowledge is constantly updated and cannot be memorized by the model. Rag-based systems operate in two phases: retrieval and generation. In the retrieval phase, documents are retrieved from various versions of the original query, then fused and reranked to create a unified list, and the more relevant list of documents, the better the subsequent generation phase. 
 
-1. Identify missing terms in a query that are assumed to be understood due to their common usage in the original language.
-2. Include relevant synonyms from the target language to provide additional context.
-3. Clarify the meaning of ambiguous terms or phrases.
+Here, we propose using backtranslation as an unsupervised method to enhance the retrieval phase by transforming an original query into newly reformulated versions without semantic drift to enhance the relevance of the retrieved documents. We believe that backtranslation can:
 
-We conducted extensive experiments using widely recognized TREC query sets and multiple languages. Our results, evaluated using various metrics, demonstrate the effectiveness of backtranslation in creating high-quality benchmark datasets for evaluating query refinement methods.
+   1. Identify missing terms in a query that are assumed to be understood due to their common usage in the original language.
+   2. Include relevant synonyms from the target language to provide additional context.
+   3. Clarify the meaning of ambiguous terms or phrases.
 
+Specifically, for an original query, 
+   
+   1. we generate its backtranslated versions via different languages, 
+   2. retrieve an ordered list of relevant documents for each backtranslated version
+   3. finally, merge the lists of retrieved documents into a single ranked list via reciprocal rank fusion.
 
 <table align="center" border=0>
 <tr>
