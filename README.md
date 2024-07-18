@@ -1,4 +1,4 @@
-# ``No Query Left Behind``: Query Refinement via Backtranslation
+# Enhancing RAG’s Retrieval via Query Backtranslations
 Web users often struggle to express their information needs clearly in short, vague queries, making it hard for search engines to find relevant results. Query refinement, which aims to improve search relevance by adjusting original queries, is crucial in addressing this challenge. However, current evaluation methods for query refinement models may not accurately reflect real-world usage patterns. We propose a novel approach using natural language backtranslation to create benchmark datasets for evaluating query refinement models. Backtranslation involves translating a query from one language to another and then translating it back, ensuring that the meaning remains consistent. We believe that backtranslation can:
 
 1. Identify missing terms in a query that are assumed to be understood due to their common usage in the original language.
@@ -17,7 +17,9 @@ We conducted extensive experiments using widely recognized TREC query sets and m
 - [2. Quickstart](#2-quickstart)
   * [`query_refinement`](#query_refinement)
   * [`similarity`](#similarity)
+  * [`rag`](#rag)
   * [`search`](#search)
+  * [`rag_fusion`](#rag_fusion)
   * [`eval`](#eval)
   * [`agg, box`](#agg-box)
 - [4. Acknowledgement](#4-acknowledgement)
@@ -146,10 +148,12 @@ These samples are taken from an ANTIQUE dataset that has been refined using a ba
 | 4473331 	| How can I keep my   rabit indoors? 	| How can I keep my   rabbit in the house 	| 0.625 	| 0.571429 	| 0.625 	| 0.625 	| 0.446324 	| [0.5555555555555556,   0.5, 0.42857142857142855, 0.3333333333333333] 	| 1 	| 1.125 	| 9 	| 8 	| 0.7701595 	|
 | 1509982 	| How is the Chemistry is a basic of Science? 	| How is chemistry a principle of science 	| 0.75 	| 0.285714 	| 0.75 	| 0.75 	| 0 	| [0.5714285714285714, 0.16666666666666666, 0.0, 0.0] 	| 0.651439058 	| 0.7 	| 7 	| 10 	| 0.7796929 	|
 
+### [`['rag']`](./src/param.py#L12)
 
 ### [`['search']`](./src/param.py#L17)
 We search the relevant documents for both the original query and each of the `potential` refined queries. We need to set an information retrieval method, called ranker, that retrieves relevant documents and ranks them based on relevance scores. We integrate [`pyserini`](https://github.com/castorini/pyserini), which provides efficient implementations of sparse and dense rankers, including `bm25` and `qld` (query likelihood with Dirichlet smoothing). 
 
+### [`['rag_fusion']`](./src/refinement/refiner_param.py#L9)
 
 ### [`['eval']`](./src/param.py#L20)
 The search results of each potential refined queries are evaluated based on how they improve the performance with respect to an evaluation metric like `map` or `mrr`. 
