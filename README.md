@@ -83,7 +83,7 @@ The objective of query refinement is to produce a set of potential candidate que
 
 <table align="center" border=0>
 <thead>
-  <tr><td colspan="3" style="background-color: white;"><img src="./misc/classdiagram.png", width="1000", alt="ReQue: Class Diagram"></td></tr>     
+  <tr><td colspan="3" style="background-color: white;"><img src="misc/classdiagram.png", width="1000", alt="ReQue: Class Diagram"></td></tr>     
   <tr><td colspan="3">
       <p align="center">Class Diagram for Query Refiners in <a href="./src/refinement/">src/refinement/</a>. [<a href="https://app.lucidchart.com/documents/view/64fedbb0-b385-4696-9adc-b89bc06e84ba/HWEp-vi-RSFO">zoom in!</a>].</p>
       <p align="center"> The expanders are initialized by the Expander Factory in <a href="./src/refinement/refiner_factory.py">src/refinement/refiner_factory.py</a></p></td></tr> 
