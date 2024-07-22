@@ -22,6 +22,7 @@ We conducted extensive experiments using widely recognized TREC query sets and m
   * [`agg, box`](#agg-box)
 - [4. Acknowledgement](#4-acknowledgement)
 - [5. License](#5-license)
+- [6. Citation](#6-citation)
 <td ><img src='misc/flow.jpg' width="100%" /></td>
 </table>
 
@@ -197,4 +198,26 @@ We've created benchmark query refinement datasets for the 'trec' dataset using t
 
 ## 4. Acknowledgement
 We benefit from [``trec_eval``](https://github.com/usnistgov/trec_eval), [``pyserini``](https://github.com/castorini/pyserini), [``ir-dataset``](https://ir-datasets.com/), and other libraries. We would like to thank the authors of these libraries and helpful resources.
-  
+
+## 5. License
+©2024. This work is licensed under a [CC BY-NC-SA 4.0](license.txt) license.
+
+## 6. Citation
+```
+@inproceedings{DBLP:conf/cikm/RajaeiTF24,
+  author       = {Delaram Rajaei and
+                  Zahra Taheri and
+                  Hossein Fani},
+  title        = {No Query Left Behind: Query Refinement via Backtranslation},
+  booktitle    = {Proceedings of the 33rd ACM International Conference on Information and Knowledge Management (CIKM '24), October 21--25, 2024, Boise, ID, USA},
+  series       = {},
+  volume       = {},
+  pages        = {},
+  publisher    = {Springer},
+  year         = {2024},
+  url          = {https://doi.org/10.1145/3627673.3679729},
+  doi          = {10.1145/3627673.3679729},
+  biburl       = {https://dblp.org/rec/conf/cikm/RajaeiTF24.bib},
+  bibsource    = {dblp computer science bibliography, https://dblp.org}
+}
+```
