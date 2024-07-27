@@ -25,12 +25,16 @@ Web users often struggle to express their information needs clearly in short, va
 In this GitHub repository, we present different versions of the RePair project, accessible through various branches. The main branch contains the most updated version, ensuring users have access to the latest improvements and features of the RePair project.
 
 ## 2. Refinement
+In the refinement step, both supervised and unsupervised methods can be employed to generate the refined version of the original query. Supervised methods leverage pre-existing labeled datasets to train models that can accurately interpret and enhance the initial queries based on learned patterns and examples. On the other hand, unsupervised methods do not rely on labeled data; instead, they utilize various techniques such as clustering, backtranslation, or relevance feedback to refine queries. By combining these approaches, the RePair project ensures that the refined queries are not only contextually appropriate but also diverse, capturing a broader range of potential user intents. This dual approach significantly enhances the quality and relevance of the retrieved documents, ultimately leading to more effective and accurate search results.
 
 ## 3. Retrieval
+In the retrieval step, either dense retrievers such as colbert or sparse retrievers such as bm25 and qld are used to retrieve relevant documents related to the refined versions of the query. Dense retrievers like colbert employ neural networks to encode queries and documents into dense vectors, capturing semantic similarities at a deeper level. This allows for more detailed matching between the refined query and potential results. On the other hand, sparse retrievers like bm25 and qld rely on traditional term-based scoring methods, efficiently identifying documents that contain significant terms from the refined query. By utilizing both dense and sparse retrieval methods, the RePair project ensures a comprehensive and balanced retrieval process, capturing both semantic depth and term frequency, which ultimately leads to more relevant and accurate search outcomes.
 
 ## 4. Evaluation
+In the evaluation step, the retrieved list of documents is assessed based on relevance judgments to assign a score. This involves comparing the retrieved documents against a set of predefined relevance criteria to determine how well each document matches the user's information needs as expressed in the refined query. By systematically scoring the relevance of each document, this step provides a quantitative measure of the effectiveness of the query refinement process. At the end of this step, each refined version of the original query is evaluated, allowing for a detailed analysis of the refinement's impact on retrieval performance. 
 
 ## 5. Selection
+
 
 ## 6. Branches
 
