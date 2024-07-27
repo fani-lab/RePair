@@ -7,11 +7,13 @@ The RePair project is an open-source initiative designed to generate datasets co
 <tr>
 <td>
    
-1. [Introduction](#1-Introduction)
-2. [Repair 1.0](#2-Repair-1.0)
-3. [Repair 2.0](#3-Repair-2.0)
-4. [Repair 2.1](#4-Repair-2.1)
-5. [Acknowledgement](#5-Acknowledgement)
+1. [Introduction](#Introduction)
+2. [Refinement](#Refinement)
+3. [Retrieval](#Retrieval)
+4. [Evaluation](#Evaluation)
+5. [Selection](#Selection)
+6. [Branches](#Branches)
+7. [Acknowledgement](#Acknowledgement)
 </td>
 <td><img src='misc/repair_flow.jpg' width="100%" /></td>
 </table>
@@ -22,13 +24,17 @@ Web users often struggle to express their information needs clearly in short, va
 
 In this GitHub repository, we present different versions of the RePair project, accessible through various branches. The main branch contains the most updated version, ensuring users have access to the latest improvements and features of the RePair project.
 
-## 2. RePair 1.0
+## 2. Refinement
 
-## 3. RePair 2.0
+## 3. Retrieval
 
-## 4. RePair 2.1
+## 4. Evaluation
 
-## 4. Acknowledgement
+## 5. Selection
+
+## 6. Branches
+
+## 7. Acknowledgement
 We benefit from [``trec_eval``](https://github.com/usnistgov/trec_eval), [``pyserini``](https://github.com/castorini/pyserini), [``ir-dataset``](https://ir-datasets.com/), and other libraries. We would like to thank the authors of these libraries and helpful resources.
   
 
