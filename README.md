@@ -3,12 +3,17 @@
 The RePair project is an open-source initiative designed to generate datasets containing pairs of original and refined queries. This pipeline involves multiple steps: it first takes an initial query, refines it to better capture the user's intent, retrieves relevant documents based on the refined query, evaluates the results, and then generates the pairs of original and refined queries. This comprehensive process helps in creating high-quality datasets that can be used to train and evaluate query refinement models more effectively.
 
 ## Table of Contents
+<table align="center" border=0>
+<tr>
+<td>
+   
 1. [Introduction](#1-Introduction)
 2. [Repair 1.0](#2-Repair-1.0)
 3. [Repair 2.0](#3-Repair-2.0)
 4. [Repair 2.1](#4-Repair-2.1)
 5. [Acknowledgement](#5-Acknowledgement)
-<td ><img src='misc/repair_flow.jpg' width="100%" /></td>
+</td>
+<td><img src='misc/repair_flow.jpg' width="100%" /></td>
 </table>
 
    
