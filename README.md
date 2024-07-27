@@ -34,9 +34,10 @@ In the retrieval step, either dense retrievers such as colbert or sparse retriev
 In the evaluation step, the retrieved list of documents is assessed based on relevance judgments to assign a score. This involves comparing the retrieved documents against a set of predefined relevance criteria to determine how well each document matches the user's information needs as expressed in the refined query. By systematically scoring the relevance of each document, this step provides a quantitative measure of the effectiveness of the query refinement process. At the end of this step, each refined version of the original query is evaluated, allowing for a detailed analysis of the refinement's impact on retrieval performance. 
 
 ## 5. Selection
-
+At last comes the selection step. In this step, the score assigned to each refined query is compared to the score of the original query. If the score of a refined query is higher, it is selected as the refined version of the original query. This comparison ensures that only those refinements that demonstrably improve search relevance are chosen. By the end of this step, a gold standard dataset is generated, consisting of pairs of original queries and their corresponding refined versions. This dataset serves as a valuable resource for training and evaluating supervised query refinement models, providing a benchmark for further research and development in enhancing search engine performance.
 
 ## 6. Branches
+
 
 ## 7. Acknowledgement
 We benefit from [``trec_eval``](https://github.com/usnistgov/trec_eval), [``pyserini``](https://github.com/castorini/pyserini), [``ir-dataset``](https://ir-datasets.com/), and other libraries. We would like to thank the authors of these libraries and helpful resources.
