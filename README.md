@@ -46,7 +46,10 @@ Metrics can be set in [`param.py`](https://github.com/fani-lab/RePair/blob/cb94e
 At last comes the selection step. In this step, the score assigned to each refined query is compared to the score of the original query. If the score of a refined query is higher, it is selected as the refined version of the original query. This comparison ensures that only those refinements that demonstrably improve search relevance are chosen. By the end of this step, a gold standard dataset is generated, consisting of pairs of original queries and their corresponding refined versions. This dataset serves as a valuable resource for training and evaluating supervised query refinement models, providing a benchmark for further research and development in enhancing search engine performance.
 
 ## 6. Branches
-- 
+- [main](https://github.com/fani-lab/RePair/tree/main): This branch hosts the most recent version of the RePair project.
+- [cikm23](https://github.com/fani-lab/RePair/tree/cikm23): This branch includes RePair 1.0, which focuses solely on query refinement using the T5 large language model.
+- [nqlb](https://github.com/fani-lab/RePair/tree/nqlb): This branch features RePair 2.0, incorporating both the T5 large language model and global and local refiners.
+- [rrf](https://github.com/fani-lab/RePair/tree/rrf): This branch contains RePair 2.1, which includes RAG and RAG fusion, along with various fusion metrics.
 
 ## 7. Acknowledgement
 We benefit from [`trec_eval`](https://github.com/usnistgov/trec_eval), [`pyserini`](https://github.com/castorini/pyserini), [`ir-dataset`](https://ir-datasets.com/), and other libraries. We would like to thank the authors of these libraries and helpful resources.
