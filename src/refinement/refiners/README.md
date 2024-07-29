@@ -21,13 +21,13 @@ which use an external linguistic knowledge-base including thesaurus, wordnet, an
 which resolves the ambiguity of polysemous terms in the original query based on the surrounding terms and then adds the synonyms of the query terms as the related terms, 
 
 ## embedding-based methods
-which use pre-trained term embeddings from Glove and word2vec to find the most similar terms to the query terms,
+which use pre-trained term embeddings from glove and word2vec to find the most similar terms to the query terms,
 
 ## anchor
-which is similar to embedding methods where the embeddings trained on Wikipedia articles' anchors, presuming an anchor is a concise summary of the content in the linked page,
+which is similar to embedding methods where the embeddings trained on wikipedia articles' anchors, presuming an anchor is a concise summary of the content in the linked page,
 
 ## wiki
-which uses the embeddings trained on Wikipedia's hierarchical categories to add the most similar concepts to each query term.
+which uses the embeddings trained on wikipedia's hierarchical categories to add the most similar concepts to each query term.
 
 # Local
 
