@@ -1,5 +1,16 @@
 # Refiners
 
+The objective of query refinement is to produce a set of potential candidate queries that can function as enhanced and improved versions. This involves systematically applying various unsupervised query refinement techniques to each query within the input dataset.
+
+<table align="center" border=0>
+<thead>
+  <tr><td colspan="3" style="background-color: white;"><img src="../../../misc/classdiagram.jpg", width="1000", alt="ReQue: Class Diagram"></td></tr>     
+  <tr><td colspan="3">
+      <p align="center">Class Diagram for Query Refiners in <a href="./src/refinement/">src/refinement/</a>. [<a href="https://app.lucidchart.com/documents/view/64fedbb0-b385-4696-9adc-b89bc06e84ba/HWEp-vi-RSFO">zoom in!</a>].</p>
+      <p align="center"> The expanders are initialized by the Expander Factory in <a href="./src/refinement/refiner_factory.py">src/refinement/refiner_factory.py</a></p></td></tr> 
+ </thead>
+</table>
+
 This README provides comprehensive information about the refiners used in the RePair project, categorized into _global_ and _local_ unsupervised refinement methods. 
 These methods are crucial for generating gold-standard datasets for training supervised or semi-supervised query refinement techniques. 
 [Global](#Global) methods operate solely on the original query, refining it without external context. 
