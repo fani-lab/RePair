@@ -47,8 +47,8 @@ At last comes the selection step. In this step, the score assigned to each refin
 
 ## 6. Branches
 - [main](https://github.com/fani-lab/RePair/tree/main): This branch hosts the most recent version of the RePair project.
-- [cikm23](https://github.com/fani-lab/RePair/tree/cikm23): This branch includes RePair 1.0, which focuses solely on query refinement using the T5 large language model.
-- [nqlb](https://github.com/fani-lab/RePair/tree/nqlb): This branch features RePair 2.0, incorporating both the T5 large language model and global and local refiners.
+- [cikm23](https://github.com/fani-lab/RePair/tree/cikm23): This branch includes RePair 1.0, which focuses solely on query refinement using the T5 LLM.
+- [nqlb](https://github.com/fani-lab/RePair/tree/nqlb): This branch features RePair 2.0, incorporating both the T5 LLM and global and local refiners.
 - [rrf](https://github.com/fani-lab/RePair/tree/rrf): This branch contains RePair 2.1, which includes RAG and RAG fusion, along with various fusion metrics.
 
 ## 7. Acknowledgement
