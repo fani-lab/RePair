@@ -34,29 +34,27 @@ For additional details, please refer to this [document](./misc/Backtranslation.p
 This method replaces the original query's terms with the title of their Wikipedia articles.
 
 ## stemmers
-which utilize various lexical, syntactic, and semantic aspects of query terms and their relationships to reduce the terms to their roots, including krovetz, lovins, paiceHusk, porter, sremoval, trunc4, and trunc5,
+It utilizes various lexical, syntactic, and semantic aspects of query terms and their relationships to reduce them to their roots, employing methods such as Krovetz, Lovins, PaiceHusk, Porter, Sremoval, Trunc4, and Trunc5.
 
 ## semantic refiners
-which use an external linguistic knowledge-base including thesaurus, wordnet, and conceptnet, to extract related terms to the original query's terms,
+It utilizes an external linguistic knowledge base, including thesaurus, WordNet, and ConceptNet, to extract related terms for the original query's terms.
 
 ## sense-disambiguation
-which resolves the ambiguity of polysemous terms in the original query based on the surrounding terms and then adds the synonyms of the query terms as the related terms, 
+It resolves the ambiguity of polysemous terms in the original query by analyzing the surrounding terms and then incorporates synonyms of the query terms as related terms.
 
 ## embedding-based methods
-which use pre-trained term embeddings from glove and word2vec to find the most similar terms to the query terms,
+It utilizes pre-trained term embeddings from GloVe and Word2Vec to identify the most similar terms to the query terms.
 
 ## anchor
-which is similar to embedding methods where the embeddings trained on wikipedia articles' anchors, presuming an anchor is a concise summary of the content in the linked page,
+It uses pre-trained term embeddings from GloVe and Word2Vec to identify the most similar terms to the query terms.
 
 ## wiki
-which uses the embeddings trained on wikipedia's hierarchical categories to add the most similar concepts to each query term.
+It uses embeddings trained on Wikipedia's hierarchical categories to add the most similar concepts to each query term.
 
 # Local
 
 ## relevance-feedback
-wherein important terms from the top-k retrieved documents are added to the original query based on metrics like tf-idf,
-clustering techniques including termluster, docluster, and conceptluster, where a graph clustering method like Louvain are employed on a graph whose nodes are the terms and edges are the terms' pairwise co-occurrence counts so that each cluster would comprise frequently co-occurring terms. 
-Subsequently, to refine the original query, the related terms are chosen from the clusters to which the initial query terms belong. 
+In this method, important terms from the top-k retrieved documents are incorporated into the original query based on metrics such as tf-idf. Additionally, clustering techniques like TermCluster, DocCluster, and ConceptCluster are used, employing graph clustering methods like Louvain on a graph where nodes represent terms and edges denote pairwise co-occurrence counts. This approach ensures that each cluster contains terms that frequently co-occur. To refine the original query, related terms are selected from the clusters to which the initial query terms belong.
     
 ## bertqe
 which employs bert's contextualized word embeddings of terms in the top-k retrieved documents.
