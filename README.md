@@ -95,30 +95,30 @@ The objective of query refinement is to produce a set of potential candidate que
 Here is the list of queries:
 | **Expander** 	| **Category** 	| **Analyze type** 	|
 |---	|:---:	|:---:	|
-| adaponfields 	| Top_Documents 	| Local 	|
-| anchor 	| Anchor_Text 	| Global 	|
+| [adaponfields] 	| Top_Documents 	| Local 	|
+| [anchor] 	| Anchor_Text 	| Global 	|
 | [backtranslation](#Backtranslation) 	| Machine_Translation 	| Global 	|
-| bertqe] 	| Top_Documents 	| Local 	|
-| conceptluster 	| Concept_Clustering 	| Local 	|
-| conceptnet 	| Semantic_Analysis 	| Global 	|
-| docluster 	| Document_Summaries 	| Local 	|
-| glove 	| Semantic_Analysis 	| Global 	|
-| onfields 	| Top_Documents 	| Local 	|
-| relevancefeedback 	| Top_Documents 	| Local 	|
-| rm3 	| Top_Documents 	| Local 	|
-| sensedisambiguation 	| Semantic_Analysis 	| Global 	|
-| stem.krovetz 	| Stemming_Analysis 	| Global 	|
-| stem.lovins 	| Stemming_Analysis 	| Global 	|
-| stem.paicehusk 	| Stemming_Analysis 	| Global 	|
-| stem.porter 	| Stemming_Analysis 	| Global 	|
-| stem.sstemmer 	| Stemming_Analysis 	| Global 	|
-| stem.trunc 	| Stemming_Analysis 	| Global 	|
-| tagmee 	| Wikipedia 	| Global 	|
-| termluster 	| Term_Clustering 	| Local 	|
-| thesaurus 	| Semantic_Analysis 	| Global 	|
-| wiki 	| Wikipedia 	| Global 	|
-| word2vec 	| Semantic_Analysis 	| Global 	|
-| wordnet 	| Semantic_Analysis 	| Global 	|
+| [bertqe] 	| Top_Documents 	| Local 	|
+| [conceptluster] 	| Concept_Clustering 	| Local 	|
+| [conceptnet] 	| Semantic_Analysis 	| Global 	|
+| [docluster] 	| Document_Summaries 	| Local 	|
+| [glove] 	| Semantic_Analysis 	| Global 	|
+| [onfields] 	| Top_Documents 	| Local 	|
+| [relevancefeedback] 	| Top_Documents 	| Local 	|
+| [rm3] 	| Top_Documents 	| Local 	|
+| [sensedisambiguation] 	| Semantic_Analysis 	| Global 	|
+| [stem.krovetz] 	| Stemming_Analysis 	| Global 	|
+| [stem.lovins] 	| Stemming_Analysis 	| Global 	|
+| [stem.paicehusk] 	| Stemming_Analysis 	| Global 	|
+| [stem.porter] 	| Stemming_Analysis 	| Global 	|
+| [stem.sstemmer] 	| Stemming_Analysis 	| Global 	|
+| [stem.trunc] 	| Stemming_Analysis 	| Global 	|
+| [tagmee] 	| Wikipedia 	| Global 	|
+| [termluster] 	| Term_Clustering 	| Local 	|
+| [thesaurus] 	| Semantic_Analysis 	| Global 	|
+| [wiki] 	| Wikipedia 	| Global 	|
+| [word2vec] 	| Semantic_Analysis 	| Global 	|
+| [wordnet] 	| Semantic_Analysis 	| Global 	|
 
 # Backtranslation
 Back translation, also known as reverse translation or dual translation, involves translating content, whether it is a query or paragraph, from one language to another and retranslating it to the original language. This method provides several options for the owner to make a decision that makes the most sense based on the task at hand.
