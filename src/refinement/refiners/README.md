@@ -19,6 +19,17 @@ The local approaches allow for the addition of similar or related terms to the o
 
 # Global
 
+## Backtranslation
+Back translation, also known as reverse translation or dual translation, involves translating content, whether it is a query or paragraph, from one language to another and retranslating it to the original language. This method provides several options for the owner to make a decision that makes the most sense based on the task at hand.
+For additional details, please refer to this [document](./misc/Backtranslation.pdf).
+
+## Example
+| **q** 	| **map q** 	| **language** 	| **translated q** 	| **backtranslated q** 	| **map q'** 	|
+|---	|:---:	|:---:	|:---:	|:---:	|:---:	|
+| Italian nobel prize winners 	| 0.2282 	| farsi 	| برندهای جایزه نوبل ایتالیایی 	| Italian Nobel laureates 	| 0.5665 	|
+| banana paper making 	| 0.1111 	| korean 	| 바나나 종이 제조 	| Manufacture of banana paper 	| 1 	|
+| figs 	| 0.0419 	| tamil 	|  அத்திமரங்கள்  	| The fig trees 	| 0.0709 	|
+
 ## tagme
 This method replaces the original query's terms with the title of their Wikipedia articles.
 
