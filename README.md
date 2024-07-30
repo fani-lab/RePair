@@ -114,7 +114,7 @@ For additional details, please refer to this [document](./misc/Backtranslation.p
 Example:
 | **q** 	| **map q** 	| **language** 	| **translated q** 	| **backtranslated q** 	| **map q'** 	|
 |---	|:---:	|:---:	|:---:	|:---:	|:---:	|
-| Italian nobel prize winners 	| 0.2282 	| farsi 	| برندهای جایزه نوبل ایتالیایی 	| Italian Nobel laureates 	| 0.5665 	|
+| Italian nobel prize winners 	| 0.2282 	| farsi 	| برنده های جایزه نوبل ایتالیایی 	| Italian Nobel laureates 	| 0.5665 	|
 | banana paper making 	| 0.1111 	| korean 	| 바나나 종이 제조 	| Manufacture of banana paper 	| 1 	|
 | figs 	| 0.0419 	| tamil 	|  அத்திமரங்கள்  	| The fig trees 	| 0.0709 	|
 
