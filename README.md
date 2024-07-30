@@ -92,7 +92,7 @@ The objective of query refinement is to produce a set of potential candidate que
  </thead>
 </table>
 
-Here is the list of queries:
+Here is the list of refiners:
 | **Expander** 	| **Category** 	| **Analyze type** 	|
 |---	|:---:	|:---:	|
 | [backtranslation](#Backtranslation) 	| Machine_Translation 	| Global 	|
