@@ -17,9 +17,23 @@ These methods are crucial for generating gold-standard datasets for training sup
 In contrast, [Local](#Local) refiners take into account terms from the top-k retrieved documents obtained through an initial information retrieval process, such as _bm25_ or _qld_. 
 The local approaches allow for the addition of similar or related terms to the original query, thereby enhancing the relevance and accuracy of the refined queries.
 
+Here is the list of refiners:
+| **Expander** 	| **Category** 	| **Analyze type** 	|
+|---	|:---:	|:---:	|
+| [backtranslation](#backtranslation) 	| Machine_Translation 	| Global 	|
+| [tagmee](#tagmee) 	| Wikipedia 	| Global 	|
+| [stemmers](#stemmers) 	| Stemming_Analysis 	| Global 	|
+| [semantic](#semantic-refiners) 	| Semantic_Analysis 	| Global 	|
+| [sensedisambiguation](#sense-disambiguation) 	| Semantic_Analysis 	| Global 	|
+| [embedding-based](#embedding-based-methods) 	| Semantic_Analysis 	| Global 	|
+| [anchor](#anchor) 	| Anchor_Text 	| Global 	|
+| [wiki](#wiki) 	| Wikipedia 	| Global 	|
+| [relevance-feedback](#relevance-feedback) 	| Top_Documents 	| Local 	|
+| [bertqe](#bertqe) 	| Top_Documents 	| Local 	|
+
 # Global
 
-## Backtranslation
+## backtranslation
 Back translation, also known as reverse translation or dual translation, involves translating content, whether it is a query or paragraph, from one language to another and retranslating it to the original language. This method provides several options for the owner to make a decision that makes the most sense based on the task at hand.
 For additional details, please refer to this [document](./misc/Backtranslation.pdf).
 
