@@ -19,7 +19,8 @@ We conducted extensive experiments using widely recognized TREC query sets and m
   * [`similarity`](#similarity)
   * [`search`](#search)
   * [`eval`](#eval)
-  * [`agg, box`](#agg-box)
+  * [`agg`](#agg)
+- [3. File Structure](#4-file-structure)
 - [4. Acknowledgement](#4-acknowledgement)
 - [5. License](#5-license)
 - [6. Citation](#6-citation)
@@ -179,7 +180,7 @@ The results are available in the [./output](./output) file.
 ### Settings
 We've created benchmark query refinement datasets for the 'trec' dataset using the 'backtranslated' refiner with both 'bm25' and 'qld' rankers, along with 'map' and 'qld' evaluation metrics.You can adjust the settings [./src/param.py](./src/param.py)
 
-### Samples
+## 3. File Structure
 
 
 ## 4. Acknowledgement
