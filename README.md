@@ -21,7 +21,7 @@ We conducted extensive experiments using widely recognized TREC query sets and m
   * [`eval`](#eval)
   * [`agg`](#agg)
 - [3. File Structure](#3-file-structure)
-- [4. Acknowledgement](#4-acknowledgement)
+- [4. Acknowledgment](#4-acknowledgment)
 - [5. License](#5-license)
 - [6. Citation](#6-citation)
 <td ><img src='misc/flow.jpg' width="100%" /></td>
@@ -61,7 +61,7 @@ cd ..
 To perform fast IR tasks, we need to build the sparse indexes of document corpora or use the [`prebuilt-indexes`](https://github.com/castorini/pyserini/blob/master/docs/prebuilt-indexes.md). The path to the index need to be set in [`./src/param.py`](./src/param.py).
 
 ## 2. Quickstart
-For using query refinement make sure to add the command to the pipeline in the [./src/param.py](./src/param.py).
+For using query refinement make sure to add the command to the pipeline in the [./src/param.py](https://github.com/fani-lab/RePair/blob/3dbbc5612b3684d5d7046ec93b8ca470fcde0b92/src/param.py#L12).
 
 As seen in the above [`workflow`](misc/workflow.jpg), `RePair` has three pipelined steps: 
 > 1. Refining Quereis: [`query_refinement`]
@@ -81,7 +81,7 @@ python -u main.py -data ../data/raw/toy.msmarco.passage ../data/raw/toy.aol-ia -
 ```
 ### [`['query_refinement']`](./src/refinement/refiner_param.py#L9)
 
-# Refiners
+### Refiners
 The objective of query refinement is to produce a set of potential candidate queries that can function as enhanced and improved versions. This involves systematically applying various unsupervised query refinement techniques to each query within the input dataset.
 
 <table align="center" border=0>
@@ -94,7 +94,7 @@ The objective of query refinement is to produce a set of potential candidate que
 </table>
 
 Here is the list of refiners:
-| **Expander** 	| **Category** 	| **Analyze type** 	|
+| **Refiner** 	| **Category** 	| **Analyze type** 	|
 |---	|:---:	|:---:	|
 | [backtranslation](#Backtranslation) 	| Machine_Translation 	| Global 	|
 | [tagmee](https://github.com/fani-lab/RePair/blob/nqlb/src/refinement/refiners/README.md#tagmee) 	| Wikipedia 	| Global 	|
@@ -107,11 +107,11 @@ Here is the list of refiners:
 | [relevance-feedback](https://github.com/fani-lab/RePair/blob/nqlb/src/refinement/refiners/README.md#relevance-feedback) 	| Top_Documents 	| Local 	|
 | [bertqe](https://github.com/fani-lab/RePair/blob/nqlb/src/refinement/refiners/README.md#bertqe) 	| Top_Documents 	| Local 	|
 
-# Backtranslation
+### Backtranslation
 Back translation, also known as reverse translation or dual translation, involves translating content, whether it is a query or paragraph, from one language to another and retranslating it to the original language. This method provides several options for the owner to make a decision that makes the most sense based on the task at hand.
 For additional details, please refer to this [document](./misc/Backtranslation.pdf).
 
-## Example
+Example:
 | **q** 	| **map q** 	| **language** 	| **translated q** 	| **backtranslated q** 	| **map q'** 	|
 |---	|:---:	|:---:	|:---:	|:---:	|:---:	|
 | Italian nobel prize winners 	| 0.2282 	| farsi 	| برندهای جایزه نوبل ایتالیایی 	| Italian Nobel laureates 	| 0.5665 	|
@@ -126,7 +126,7 @@ To evaluate the quality of the refined queries, metrics such as bleu, rouge, and
 The below images demonstrate the average token count for the original queries in English and their backtranslated versions across various languages, along with the average pairwise semantic similarities measured using 'rouge' and 'declutr'. It's evident that all languages were able to introduce new terms into the backtranslated queries while maintaining semantic coherence.
 ![image](./misc/similarity.jpg)
 
-## Example
+Example:
 These samples are taken from an ANTIQUE dataset that has been refined using a backtranslation refiner with the German language.
 | **id** 	| **original** 	| **refined** 	| **rouge1** 	| **rouge2** 	| **rougeL** 	| **rougeLsum** 	| **bleu** 	| **precisions** 	| **brevity_penalty** 	| **length_ratio** 	| **translation_length** 	| **reference_length** 	| **semsim** 	|
 |---	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|:---:	|
@@ -140,13 +140,13 @@ We search the relevant documents for both the original query and each of the `po
 
 
 ### [`['eval']`](./src/param.py#L20)
-The search results of each potential refined queries are evaluated based on how they improve the performance with respect to an evaluation metric like `map` or `mrr`. 
+The search results of each potential refined query are evaluated based on how they improve the performance for an evaluation metric like `map` or `mrr`. 
 
 
 ### [`['agg']`](./src/param.py#L12)
-Finaly, we keep those potential refined queries whose performance (metric score) have been better or equal compared to the original query.
+Finally, we keep those potentially refined queries whose performance (metric score) have been better or equal compared to the original query.
 
-We keep two these datasets as the outcome of the `RePair` pipeline:
+We keep four of these datasets as the outcome of the `RePair` pipeline:
 
 > 1. `./output/{input query set}/{ranker}.{metric}.agg/{ranker}.{metric}.agg.{selected refiner}.all.tsv`
 > 2. `./output/{input query set}/{ranker}.{metric}.agg/{ranker}.{metric}.agg.{selected refiner}.gold.tsv`
@@ -159,13 +159,15 @@ We keep two these datasets as the outcome of the `RePair` pipeline:
         'platinum':          'refined_q_metric > original_q_metric',
         'negative':          'refined_q_metric < original_q_metric}
 ```
-The 'selected refiner' option refers to the categories we experiment on and the create a datasets:
+The 'selected refiner' option refers to the categories we experiment on and create the datasets:
  - nllb: Only backtranslation with nllb
  - -bt: Other refiners than backtranslartion
  - +bt: All the refiners except bing translator
  - allref: All the refiners
 
-After this step, the final structure of the output will be look like below:
+## 3. File Structure
+
+The final structure of the output will look like the below:
 
 ```bash
 ├── output
@@ -175,15 +177,10 @@ After this step, the final structure of the output will be look like below:
 │   │       └── [This is where all the results from the search, eval, and aggregate]
 
 ```
+
 The results are available in the [./output](./output) file.
 
-### Settings
-We've created benchmark query refinement datasets for the 'trec' dataset using the 'backtranslated' refiner with both 'bm25' and 'qld' rankers, along with 'map' and 'qld' evaluation metrics.You can adjust the settings [./src/param.py](./src/param.py)
-
-## 3. File Structure
-
-
-## 4. Acknowledgement
+## 4. Acknowledgment
 We benefit from [``trec_eval``](https://github.com/usnistgov/trec_eval), [``pyserini``](https://github.com/castorini/pyserini), [``ir-dataset``](https://ir-datasets.com/), and other libraries. We would like to thank the authors of these libraries and helpful resources.
 
 ## 5. License
