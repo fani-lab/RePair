@@ -23,8 +23,8 @@ Specifically, for an original query,
    
 - [1. Setup](#1-setup) [[`lucene indexes`](#lucene-indexes)]
 - [2. Quickstart](#2-quickstart) [[`query_refinement`](#query_refinement), [`similarity`](#similarity), [`rag`](#rag), [`search`](#search), [`rag_fusion`](#rag_fusion), [`eval`](#eval), [`agg, box`](#agg-box)]
+- [3. File Structure](#3-file-structure)
 - [4. Acknowledgement](#4-acknowledgement)
-
 
 ## 1. Setup
 You need to have ``Python=3.8`` and install [`pyserini`](https://github.com/castorini/pyserini/) package (needs `Java`), among others listed in [``requirements.txt``](requirements.txt). 
@@ -187,21 +187,34 @@ The 'selected refiner' option refers to the categories we experiment on and the 
  - +bt: All the refiners except bing translator
  - allref: All the refiners
 
-After this step, the final structure of the output will be look like below:
+## 3. File Structure
+
+The final structure of the output will look like the below:
 
 ```bash
 ├── output
-│   └── dataset_name
-│       └── refined_queries_files
-│   │   └── ranker.metric [such as bm25.map]
-│   │       └── [This is where all the results from the search, eval, and aggregate]
-
+│   └── dataset_name                                 [such as robust04]
+│       └── refined_queries_files                    [such as refiner.bt_bing_persian]
+│       └── rag
+│       │   └── rag_predictions                      [such as pred.base.local.0]
+│       │   └── rag_ranker_files                     [such as pred.base.local.0.bm25]
+│       │   └── rag_metric_files                     [such as pred.base.local.0.bm25.map]
+│       └── ranker.metric                            [such as bm25.map]
+│           └── ranker_files                         [such as refiner.bt_bing_persian.bm25]
+│           └── metric_files                         [such as refiner.bt_bing_persian.bm25.map]
+│           └── rag               
+│           │    └── fusion                          [such as bm25.map.agg.+bt.all.tsv]
+│           │        └── multi    
+│           │        │   └── multi_k_ranker_files    [such as rag.bt.k0.bm25]
+│           │        │   └── multi_k_metric_files    [such as rag.bt.k0.bm25.map]
+│           │        └── rag_fusion_files            [bm25.map.agg.all.tsv]
+│           └── agg                                  [such as refiner.bt_bing_persian.bm25]
+│                └── agg_files                       [such as bm25.map.agg.+bt.all.tsv]
+─
 ```
+
 The results are available in the [./output](./output) file.
 
-### Settings
-We've created benchmark query refinement datasets for the 'trec' dataset using the 'backtranslated' refiner with both 'bm25' and 'qld' rankers, along with 'map' and 'qld' evaluation metrics.You can adjust the settings [./src/param.py](./src/param.py)
-
-## 4. Acknowledgement
+## 4. Acknowledgment
 We benefit from [``trec_eval``](https://github.com/usnistgov/trec_eval), [``pyserini``](https://github.com/castorini/pyserini), [``ir-dataset``](https://ir-datasets.com/), and other libraries. We would like to thank the authors of these libraries and helpful resources.
   
