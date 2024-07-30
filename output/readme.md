@@ -1,40 +1,18 @@
 # OUTPUTS
-All our outputs for `aol-ia` and `msmarco.passage` can be obtained from [here](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EiVkfCxTjydKlpr3_VX-oo4B6o468rvnAQUq0VMkuUJL1Q?e=gGQvh4)
-## Output Structure 
-A brief sample of our output structure.  
-```
-- dataset
-	-> model.config.platform.pairing-1.pairing-2.?variant 
-		->model
-		->prediction.n-model_training_checkpoint
-		->prediction.n-model_training_checkpoint.ranker
-		->prediction.n-model_training_checkpoint.ranker.metric
-		->ranker.metric.agg.all_.tsv
-		->ranker.metric.agg.all.tsv
-		->ranker.metric.agg.gold.tsv
-		->ranker.metric.boxes
-			->{gold,platinum,diamond}.tsv
-			->{gold,platinum,diamond}.qrels.tsv
-			->stamps
-				->{gold,platinum,diamond}.change.ranker
-				->{gold,platinum,diamond}.change.ranker.metric
-				->{gold,platinum,diamond}.original.ranker
-				->{gold,platinum,diamond}.original.ranker.metric
-				
-			
+The final structure of the output will look like the below:
+
+```bash
+├── output
+│   └── dataset_name              [such as robust04]
+│   │   └── refined_queries_files [such as refiner.bt_bing_persian] 
+│   │   └── ranker.metric         [such as bm25.map]
+│   │   │   └── ranker_files      [such as refiner.bt_bing_persian.bm25]
+│   │   │   └── metric_files      [such as refiner.bt_bing_persian.bm25.map]
+│   │   │   └── agg               [such as refiner.bt_bing_persian.bm25]
+│   │   │   │    └── agg_files    [such as bm25.map.agg.+bt.all.tsv]
+
 ```
 
-Every Dataset is stored under a common configuration for every ranker and metric that is computed upon it.
+The results are available in the [./output](./output) file.
 
-An example would be: [msmarco.passage](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/Entk7IW8GfhGoIHkZrXI3J0ByxXJ_ZFYb2Za2dO8_oKGIg)
-
-- [`msmarco.passage -> t5.base.gc.docs.query`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/Enf3gIQZIeBNlgmyWXqob1EBgY7zVZpYagWTFX8JrGe98g): describes we are using the `t5 base` as our model and config, `gc -> google cloud` as our platform, `docs.query` are the pairings.
-- [`t5.base.gc.docs.query -> bm25.map.agg.all.tsv`](https://uwin365-my.sharepoint.com/:u:/g/personal/lakshmiy_uwindsor_ca/EcsV1UBGfVpDgJeaI_KSGNUB_V6tFvrS8mIhDKdGEvkO_g?e=uyhwZ1) : this file contains every `bm25` ranker with a metric `map` for all predictions.
-- [`t5.base.gc.docs.query -> bm25.map.agg.gold.tsv`](https://uwin365-my.sharepoint.com/:u:/g/personal/lakshmiy_uwindsor_ca/EeMQjTbagV9GplPakERqywYBZqBB6xkJzCXfmYQnS5FABw): this file contains all the best refined queries calculated by using `bm25` as ranker with a metric `map`
-
-
-**some known issues:**
-
-- [T5 finetuning and prediction issue](https://github.com/fani-lab/RePair/issues/6):For some documents, T5 could not predict a query. This would inturn give us an assertion error 
-
-- [retrieval models throwing nan error](https://github.com/fani-lab/RePair/issues/8)
+You can also access all the results through this [link](https://uwin365.sharepoint.com/:f:/s/cshfrg-QueryRefinement/Elx37qFuAb5FoI4wapL3Bo4B6wmroVrKqC3W-8wpe8ACQw?e=C4P6IR).
