@@ -9,11 +9,9 @@ extension = '.exe' if platform.system() == 'Windows' else ""
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 settings = {
-    'cmd': ['rag', 'search'],  # steps of pipeline, ['query_refinement', 'similarity', 'rag', 'search', 'rag_fusion', 'eval', 'agg', 'build', 'box','dense_retrieve', 'stats]
+    'cmd': ['query_refinement', 'similarity', 'search', 'eval', 'agg'],  # steps of pipeline, ['query_refinement', 'similarity', 'search', 'eval', 'agg', 'build', 'box','dense_retrieve', 'stats]
     'datalist': ['./../data/raw/robust04', './../data/raw/gov2', './../data/raw/antique', './../data/raw/dbpedia', './../data/raw/clueweb09b'], # ['./../data/raw/robust04', './../data/raw/gov2', './../data/raw/antique', './../data/raw/dbpedia', './../data/raw/clueweb09b']
     'domainlist': ['robust04', 'gov2', 'antique', 'dbpedia', 'clueweb09b'], # ['robust04', 'gov2', 'antique', 'dbpedia', 'clueweb09b']
-    'fusion_category': ['global', 'local'],  # ['all', 'global', 'local', 'bt_nllb', 'bt']
-    'fusion_method': 'rrf_multi_k',  # 'rrf_multi_k, rrf', 'condorcet', 'random'
     'ncore': 2,
     'ranker': ['bm25'],           # ['qld', 'bm25', 'tct_colbert']
     'metric': ['map'],  # any valid trec_eval.9.0.4 metrics like ['map', 'ndcg', 'recip_rank']
