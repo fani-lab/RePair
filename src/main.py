@@ -73,7 +73,7 @@ def run(data_list, domain_list, output_result, corpora, settings):
                 print(f'Similarity for {hex_to_ansi("#3498DB")}{infile}{hex_to_ansi(reset=True)}, output in {hex_to_ansi("#3498DB")}{outfile}{hex_to_ansi(reset=True)}')
                 trecw.compare_query_similarity(infile, outfile, transformer_model)
 
-        if any(item in ['search', 'rag_fusion', 'eval', 'agg', 'build', 'box'] for item in settings['cmd']):
+        if any(item in ['search', 'eval', 'agg', 'build', 'box'] for item in settings['cmd']):
             for ranker, metric in product(param.settings['ranker'], param.settings['metric']):
                 print('-' * 30, f'Ranking and evaluating by {hex_to_ansi("#3498DB")}{ranker}{hex_to_ansi(reset=True)} and {hex_to_ansi("#3498DB")}{metric}{hex_to_ansi(reset=True)}')
                 output = f'{refined_data_output}/{ranker}.{metric}'
