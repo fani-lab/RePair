@@ -18,7 +18,6 @@ Within a search session, users seek their information needs through iterative re
   * [`search`](#search)
   * [`eval`](#eval)
   * [`agg, box`](#agg-box)
-  * [`dense_retrieve`](#dense_retrieve)
 - [3. Gold Standard Datasets](#3-gold-standard-datasets)
   * [File Structure](#file-structure)
   * [Settings](#settings)
