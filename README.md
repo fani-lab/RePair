@@ -106,7 +106,7 @@ We have used [`T5`](https://github.com/google-research/text-to-text-transfer-tra
 > - [`local machine (cpu, gpu)(linux, windows)`](https://github.com/fani-lab/personalized_query_refinement/blob/main/RUNT5.md#localhost-cpu-or-gpu)
 > - [`google cloud (tpu)`](https://github.com/fani-lab/personalized_query_refinement/blob/main/RUNT5.md#google-cloud-tpu)
 
-We store the finetuned transformer in `./output/{domain name}/{transformer name}.{pairing strategy}`. For instance, for  [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) whose `small` version has been finetuned on a local machine for `toy.msmarco.passage`, we save the model in [`./output/toy.msmarco.passage/t5.small.local.docs.query.passage/`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/)
+We store the finetuned transformer in `./output/{domain name}/{transformer name}.{pairing strategy}`. For instance, for  [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) whose `base` version has been finetuned on a local machine for `toy.orcas`, we save the model in [`./output/toy.orcas/t5.base.local.docs.query.documents/`](./output/toy.orcas/t5.base.local.docs.query.documents/)
 
 After this step, [`./output/`](./output) looks like:
 
@@ -114,12 +114,12 @@ After this step, [`./output/`](./output) looks like:
 ├── output
 │   ├── t5-data
 │   │   ├── pretrained_models
-│   │   │   └── small
+│   │   │   └── base
 │   │   └── vocabs
 │   │       ├── cc_all.32000
 │   │       └── cc_en.32000
-│   └── toy.msmarco.passage
-│       └── t5.small.local.docs.query.passage
+│   └── toy.orcas
+│       └── t5.base.local.docs.query.documents
 │           ├── checkpoint
 │           ├── events.out.tfevents.1675961098.HFANI
 │           ├── graph.pbtxt
@@ -133,16 +133,17 @@ After this step, [`./output/`](./output) looks like:
 ```
 
 ### [`['predict']`](./src/param.py#L16)
-Once a transformer has been finetuned, we feed input original queries w/ or w/o context to the model and whaterver the model generates is considered as a `potential` refined query. To have a collection of potential refined queries for the same original query, we used the [`top-k random sampling`](https://aclanthology.org/P18-1082/) as opposed to `beam search`, suggested by [`Nogueira and Lin`](https://cs.uwaterloo.ca/~jimmylin/publications/Nogueira_Lin_2019_docTTTTTquery-v2.pdf). So, we ran the transformer for [`nchanges`](./src/param.py#L16) times at inference and generate [`nchanges`](./src/param.py#L16) potential refined queries. 
 
-We store the `i`-th potential refined query of original queries at same folder as the finetuned model, i.e., `./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}` like [`./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005)
+Once a type-aware and type-less have been finetuned, we feed input original queries w/ query type into the type-aware model and w/o into the type-less and whaterver the model generates is considered as a `potential` refined query. To have a collection of potential refined queries for the same original query, we used the [`top-k random sampling`](https://aclanthology.org/P18-1082/) as opposed to `beam search`, suggested by [`Nogueira and Lin`](https://cs.uwaterloo.ca/~jimmylin/publications/Nogueira_Lin_2019_docTTTTTquery-v2.pdf). So, we ran the transformer for [`nchanges`](./src/param.py#L16) times at inference and generate [`nchanges`](./src/param.py#L16) potential refined queries. 
+
+We store the `i`-th potential refined query of original queries at same folder as the finetuned model, i.e., `./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}` like [`./output/toy.orcas/t5.base.local.docs.query.documents/pred.0-1000005`](./output/toy.orcas/t5.small.local.docs.query.documents/pred.0-1000005)
 
 After this step, prediction files will be added to [`./output`](./output):
 
 ```bash
 ├── output
-│   └── toy.msmarco.passage
-│       └── t5.small.local.docs.query.passage
+│   └── toy.orcas
+│       └── t5.base.local.docs.query.dosumnet
 │           ├── original.-1
 │           ├── pred.0-1000005
 │           ├── pred.1-1000005
@@ -432,7 +433,7 @@ We benefit from [``trec_eval``](https://github.com/usnistgov/trec_eval), [``pyse
 ## 5. License
 ©2023. This work is licensed under a [CC BY-NC-SA 4.0](license.txt) license.
 
-Yogeswar Lakshmi Narayanan<sup>1</sup>, [Hossein Fani](https://hosseinfani.github.io/)<sup>1,2</sup> 
+Zahra Taheri<sup>1</sup>, [Hossein Fani](https://hosseinfani.github.io/)<sup>1,2</sup> 
 
 <sup><sup>1</sup>School of Computer Science, Faculty of Science, University of Windsor, ON, Canada.</sup>
 <sup><sup>2</sup>[hfani@uwindsor.ca](mailto:hfani@uwindsor.ca)</sup>
