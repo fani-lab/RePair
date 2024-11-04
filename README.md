@@ -1,5 +1,6 @@
-# Type-Aware: A Toolkit for Query Refinement Gold Standard Generation Using Transformers
+# Type-aware Refined Queries via Conditional Transformers
 
+Within a search session, users seek their information needs through iterative refinement of their queries, which is daunting. Neuralbased query refinement methods aim to address this challenge via training on gold-standard pairs of (`original query` → `refined query`), which have been generated through an exhaustive application of unsupervised or supervised modifications to the original query. However, such modifications have been oblivious to the type of queries and, hence, fall short of finding refined versions for many original queries. In this paper, we bridge the gap by incorporating query types when generating refined queries. We fine-tune a conditional transformer, e.g., [`T5`](https://github.com/google-research/text-to-text-transfer-transformer), to map the relevant documents of an original query onto the query’s keywords while conditioning on its type so that, during the inference, the query type controls generating new reformulated queries within the same search intent. Among the generated reformulated queries, those that achieve higher retrieval performance than the original query are then selected as refined queries. Our experiments on a large-scale dataset for five query types demonstrated the synergistic effects of considering query types in generating more refined queries with better information retrieval efficacy. 
 Search engines have difficulty searching into knowledge repositories since they are not tailored to the users' information needs. User's queries are, more often than not, under-specified that also retrieve irrelevant documents. Query refinement, also known as query `reformulation`, or `suggesetion`, is the process of transforming users' queries into new `refined` versions without semantic drift to enhance the relevance of search results. Prior query refiners have been benchmarked on web retrieval datasets following `weak assumptions` that users' input queries improve gradually within a search session. To fill the gap, we contribute `RePair`, an open-source configurable toolkit to generate large-scale gold-standard benchmark datasets from a variety of domains for the task of query refinement. `RePair` takes a dataset of queries and their relevance judgements (e.g. `msmarco` or `aol`), an information retrieval method (e.g., `bm25`), and an evaluation metric (e.g., `map`), and outputs refined versions of queries using a transformer (e.g., [`T5`](https://github.com/google-research/text-to-text-transfer-transformer)), each of which with the relevance improvement guarantees. Currently, `RePair` includes gold standard datasets for [`aol-ia`](https://dl.acm.org/doi/abs/10.1007/978-3-030-99736-6_42) and [`msmarco.passage`](https://www.microsoft.com/en-us/research/publication/ms-marco-human-generated-machine-reading-comprehension-dataset/).
 
 **Future Work**: We are investigating `contexual` query refinement by incorporating query session information like user or time information of queries on the performance of neural query refinement methods compared to the lack thereof.
@@ -60,29 +61,22 @@ cd ..
 ```
 
 ### Lucene Indexes
-To perform fast IR tasks, we need to build the indexes of document corpora or use the [`prebuilt-indexes`](https://github.com/castorini/pyserini/blob/master/docs/prebuilt-indexes.md) like [`msmarco.passage`](https://rgw.cs.uwaterloo.ca/JIMMYLIN-bucket0/pyserini-indexes/lucene-index.msmarco-v1-passage.20220131.9ea315.tar.gz). The path to the index need to be set in [`./src/param.py`](./src/param.py) like [`param.settings['msmarco.passage']['index']`](./src/param.py#L24).
+To perform fast IR tasks, we need to build the indexes of document corpora or use the [`prebuilt-indexes`](https://github.com/castorini/pyserini/blob/master/docs/prebuilt-indexes.md) like [`msmarco.documnet`](https://rgw.cs.uwaterloo.ca/pyserini/indexes/faiss-flat.msmarco-doc-per-passage.tct_colbert-v2-hnp.tar.gz). The path to the index need to be set in [`./src/param.py`](./src/param.py) like [`param.settings['msmarco.doc']['index']`](./src/param.py#L24).
 
-In case there is no prebuilt index, steps include collecting the corpus and building an index as we did for [`aol-ia`](https://dl.acm.org/doi/abs/10.1007/978-3-030-99736-6_42) using [`ir-datasets`](https://ir-datasets.com/aol-ia.html).
 
 ## 2. Quickstart
-We use [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to train a model, that when given an input query (origianl query), generates refined (better) versions of the query in terms of retrieving more relevant documents at higher ranking positions. Currently, we finetuned [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) model on `msmarco.passage` (no context) and `aol` (w/o `userid`). For `yandex` dataset, we will train [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) from scratch since the tokens are anonymized by random numbers. 
+We use [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to train a model, that when given an input query (origianl query), generates refined (better) versions of the query in terms of retrieving more relevant documents at higher ranking positions. Currently, we finetuned [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) model on `orcas` (`type-less` and `type-aware` model).
 
-As seen in the above [`workflow`](./misc/workflow.png), `RePair` has four pipelined steps: 
+As seen in the above [`workflow`](./misc/workflow.png), it has four pipelined steps: 
 > 1. Transformer Finetuning: [`pair`, `finetune`]
 > 2. Refined Query Prediction: [`predict`]
 > 3. Performance Evaluation: [`search`, `eval`]
 > 4. Dataset Curation: [`agg`, `box`]
 
-To run `RePair` pipeline, we need to set the required parameters of each step in [`./src/param.py`](./src/param.py) such as pairing strategy ([`pairing`](./src/param.py#L28)) for a query set, the choice of transformer ([`t5model`](./src/param.py#L14)), and etc. Then, the pipeline can be run by its driver at [`./src/main.py`](./src/main.py):
+To run our pipeline, we need to set the required parameters of each step in [`./src/param.py`](./src/param.py) such as pairing strategy ([`pairing`](./src/param.py#L28)) for a query set, the choice of transformer ([`t5model`](./src/param.py#L14)), and etc. Then, the pipeline can be run by its driver at [`./src/main.py`](./src/main.py):
 
 ```sh
-python -u main.py -data ../data/raw/toy.msmarco.passage -domain msmarco.passage
-```
-```sh
-python -u main.py -data ../data/raw/toy.aol-ia -domain aol-ia
-```
-```sh
-python -u main.py -data ../data/raw/toy.msmarco.passage ../data/raw/toy.aol-ia -domain msmarco.passage aol-ia
+python -u main.py -data ../data/raw/toy.orcas -domain msmarco.doc
 ```
 
 ### [`['pair']`](./src/param.py#L25)
