@@ -1,6 +1,6 @@
 # Type-aware Refined Queries via Conditional Transformers
 
-Within a search session, users seek their information needs through iterative refinement of their queries, which is daunting. Neuralbased query refinement methods aim to address this challenge via training on gold-standard pairs of (`original query` → `refined query`), which have been generated through an exhaustive application of unsupervised or supervised modifications to the original query. However, such modifications have been oblivious to the type of queries and, hence, fall short of finding refined versions for many original queries. In this paper, we bridge the gap by incorporating query types when generating refined queries. We fine-tune a conditional transformer, e.g., [`T5`](https://github.com/google-research/text-to-text-transfer-transformer), to map the relevant documents of an original query onto the query’s keywords while conditioning on its type so that, during the inference, the `query type` controls generating new reformulated queries within the same search intent. Among the generated reformulated queries, those that achieve higher retrieval performance than the original query are then selected as refined queries. Our experiments on a large-scale dataset for five query types demonstrated the synergistic effects of considering query types in generating more refined queries with better information retrieval efficacy. 
+Within a search session, users seek their information needs through iterative refinement of their queries, which is daunting. Neuralbased query refinement methods aim to address this challenge via training on gold-standard pairs of (`original query` -> `refined query`), which have been generated through an exhaustive application of unsupervised or supervised modifications to the original query. However, such modifications have been oblivious to the type of queries and, hence, fall short of finding refined versions for many original queries. In this paper, we bridge the gap by incorporating query types when generating refined queries. We fine-tune a conditional transformer, e.g., [`T5`](https://github.com/google-research/text-to-text-transfer-transformer), to map the relevant documents of an original query onto the query’s keywords while conditioning on its type so that, during the inference, the `query type` controls generating new reformulated queries within the same search intent. Among the generated reformulated queries, those that achieve higher retrieval performance than the original query are then selected as refined queries. Our experiments on a large-scale dataset for five query types demonstrated the synergistic effects of considering query types in generating more refined queries with better information retrieval efficacy. 
 
 
 **Future Work**: our future research direction includes other conditional transformers than t5 as well as dense retrievers, to explore whether our findings generalize to such new settings.
@@ -80,25 +80,25 @@ python -u main.py -data ../data/raw/toy.orcas -domain msmarco.doc
 ```
 
 ### [`['pair']`](./src/param.py#L25)
-We create training sets based on different pairings of queries and relevant passages in the [`./data/preprocessed/{domain name}/`](./data/preprocessed/) for each domain like [`./data/preprocessed/toy.msmarco.passage/`](./data/preprocessed/toy.msmarco.passage/) for `msmarco.passage`.
+We create training sets based on different pairings of queries and relevant documents in the [`./data/preprocessed/{domain name}/`](./data/preprocessed/) for each domain like [`./data/preprocessed/toy.orcas/`](./data/preprocessed/toy.orcas/) for `msmarco.doc`.
 
-1. `ctx.query.docs`: context: query -> _concatenated_ relevant documents (passages) 
-2. `ctx.docs.query`: context: _concatenated_ relevant documents (passages) -> query, like in [docTTTTTTQuery](https://github.com/castorini/docTTTTTquery#learning-a-new-prediction-model-t5-training-with-tensorflow)
-3. `ctx.query.doc`: context: query -> relevant document (passage)
-4. `ctx.doc.query`: context: relevant documents (passages) -> query
+1. `context.query.docs`: context: query -> _concatenated_ relevant documents
+2. `context.docs.query`: context: _concatenated_ relevant documents -> query, like in [docTTTTTTQuery](https://github.com/castorini/docTTTTTquery#learning-a-new-prediction-model-t5-training-with-tensorflow)
+3. `context.query.doc`: context: query -> relevant document
+4. `context.doc.query`: context: relevant documents -> query
 
-where the context will be `userid` (personalized) or empty (context free). For instance, for `msmarco.passage` which has no contextual information, we have [`docs.query`](./data/preprocessed/toy.msmarco.passage/docs.query.passage.train.tsv) or `query.docs` since there is no context. Further, if a query has more than one relevant documents, we can either _concatenate_ all relevant documents into a single document, i.e., `doc`+`s` or _duplicate_ the (query, doc) pairs for each relevant document, i.e., `doc`.
+where the context will be `query type` (type-aware) or empty (type-less). For instance, for `orcas`, we have [`ctx.docs.query`](./data/preprocessed/toy.orcas/docs.query.ctx.train.tsv) for typw-aware model and [`docs.query`](./data/preprocessed/toy.orcas/docs.query.train.tsv) for type-less model. Further, if a query has more than one relevant documents, we can either _concatenate_ all relevant documents into a single document, i.e., `doc`+`s` or _duplicate_ the (query, doc) pairs for each relevant document, i.e., `doc`.
 
 After this step, [`./data/`](./data) directory looks like:
 
 ```bash
 ├── data
 │   ├── preprocessed
-│   │   └── toy.msmarco.passage
-│   │       ├── docs.query.passage.test.tsv
-│   │       ├── docs.query.passage.train.tsv
-│   │       ├── queries.qrels.docs.ctx.passage.test.tsv
-│   │       └── queries.qrels.docs.ctx.passage.train.tsv
+│   │   └── toy.orcas
+│   │       ├── docs.query.documents.test.tsv
+│   │       ├── docs.query.documents.train.tsv
+│   │       ├── queries.qrels.docs.ctx.documents.test.tsv
+│   │       └── queries.qrels.docs.ctx.documents.train.tsv
 ```
 
 ### [`['finetune']`](./src/param.py#L14)
