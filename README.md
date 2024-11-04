@@ -27,8 +27,7 @@ Within a search session, users seek their information needs through iterative re
 - [5. License](#5-license)
 
 </td>
-<td ><img src='./misc/flow.png' width="80%" /></td>
-<td ><img src='./misc/class.png' width="800" /></td>
+<td ><img src='./misc/flow-type.PNG' width="90%" /></td>
 </tr>
 </table>
 
