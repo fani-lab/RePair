@@ -153,16 +153,16 @@ After this step, prediction files will be added to [`./output`](./output):
 ```
 
 ### [`['search']`](./src/param.py#L17)
-We search the relevant documents for both the original query and each of the `potential` refined queries. We need to set an information retrieval method, called ranker, that retrieves relevant documents and ranks them based on relevance scores. We integrate [`pyserini`](https://github.com/castorini/pyserini), which provides efficient implementations of sparse and dense rankers, including `bm25` and `qld` (query likelihood with Dirichlet smoothing). 
+We search the relevant documents for both the original query and each of the `potential` refined queries of type-aware and type-less models. We need to set an information retrieval method, called ranker, that retrieves relevant documents and ranks them based on relevance scores. We integrate [`pyserini`](https://github.com/castorini/pyserini), which provides efficient implementations of sparse rankers, including `bm25` and `qld` (query likelihood with Dirichlet smoothing). 
 
-We store the result of search for the `i`-th potential refined query at same folder in files with names ending with ranker, i.e., `./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}.{ranker name}` like [`./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005.bm25`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005.bm25).
+We store the result of search for the `i`-th potential refined query at same folder in files with names ending with ranker, i.e., `./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}.{ranker name}` like [`./output/toy.orcas/t5.base.local.docs.query.documents/pred.0-1000005.bm25`](./output/toy.orcas/t5.base.local.docs.query.documents/pred.0-1000005.bm25).
 
 After this step, search results will be added to [`./output`](./output):
 
 ```bash
 ├── output
-│   └── toy.msmarco.passage
-│       └── t5.small.local.docs.query.passage
+│   └── toy.orcas
+│       └── t5.base.local.docs.query.dosuments
 │           ├── original.-1.bm25
 │           ├── original.-1.qld
 │           ├── pred.0-1000005.bm25
@@ -180,15 +180,15 @@ After this step, search results will be added to [`./output`](./output):
 ### [`['eval']`](./src/param.py#L20)
 The search results of each potential refined queries are evaluated based on how they improve the performance with respect to an evaluation metric like `map` or `mrr`. 
 
-We store the result of evaluation for the `i`-th potential refined query at same folder in files with names ending with evaluation metric, i.e., `./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}.{ranker name}.{metric name}` like [`./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005.bm25.map`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005.bm25.map).
+We store the result of evaluation for the `i`-th potential refined query at same folder in files with names ending with evaluation metric, i.e., `./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}.{ranker name}.{metric name}` like [`./output/toy.orcas/t5.base.local.docs.query.documents/pred.0-1000005.bm25.map`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/pred.0-1000005.bm25.map).
 
 
 After this step, evaluation results will be added to [`./output`](./output):
 
 ```bash
 ├── output
-│   └── toy.msmarco.passage
-│       └── t5.small.local.docs.query.passage
+│   └── toy.orcas
+│       └── t5.base.local.docs.query.documents
 │           ├── original.-1.bm25.map
 │           ├── original.-1.bm25.success.10
 │           ├── original.-1.qld.map
@@ -198,21 +198,17 @@ After this step, evaluation results will be added to [`./output`](./output):
 ### [`['agg', 'box']`](./src/param.py#L12)
 Finaly, we keep those potential refined queries whose performance (metric score) have been better or equal compared to the original query, i.e., `refined_query_metric >= original_query_metric and refined_q_metric > 0`.
 
-We keep two main datasets as the final outcome of the `RePair` pipeline:
+We keep two main datasets as the final outcome of our pipeline:
 
 > 1. `./output/{input query set}/{transformer name}.{pairing strategy}/{ranker}.{metric}.agg.gold.tsv`: contains the original queries and their refined queries that garanteed the `better` performance along with the performance metric values
 
 > 2. `./output/{input query set}/{transformer name}.{pairing strategy}/{ranker}.{metric}.agg.all.tsv`: contains the original queries and `all` their predicted refined queries along with the performance metric values
 
-For instance, for `toy` query sets of `msmarco.passage` and `aol-ia.title`, here are the files:
+For instance, for `toy` query sets of `orcas`, here are the files:
 
-[`./output/toy.msmarco.passage/t5.small.local.docs.query.passage/bm25.map.agg.gold.tsv`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/bm25.map.agg.gold.tsv)
+[`./output/toy.orcas/t5.small.local.docs.query.documents/bm25.map.agg.gold.tsv`](./output/toy.orcas/t5.base.local.docs.query.documents/bm25.map.agg.gold.tsv)
 
-[`./output/toy.msmarco.passage/t5.small.local.docs.query.passage/bm25.map.agg.all.tsv`](./output/toy.msmarco.passage/t5.small.local.docs.query.passage/bm25.map.agg.all.tsv)
-
-[`./output/toy.aol-ia/t5.small.local.docs.query.title/bm25.map.agg.gold.tsv`](./output/toy.aol-ia/t5.small.local.docs.query.title/bm25.map.agg.gold.tsv)
-
-[`./output/toy.aol-ia/t5.small.local.docs.query.title/bm25.map.agg.all.tsv`](./output/toy.aol-ia/t5.small.local.docs.query.title/bm25.map.agg.all.tsv)
+[`./output/toy.orcas/t5.small.local.docs.query.documents/bm25.map.agg.all.tsv`](./output/toy.orcas/t5.base.local.docs.query.documents/bm25.map.agg.all.tsv)
 
 For boxing, since we keep the performances for all the potential queries, we can change the condition and have a customized selection like having [`diamond`](https://dl.acm.org/doi/abs/10.1145/3459637.3482009) refined queries with maximum possible performance, i.e., `1` by setting the condition: `refined_query_metric >= original_query_metric and refined_q_metric == 1`. The boxing condition can be set at [`./src/param.py`](./src/param.py#L12). 
 
