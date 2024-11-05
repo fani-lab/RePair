@@ -85,7 +85,7 @@ We create training sets based on different pairings of queries and relevant docu
 3. `context.query.doc`: context: query -> relevant document
 4. `context.doc.query`: context: relevant documents -> query
 
-where the context will be `query type` (type-aware) or empty (type-less). For instance, for `orcas`, we have [`ctx.docs.query`](./data/preprocessed/toy.orcas/docs.query.ctx.train.tsv) for typw-aware model and [`docs.query`](./data/preprocessed/toy.orcas/docs.query.train.tsv) for type-less model. Further, if a query has more than one relevant documents, we can either _concatenate_ all relevant documents into a single document, i.e., `doc`+`s` or _duplicate_ the (query, doc) pairs for each relevant document, i.e., `doc`.
+where the context will be `query type` (type-aware) or empty (type-less). For instance, for `orcas`, we have [`docs.query.ctx`](./data/preprocessed/toy.orcas/docs.query.ctx.document.train.tsv) for typw-aware model and [`docs.query`](./data/preprocessed/toy.orcas/docs.query.document.train.tsv) for type-less model. Further, if a query has more than one relevant documents, we can either _concatenate_ all relevant documents into a single document, i.e., `doc`+`s` or _duplicate_ the (query, doc) pairs for each relevant document, i.e., `doc`.
 
 After this step, [`./data/`](./data) directory looks like:
 
