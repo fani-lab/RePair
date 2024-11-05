@@ -1,0 +1,4 @@
+qid	query	did	url	level_1	level_2	label	data_split
+2009263	bbc good food recipies	D2468163	https://www.bbcgoodfood.com/	Navigational	Abstain	Navigational	validation
+2016037	table leafs or leaves	D3110655	https://www.merriam-webster.com/dictionary/leaf	Informational	Factual	Factual	validation
+11136851	free play minecraft	D3441682	http://freegamepick.net/en/minecraft/	Transactional	Abstain	Transactional	validation
