@@ -134,7 +134,7 @@ After this step, [`./output/`](./output) looks like:
 
 Once a type-aware and type-less have been finetuned, we feed input original queries w/ query type into the type-aware model and w/o into the type-less and whaterver the model generates is considered as a `potential` refined query. To have a collection of potential refined queries for the same original query, we used the [`top-k random sampling`](https://aclanthology.org/P18-1082/) as opposed to `beam search`, suggested by [`Nogueira and Lin`](https://cs.uwaterloo.ca/~jimmylin/publications/Nogueira_Lin_2019_docTTTTTquery-v2.pdf). So, we ran the transformer for [`nchanges`](./src/param.py#L16) times at inference and generate [`nchanges`](./src/param.py#L16) potential refined queries. 
 
-We store the `i`-th potential refined query of original queries at same folder as the finetuned model, i.e., `./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}` like [`./output/toy.orcas/t5.base.local.docs.query.documents/pred.0-1000005`](./output/toy.orcas/t5.small.local.docs.query.documents/pred.0-1000005)
+We store the `i`-th potential refined query of original queries at same folder as the finetuned model, i.e., `./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}` like [`./output/toy.orcas/t5.base.local.docs.query.documents/pred.0-1000005`](./output/toy.orcas/t5.base.local.docs.query.documents/pred.0-1000005)
 
 After this step, prediction files will be added to [`./output`](./output):
 
