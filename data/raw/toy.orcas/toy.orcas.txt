@@ -1,0 +1,4 @@
+qid	query	did	url	level_1	level_2	label	data_split
+3754704	colonialism in australia	D3262459	https://www.awm.gov.au/articles/atwar/colonial	Informational	Abstain	Abstain	train
+12550690	hemontona	D204862	https://en.wikipedia.org/wiki/Hematoma	Informational	Factual	Factual	validation
+11590545	maglite parts	D3031498	http://maglite.com/	Navigational	Abstain	Navigational	validation
