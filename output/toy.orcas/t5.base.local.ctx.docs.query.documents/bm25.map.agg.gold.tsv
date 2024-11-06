@@ -1,0 +1,7 @@
+qid	    order	  query	                                 bm25.map
+2009263	 -1	    Navigational: bbc good food recipies	  0.0393
+2009263	pred.8	 bbc good food	                         0.5833
+2009263	pred.6	 bbc good food http://www.bbcgoodfood.com/recipes	 0.5667
+2009263	pred.10	bbc good food package                   0.0974
+2009263	pred.3	 bbc new food	                           0.0725
+2009263	pred.4	 www.bbcgoodfood.com/recipes	            0.0075
