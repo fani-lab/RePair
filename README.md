@@ -204,7 +204,7 @@ We keep two main datasets as the final outcome of our pipeline:
 
 For instance, for `toy` query sets of `orcas`, here are the files:
 
-[`./output/toy.orcas/t5.small.local.docs.query.documents/bm25.map.agg.gold.tsv`](./output/toy.orcas/t5.base.local.docs.query.documents/bm25.map.agg.gold.tsv)
+[`./output/toy.orcas/t5.base.local.docs.query.documents/bm25.map.agg.gold.tsv`](./output/toy.orcas/t5.base.local.docs.query.documents/bm25.map.agg.gold.tsv)
 
 [`./output/toy.orcas/t5.small.local.docs.query.documents/bm25.map.agg.all.tsv`](./output/toy.orcas/t5.base.local.docs.query.documents/bm25.map.agg.all.tsv)
 
@@ -254,35 +254,19 @@ After this step, [`./output`](./output) will further include:
 ```
 
 
-## 3. Gold Standard Datasets 
-
-| query set | final gold standard dataset | data folder (raw and preprocessed) | output folder (model, predictions, ...) | 
-|:---:|:---:|:---:|:---:|
-| `msmarco.passage` | [`./output/msmarco.passage/t5.base.gc.docs.query.passage/bm25.map.agg.gold.tsv`](https://uwin365-my.sharepoint.com/:u:/g/personal/lakshmiy_uwindsor_ca/EeMQjTbagV9GplPakERqywYBZqBB6xkJzCXfmYQnS5FABw?e=b9bKRJ) 398 MB | [`./data/raw/msmarco.passage`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EuH9N7rt8CRAhowJbK2CZzUBoWNrzP3sh2ErhavF5p534w?e=p5hvE5)<br>[`./data/preprocessed/msmarco.passage`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EtQG-QohySlAleQ6caEyyTYB3xsCQ3tTnYHTBIj5-fFnFQ?e=8K6Ce8) | [`./output/msmarco.passage/t5.base.gc.docs.query.passage/`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/Enf3gIQZIeBNlgmyWXqob1EBgY7zVZpYagWTFX8JrGe98g?e=YPqYgz) | 
-| `aol-ia.title` | [`./output/aol-ia/t5.base.gc.docs.query.title/bm25.map.agg.gold.tsv`](https://uwin365-my.sharepoint.com/:u:/g/personal/lakshmiy_uwindsor_ca/EVkDvYIyWyFGjEl88GAcKXABKVWSGITtOA8EEBeFAmc9Zw?e=bq3Ydd) <br> 756 MB| [`./data/raw/aol-ia`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EiYYSmz-L-VHqj8x-Zl58LIBl1XKzmgI6hmZHz8rruMfeA?e=VTDsvC) <br>[`./data/preprocessed/aol-ia`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EqGqoB05KMdAn0j1frOkIV4BS2cE7bWwbSysVXtxkiSNrA?e=mf8loW) | [`./output/aol-ia/t5.base.gc.docs.query.title/`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EunaA74D03tMk21oGHlWFccBZBzQuhFCE7J21BRuIUu4Dw?e=XfkcoO) | 
-| `aol-ia.url.title` | [`./output/aol-ia/t5.base.gc.docs.query.url.title/bm25.map.agg.gold.tsv`](https://uwin365-my.sharepoint.com/:u:/g/personal/lakshmiy_uwindsor_ca/Eaf9S3WqvaBNlzu1MZhB8ZwBwFUeLkiKWumy-VNbej_Iqw?e=OwWnEy) <br> 706 MB | [`./data/raw/aol-ia`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EiYYSmz-L-VHqj8x-Zl58LIBl1XKzmgI6hmZHz8rruMfeA?e=VTDsvC) <br>[`./data/preprocessed/aol-ia`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/EqGqoB05KMdAn0j1frOkIV4BS2cE7bWwbSysVXtxkiSNrA?e=mf8loW) | [`./output/aol-ia/t5.base.gc.docs.query.url.title/`](https://uwin365-my.sharepoint.com/:f:/g/personal/lakshmiy_uwindsor_ca/ErGC88ga8VVMj9z49C96pgsBw3l5W6O3px680-ElvyaTWw?e=Fek7LD) | 
-
 ### File Structure
-Here is the refined queries for the two original queries in [`./output/aol-ia/t5.base.gc.docs.query.title/bm25.map.agg.gold.tsv`](https://uwin365-my.sharepoint.com/:u:/g/personal/lakshmiy_uwindsor_ca/EVkDvYIyWyFGjEl88GAcKXABKVWSGITtOA8EEBeFAmc9Zw?e=bq3Ydd) for `aol-ia.title`:
+Here is the refined queries for the two original queries in [`./output/toy-orcas/t5.base.gc.ctx.docs.query/bm25.map.agg.gold.tsv`](https://uwin365-my.sharepoint.com/:u:/g/personal/lakshmiy_uwindsor_ca/EVkDvYIyWyFGjEl88GAcKXABKVWSGITtOA8EEBeFAmc9Zw?e=bq3Ydd) for `aol-ia.title`:
 
 ```
-qid	        order	query	                        bm25.map
-8c418e7c9e5993	-1	rentdirect com	                0.0
-8c418e7c9e5993	pred.9	hurston apartments	        0.0556
-8c418e7c9e5993	pred.4	rental apartments	        0.0357
-8c418e7c9e5993	pred.8	apartments nyc	                0.0312
-8c418e7c9e5993	pred.6	first class apartments in nyc	0.0135
-8c418e7c9e5993	pred.2	apartments and new york	        0.0068
-0cc411681d1441	-1	staple com	                0.037
-0cc411681d1441	pred.8	staple pubs	                1.0
-0cc411681d1441	pred.7	staple england pub	        0.5
-0cc411681d1441	pred.1	staple east of england	        0.1
-0cc411681d1441	pred.10	staple	                        0.0385
-0cc411681d1441	pred.3	staple england	                0.0385
-0cc411681d1441	pred.4	staple england	                0.0385
-0cc411681d1441	pred.6	staple england	                0.0385
+qid	    order	  query	                                 bm25.map
+2009263	 -1	    Navigational: bbc good food recipies	  0.0393
+2009263	pred.8	 bbc good food	                         0.5533
+2009263	pred.6	 bbc good food http://www.bbcgoodfood.com/recipes	 0.5667
+2009263	pred.10	bbc good food package                   0.0974
+2009263	pred.3	 bbc new food	                           0.0725
+2009263	pred.4	 www.bbcgoodfood.com/recipes	            0.0075
 ```
-As seen, `order: -1` shows the original query with its retrieval preformance. For the rest, it shows the refined queries in decreasing retrieval performance. For instance, for the original query `query: staple com`, the retrieval performance is `bm25.map: 0.037` while the best refined query could imporove it to `bm25.map: 1.0`! 
+As seen, `order: -1` shows the original query with its retrieval preformance. For the rest, it shows the refined queries in decreasing retrieval performance. For instance, for the original query `query: bbc good food recipies`, the retrieval performance is `bm25.map: 0.0393` while the best refined query could imporove it to `bm25.map: 0.5667`! 
 
 ### Settings
 
@@ -302,15 +286,15 @@ settings = {
             'platinum': 'refined_q_metric > original_q_metric',
             'diamond':  'refined_q_metric > original_q_metric and refined_q_metric == 1'},
     'msmarco.passage': {
-        'index': '../data/raw/msmarco.passage/lucene-index.msmarco-v1-passage.20220131.9ea315/',
+        'index': '../data/raw/msmarco.doc/lucene-index.msmarco-v1-doc.20220131.9ea315/',
         'pairing': [None, 'docs', 'query'],     # input=doc(s), output=query, s means concat of relevant docs
-        'lseq':{"inputs": 32, "targets": 256},  # query length and doc length for t5 model,
+        'lseq':{"inputs": 2048, "targets": 32},  # query length and doc length for t5 model,
     },
     'aol-ia': {
-        'index_item': ['title'], # ['url'], ['title', 'url'], ['title', 'url', 'text']
-        'index': '../data/raw/aol-ia/lucene-index/title/',
-        'pairing': [None, 'docs', 'query'], #input=doc(s) output=query
-        'lseq':{"inputs": 32, "targets": 256},  # query length and doc length for t5 model,
+        'index_item': ['docs'], 
+        'index': '../data/raw/toy.orcas/lucene-index',
+        'pairing': ['ctx', 'docs', 'query'], #input=doc(s) output=query
+        'lseq':{"inputs": 2048, "targets": 32},  # query length and doc length for t5 model,
         'filter': {'minql': 1, 'mindocl': 10}.  # [min query length, min doc length], after merge queries with relevant 'index_item', if |query| <= minql drop the row, if |'index_item'| < mindocl, drop row
     }
 }
