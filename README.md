@@ -117,7 +117,7 @@ After this step, [`./output/`](./output) looks like:
 │   │       ├── cc_all.32000
 │   │       └── cc_en.32000
 │   └── toy.orcas
-│       └── t5.base.local.docs.query.documents
+│       └── t5.base.local.ctx.docs.query.documents
 │           ├── checkpoint
 │           ├── events.out.tfevents.1675961098.HFANI
 │           ├── graph.pbtxt
@@ -153,7 +153,7 @@ After this step, prediction files will be added to [`./output`](./output):
 ### [`['search']`](./src/param.py#L17)
 We search the relevant documents for both the original query and each of the `potential` refined queries of type-aware and type-less models. We need to set an information retrieval method, called ranker, that retrieves relevant documents and ranks them based on relevance scores. We integrate [`pyserini`](https://github.com/castorini/pyserini), which provides efficient implementations of sparse rankers, including `bm25` and `qld` (query likelihood with Dirichlet smoothing). 
 
-We store the result of search for the `i`-th potential refined query at same folder in files with names ending with ranker, i.e., `./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}.{ranker name}` like [`./output/toy.orcas/t5.base.local.docs.query.documents/pred.0-1000005.bm25`](./output/toy.orcas/t5.base.local.docs.query.documents/pred.0-1000005.bm25).
+We store the result of search for the `i`-th potential refined query at same folder in files with names ending with ranker, i.e., `./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}.{ranker name}` like [`./output/toy.orcas/t5.base.local.ctx.docs.query.documents/pred.0-1000005.bm25`](./output/toy.orcas/t5.base.local.ctx.docs.query.documents/pred.0-1000005.bm25).
 
 After this step, search results will be added to [`./output`](./output):
 
@@ -176,7 +176,7 @@ After this step, search results will be added to [`./output`](./output):
 ```
 
 ### [`['eval']`](./src/param.py#L20)
-The search results of each potential refined queries are evaluated based on how they improve the performance with respect to an evaluation metric like `map` or `mrr`. 
+The search results of each potential refined queries are evaluated based on how they improve the performance with respect to an evaluation metric like `map`, `mrr` and `ndcg`. 
 
 We store the result of evaluation for the `i`-th potential refined query at same folder in files with names ending with evaluation metric, i.e., `./output/{domain name}/{transformer name}.{pairing strategy}/pred.{refinement index}-{model checkpoint}.{ranker name}.{metric name}` like [`./output/toy.orcas/t5.base.local.ctx.docs.query.documents/pred.0-1003900.bm25.map`](./output/toy.msmarco.passage/t5.base.local.ctx.docs.query/pred.0-1003900.bm25.map).
 
@@ -186,7 +186,7 @@ After this step, evaluation results will be added to [`./output`](./output):
 ```bash
 ├── output
 │   └── toy.orcas
-│       └── t5.base.local.docs.query.documents
+│       └── t5.base.local.ctx.docs.query.documents
 │           ├── original.-1.bm25.map
 │           ├── original.-1.bm25.success.10
 │           ├── original.-1.qld.map
@@ -204,9 +204,9 @@ We keep two main datasets as the final outcome of our pipeline:
 
 For instance, for `toy` query sets of `orcas`, here are the files:
 
-[`./output/toy.orcas/t5.base.local.docs.query.documents/bm25.map.agg.gold.tsv`](./output/toy.orcas/t5.base.local.docs.query.documents/bm25.map.agg.gold.tsv)
+[`./output/toy.orcas/t5.base.local.ctx.docs.query.documents/bm25.map.agg.gold.tsv`](./output/toy.orcas/t5.base.local.ctx.docs.query.documents/bm25.map.agg.gold.tsv)
 
-[`./output/toy.orcas/t5.small.local.docs.query.documents/bm25.map.agg.all.tsv`](./output/toy.orcas/t5.base.local.docs.query.documents/bm25.map.agg.all.tsv)
+[`./output/toy.orcas/t5.small.local.ctx.docs.query.documents/bm25.map.agg.all.tsv`](./output/toy.orcas/t5.base.local.ctx.docs.query.documents/bm25.map.agg.all.tsv)
 
 For boxing, since we keep the performances for all the potential queries, we can change the condition and have a customized selection like having [`diamond`](https://dl.acm.org/doi/abs/10.1145/3459637.3482009) refined queries with maximum possible performance, i.e., `1` by setting the condition: `refined_query_metric >= original_query_metric and refined_q_metric == 1`. The boxing condition can be set at [`./src/param.py`](./src/param.py#L12). 
 
@@ -222,7 +222,7 @@ After this step, [`./output`](./output) will further include:
 ```bash
 ├── output
 │   └── toy.orcas
-│       └── t5.base.local.docs.query.documents
+│       └── t5.base.local.ctx.docs.query.documents
 │           ├── qld.map.agg.all.tsv
 │           ├── qld.map.agg.all_.tsv
 │           ├── qld.map.agg.gold.tsv
@@ -255,7 +255,7 @@ After this step, [`./output`](./output) will further include:
 
 
 ### File Structure
-Here is the refined queries for the two original queries in [`./output/toy-orcas/t5.base.gc.ctx.docs.query/bm25.map.agg.gold.tsv`](https://uwin365-my.sharepoint.com/:u:/g/personal/lakshmiy_uwindsor_ca/EVkDvYIyWyFGjEl88GAcKXABKVWSGITtOA8EEBeFAmc9Zw?e=bq3Ydd) for `aol-ia.title`:
+Here is the refined queries for the two original queries in [`./output/toy-orcas/t5.base.local.ctx.docs.query.documents/bm25.map.agg.gold.tsv`](./output/toy.orcas/t5.base.local.ctx.docs.query.documents/bm25.map.agg.gold.tsv) for `aol-ia.title`:
 
 ```
 qid	    order	  query	                                 bm25.map
@@ -270,7 +270,7 @@ As seen, `order: -1` shows the original query with its retrieval preformance. Fo
 
 ### Settings
 
-`RePair` has generated gold standard query refinement datasets for `msmarco.passage` and `aol-ia` query sets using `t5.base` transformer on google cloud's tpus (`gc`) with `docs.query` pairing strategy for `bm25` ranker and `map` evaluation metric. The golden datasets along with all the artifacts including preprocessed `docs.query` pairs, model checkpoint, predicted refined queries, their search results and evaluation metric values are available at the above links. The running settings were:
+Our pipeline refine the queris by considering the types of them for `orcas` query sets using `t5.base` transformer on google cloud's tpus (`gc`) with `docs.query` pairing strategy for `bm25` ranker and `map` evaluation metric. The golden datasets along with all the artifacts including preprocessed `docs.query` pairs, model checkpoint, predicted refined queries, their search results and evaluation metric values are available at the above links. The running settings were:
 
 ```
 settings = {
@@ -285,17 +285,12 @@ settings = {
     'box': {'gold':     'refined_q_metric >= original_q_metric and refined_q_metric > 0',
             'platinum': 'refined_q_metric > original_q_metric',
             'diamond':  'refined_q_metric > original_q_metric and refined_q_metric == 1'},
-    'msmarco.passage': {
-        'index': '../data/raw/msmarco.doc/lucene-index.msmarco-v1-doc.20220131.9ea315/',
-        'pairing': [None, 'docs', 'query'],     # input=doc(s), output=query, s means concat of relevant docs
-        'lseq':{"inputs": 2048, "targets": 32},  # query length and doc length for t5 model,
-    },
-    'aol-ia': {
-        'index_item': ['docs'], 
-        'index': '../data/raw/toy.orcas/lucene-index',
-        'pairing': ['ctx', 'docs', 'query'], #input=doc(s) output=query
-        'lseq':{"inputs": 2048, "targets": 32},  # query length and doc length for t5 model,
-        'filter': {'minql': 1, 'mindocl': 10}.  # [min query length, min doc length], after merge queries with relevant 'index_item', if |query| <= minql drop the row, if |'index_item'| < mindocl, drop row
+    'msmarco.doc': {
+        'index_item': ['document'],    
+        'index': '../data/raw/orcas/lucene-index.msmarco-v1-doc.20220131.9ea315', #' ../data/raw/robust/lucene-index.robust04.pos+docvectors+rawdocs',  # change based on index_item
+        'pairing': [ 'ctx', 'docs','query'],     # [context={2 scenarios, one with userID and one without userID). input={'userid','query','doc(s)'} output={'query','doc(s)'}
+        'lseq': {"inputs": 2048, "targets": 32},  # query length and doc length for t5 model,
+        'filter': {'minql': 1, 'mindocl': 10}   # [min query length, min doc length], after merge queries with relevant 'index_item', if |query| <= minql drop the row, if |'index_item'| < mindocl, drop row
     }
 }
 ```
