@@ -1,0 +1,32 @@
+2009263	-1	Navigational: bbc good food recipies	0.0393
+2009263	pred.qtrain.ctx.test.8	bbc good food	0.5833
+2009263	pred.qtrain.ctx.test.6	bbc good food http://www.bbcgoodfood.com/recipes	0.5667
+2009263	pred.qtrain.ctx.test.10	bbc good food package	0.0974
+2009263	pred.qtrain.ctx.test.3	bbc new food	0.0725
+2009263	pred.qtrain.ctx.test.4	www.bbcgoodfood.com/recipes	0.0075
+2009263	pred.qtrain.ctx.test.1	bbc goodfoodrecipies	0.0
+2009263	pred.qtrain.ctx.test.2	www.bbcgoodfoodrecipes.com	0.0
+2009263	pred.qtrain.ctx.test.5	bbcgoodfood	0.0
+2009263	pred.qtrain.ctx.test.7	bbcgoodfood	0.0
+2016037	-1	Factual: table leafs or leaves	0.1111
+2016037	pred.qtrain.ctx.test.1	table leaf definition	1.0
+2016037	pred.qtrain.ctx.test.5	what is leaf table leafs	0.2
+2016037	pred.qtrain.ctx.test.6	leaf leaf definition	0.2
+2016037	pred.qtrain.ctx.test.7	leaf for table leafs or leaves	0.1429
+2016037	pred.qtrain.ctx.test.2	table leafs	0.0526
+2016037	pred.qtrain.ctx.test.4	leafs table	0.0526
+2016037	pred.qtrain.ctx.test.10	leaf leaf or leaf	0.0256
+2016037	pred.qtrain.ctx.test.3	leaf leaf	0.0256
+2016037	pred.qtrain.ctx.test.9	leaf	0.0256
+2016037	pred.qtrain.ctx.test.8	finest table leaf	0.0
+11136851	-1	Transactional: free play minecraft	0.0417
+11136851	pred.qtrain.ctx.test.5	minecraft mineroll download free game#nologic	1.0
+11136851	pred.qtrain.ctx.test.9	minecraft free download	0.1667
+11136851	pred.qtrain.ctx.test.7	free minecraft minecraft	0.0714
+11136851	pred.qtrain.ctx.test.2	minecraft free play minecraft	0.0435
+11136851	pred.qtrain.ctx.test.1	minecraft meincraft	0.0
+11136851	pred.qtrain.ctx.test.10	minecraft upgrade	0.0
+11136851	pred.qtrain.ctx.test.3	minecraft gamepick hack	0.0
+11136851	pred.qtrain.ctx.test.4	minecraft minecraft	0.0
+11136851	pred.qtrain.ctx.test.6	minecraft	0.0
+11136851	pred.qtrain.ctx.test.8	minecraft revival	0.0
