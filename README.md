@@ -1,9 +1,18 @@
 # Type-aware Refined Queries via Conditional Transformers
 
-Within a search session, users seek their information needs through iterative refinement of their queries, which is daunting. Neuralbased query refinement methods aim to address this challenge via training on gold-standard pairs of (`original query` -> `refined query`), which have been generated through an exhaustive application of unsupervised or supervised modifications to the original query. However, such modifications have been oblivious to the type of queries and, hence, fall short of finding refined versions for many original queries. In this paper, we bridge the gap by incorporating query types when generating refined queries. We fine-tune a conditional transformer, e.g., [`T5`](https://github.com/google-research/text-to-text-transfer-transformer), to map the relevant documents of an original query onto the query’s keywords while conditioning on its type so that, during the inference, the `query type` controls generating new reformulated queries within the same search intent. Among the generated reformulated queries, those that achieve higher retrieval performance than the original query are then selected as refined queries. Our experiments on a large-scale dataset for five query types demonstrated the synergistic effects of considering query types in generating more refined queries with better information retrieval efficacy. 
+Within a search session, users seek their information needs through iterative refinement of their queries, which is daunting. Neuralbased query refinement methods aim to address this challenge via training on gold-standard pairs of (`original query` -> `refined query`), which have been generated through an exhaustive application of unsupervised or supervised modifications to the original query. However, such modifications have been oblivious to the type of queries and, hence, fall short of finding refined versions for many original queries. In this paper, we bridge the gap by incorporating query types when generating refined queries. We fine-tune a conditional transformer, e.g., [`T5`](https://github.com/google-research/text-to-text-transfer-transformer), to map the relevant documents of an original query onto the query’s keywords while conditioning on its type so that, during the inference, the `query type` controls generating new reformulated queries within the same search intent. Among the generated reformulated queries, those that achieve higher retrieval performance than the original query are then selected as refined queries. Our experiments on a large-scale orcas dataset for five query types demonstrated the synergistic effects of considering query types in generating more refined queries with better information retrieval efficacy. The table below presents the statistics of the orcas dataset.
 
+<table align="center" border="0" width="100%">
+  <tr>
+    <td width="50%" align="center">
+      <img src="stat.png" width="90%" />
+    </td>
+    <td width="50%" align="center">
+      <img src="stat-orcas-chart.png" width="90%" />
+    </td>
+  </tr>
+</table>
 
-**Future Work**: our future research direction includes other conditional transformers than t5 as well as dense retrievers, to explore whether our findings generalize to such new settings.
 
 <table align="center" border=0>
 <tr>
@@ -27,7 +36,7 @@ Within a search session, users seek their information needs through iterative re
 - [5. License](#5-license)
 
 </td>
-<td ><img src='flow-type.png' width="80%" /></td>
+<td align="center"><img src='flow-type.png' width="80%" /></td>
 </tr>
 </table>
 
@@ -295,13 +304,13 @@ settings = {
 }
 ```
 
-### Stats
-
-<img src="stat.png" width="60%"/>
 
 ### Samples
 
 <img src="sample.png" width="70%"/>
+
+**Future Work**: our future research direction includes other conditional transformers than t5 as well as dense retrievers, to explore whether our findings generalize to such new settings.
+
 
 ## 4. Acknowledgement
 We benefit from [``trec_eval``](https://github.com/usnistgov/trec_eval), [``pyserini``](https://github.com/castorini/pyserini), [``ir-dataset``](https://ir-datasets.com/), and other libraries. We would like to thank the authors of these libraries and helpful resources.
