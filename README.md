@@ -27,8 +27,7 @@ Within a search session, users seek their information needs through iterative re
 - [5. License](#5-license)
 
 </td>
-<td >![image]https://raw.githubusercontent.com/fani-lab/RePair/main/misc/flow-type.PNG
-</td>
+<td ><img src='./flow-type.png' width="80%" /></td>
 </tr>
 </table>
 
