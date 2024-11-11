@@ -297,7 +297,7 @@ settings = {
 
 ### Stats
 
-<img src='stat.png' width="80%" />
+<img src="stat.png" width="60%"/>
 ### Samples
 
 ![image](https://user-images.githubusercontent.com/8619934/221714147-d2c212b8-8e00-47b4-8f3f-89fe805d441a.png)
