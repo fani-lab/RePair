@@ -298,9 +298,10 @@ settings = {
 ### Stats
 
 <img src="stat.png" width="60%"/>
+
 ### Samples
 
-![image](https://user-images.githubusercontent.com/8619934/221714147-d2c212b8-8e00-47b4-8f3f-89fe805d441a.png)
+<img src="sample.png" width="70%"/>
 
 ## 4. Acknowledgement
 We benefit from [``trec_eval``](https://github.com/usnistgov/trec_eval), [``pyserini``](https://github.com/castorini/pyserini), [``ir-dataset``](https://ir-datasets.com/), and other libraries. We would like to thank the authors of these libraries and helpful resources.
