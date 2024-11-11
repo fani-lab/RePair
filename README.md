@@ -1,6 +1,6 @@
 # Type-aware Refined Queries via Conditional Transformers
 
-Within a search session, users seek their information needs through iterative refinement of their queries, which is daunting. Neuralbased query refinement methods aim to address this challenge via training on gold-standard pairs of (`original query` -> `refined query`), which have been generated through an exhaustive application of unsupervised or supervised modifications to the original query. However, such modifications have been oblivious to the type of queries and, hence, fall short of finding refined versions for many original queries. In this paper, we bridge the gap by incorporating query types when generating refined queries. We fine-tune a conditional transformer, e.g., [`T5`](https://github.com/google-research/text-to-text-transfer-transformer), to map the relevant documents of an original query onto the query’s keywords while conditioning on its type so that, during the inference, the `query type` controls generating new reformulated queries within the same search intent. Among the generated reformulated queries, those that achieve higher retrieval performance than the original query are then selected as refined queries. Our experiments on a large-scale orcas dataset for five query types demonstrated the synergistic effects of considering query types in generating more refined queries with better information retrieval efficacy. The table below presents the statistics of the orcas dataset.
+Within a search session, users seek their information needs through iterative refinement of their queries, which is daunting. Neuralbased query refinement methods aim to address this challenge via training on gold-standard pairs of (`original query` -> `refined query`), which have been generated through an exhaustive application of unsupervised or supervised modifications to the original query. However, such modifications have been oblivious to the type of queries and, hence, fall short of finding refined versions for many original queries. In this paper, we bridge the gap by incorporating query types when generating refined queries. We fine-tune a conditional transformer, e.g., [`T5`](https://github.com/google-research/text-to-text-transfer-transformer), to map the relevant documents of an original query onto the query’s keywords while conditioning on its type so that, during the inference, the `query type` controls generating new reformulated queries within the same search intent. Among the generated reformulated queries, those that achieve higher retrieval performance than the original query are then selected as refined queries. Our experiments on a large-scale [`orcas`](https://dl.acm.org/doi/abs/10.1145/3477495.3531737) dataset for five query types demonstrated the synergistic effects of considering query types in generating more refined queries with better information retrieval efficacy. The table below presents the statistics of the orcas dataset.
 
 <table align="center" border="0" width="100%">
   <tr>
@@ -72,7 +72,7 @@ To perform fast IR tasks, we need to build the indexes of document corpora or us
 
 
 ## 2. Quickstart
-We use [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to train a model, that when given an input query (origianl query), generates refined (better) versions of the query in terms of retrieving more relevant documents at higher ranking positions. Currently, we finetuned [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) model on `orcas` (`type-less` and `type-aware` model).
+We use [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to train a model, that when given an input query (origianl query), generates refined (better) versions of the query in terms of retrieving more relevant documents at higher ranking positions. Currently, we finetuned [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) model on [`orcas`](https://dl.acm.org/doi/abs/10.1145/3477495.3531737) (`type-less` and `type-aware` model).
 
 As seen in the above [`workflow`](./misc/workflow.png), it has four pipelined steps: 
 > 1. Transformer Finetuning: [`pair`, `finetune`]
@@ -201,6 +201,9 @@ After this step, evaluation results will be added to [`./output`](./output):
 │           ├── original.-1.qld.map
 │           ├── original.-1.qld.success.10
 ```
+Here is the sample queries from [`orcas`](https://dl.acm.org/doi/abs/10.1145/3477495.3531737) and the search efficacy of type-aware refinements. As underlined, a query type yield better refinement to a query.
+
+<img src="sample.png" width="70%"/>
 
 ### [`['agg', 'box']`](./src/param.py#L12)
 Finaly, we keep those potential refined queries whose performance (metric score) have been better or equal compared to the original query, i.e., `refined_query_metric >= original_query_metric and refined_q_metric > 0`.
@@ -305,9 +308,9 @@ settings = {
 ```
 
 
-### Samples
+### Results
 
-<img src="sample.png" width="70%"/>
+<img src="result.png" width="70%"/>
 
 **Future Work**: our future research direction includes other conditional transformers than t5 as well as dense retrievers, to explore whether our findings generalize to such new settings.
 
