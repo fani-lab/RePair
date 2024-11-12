@@ -1,17 +1,7 @@
 # Type-aware Refined Queries via Conditional Transformers
 
-Within a search session, users seek their information needs through iterative refinement of their queries, which is daunting. Neuralbased query refinement methods aim to address this challenge via training on gold-standard pairs of (`original query` -> `refined query`), which have been generated through an exhaustive application of unsupervised or supervised modifications to the original query. However, such modifications have been oblivious to the type of queries and, hence, fall short of finding refined versions for many original queries. In this paper, we bridge the gap by incorporating query types when generating refined queries. We fine-tune a conditional transformer, e.g., [`T5`](https://github.com/google-research/text-to-text-transfer-transformer), to map the relevant documents of an original query onto the query’s keywords while conditioning on its type so that, during the inference, the `query type` controls generating new reformulated queries within the same search intent. Among the generated reformulated queries, those that achieve higher retrieval performance than the original query are then selected as refined queries. Our experiments on a large-scale [`orcas`](https://dl.acm.org/doi/abs/10.1145/3477495.3531737) dataset for five query types demonstrated the synergistic effects of considering query types in generating more refined queries with better information retrieval efficacy. The table below presents the statistics of the orcas dataset.
+Within a search session, users seek their information needs through iterative refinement of their queries, which is daunting. Neuralbased query refinement methods aim to address this challenge via training on gold-standard pairs of (`original query` -> `refined query`), which have been generated through an exhaustive application of unsupervised or supervised modifications to the original query. However, such modifications have been oblivious to the type of queries and, hence, fall short of finding refined versions for many original queries. In this paper, we bridge the gap by incorporating query types when generating refined queries. We fine-tune a conditional transformer, e.g., [`T5`](https://github.com/google-research/text-to-text-transfer-transformer), to map the relevant documents of an original query onto the query’s keywords while conditioning on its type so that, during the inference, the `query type` controls generating new reformulated queries within the same search intent. Among the generated reformulated queries, those that achieve higher retrieval performance than the original query are then selected as refined queries. Our experiments on a large-scale dataset for five query types demonstrated the synergistic effects of considering query types in generating more refined queries with better information retrieval efficacy.
 
-<table align="center" border="0" width="100%">
-  <tr>
-    <td width="50%" align="center">
-      <img src="stat.png" width="90%" />
-    </td>
-    <td width="50%" align="center">
-      <img src="stat-orcas-chart.png" width="90%" />
-    </td>
-  </tr>
-</table>
 
 
 <table align="center" border=0>
@@ -107,6 +97,19 @@ After this step, [`./data/`](./data) directory looks like:
 │   │       ├── queries.qrels.docs.ctx.documents.test.tsv
 │   │       └── queries.qrels.docs.ctx.documents.train.tsv
 ```
+
+The table below presents the number of |q| and |Jq| keywords and relevant documents for a query, respectively of the orcas dataset.
+
+<table align="center" border="0" width="100%">
+  <tr>
+    <td width="50%" align="center">
+      <img src="stat.png" width="90%" />
+    </td>
+    <td width="50%" align="center">
+      <img src="stat-orcas-chart.png" width="90%" />
+    </td>
+  </tr>
+</table>
 
 ### [`['finetune']`](./src/param.py#L14)
 We have used [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) to generate the refinements to the original queries. We can run [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) on local machine (cpu/gpu), or on google cloud (tpu), which is the [`T5`](https://github.com/google-research/text-to-text-transfer-transformer) pereferance,
