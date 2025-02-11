@@ -312,7 +312,7 @@ settings = {
 
 
 ### Results
-
+<img src="result1.png" width="70%"/>
 <img src="result.png" width="70%"/>
 
 **Future Work**: our future research direction includes other conditional transformers than t5 as well as dense retrievers, to explore whether our findings generalize to such new settings.
