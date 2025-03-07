@@ -4,7 +4,7 @@ channels:
   - pytorch
   - defaults
 dependencies:
-  - python=3.8 #nmslib in pyserini only works python <= 3.9
+  - python=3.9 #nmslib in pyserini only works python <= 3.9
   - pip
   - ftfy
   - rich
