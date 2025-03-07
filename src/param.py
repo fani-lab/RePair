@@ -20,7 +20,7 @@ settings = {
     'batch': None,              # search per batch of queries for IR search using pyserini, if None, search per query
     'topk': 100,                # number of retrieved documents for a query
     'large_ds': False,
-    'treclib': f'"./trec_eval.9.0.4/trec_eval{extension}"',  # in non-windows, remove .exe, also for pytrec_eval, 'pytrec'
+    'treclib': f'./trec_eval-9.0.7/trec_eval{extension}', # in non-windows, remove .exe, also for pytrec_eval, 'pytrec'
     'box': {'gold': 'refined_q_metric >= original_q_metric and refined_q_metric > 0',
             'platinum': 'refined_q_metric > original_q_metric',
             'diamond': 'refined_q_metric > original_q_metric and refined_q_metric == 1'}
