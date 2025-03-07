@@ -1,5 +1,5 @@
 from pywsd import disambiguate
-from src.refinement.refiners.abstractqrefiner import AbstractQRefiner
+from refinement.refiners.abstractqrefiner import AbstractQRefiner
 
 
 class SenseDisambiguation(AbstractQRefiner):
@@ -7,7 +7,7 @@ class SenseDisambiguation(AbstractQRefiner):
         AbstractQRefiner.__init__(self, replace)
 
     def get_refined_query(self, q, args=None):
-        res=[]
+        res = []
         disamb = disambiguate(q)
         for i,t in enumerate(disamb):
             if t[1] is not None:

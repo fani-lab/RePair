@@ -6,7 +6,7 @@ from itertools import product
 from os.path import isfile, join, exists
 from multiprocessing import freeze_support
 from refinement import refiner_factory as rf
-from src.refinement.refiner_param import settings as ref_set
+from refinement.refiner_param import settings as ref_set
 import argparse, os, pandas as pd, multiprocessing as mp
 
 
@@ -148,7 +148,7 @@ def run(data_list, domain_list, output_result, corpora, settings):
                         print(f'Aggregating results for {hex_to_ansi("#3498DB")}all the refiners except bing{hex_to_ansi(reset=True)} ...')
                         ds.aggregate(originals, refined_data_output, output, ranker, metric, selected_refiner='+bt')
                         print(f'Aggregating results for {hex_to_ansi("#3498DB")}all refiners{hex_to_ansi(reset=True)} ...')
-                        ds.aggregate(originals, refined_data_output, output, ranker, metric){hex_to_ansi(reset=True)} ...')
+                        ds.aggregate(originals, refined_data_output, output, ranker, metric)
                     if 'build' in settings['cmd']:
                         ds.aggregate(originals, refined_data_output, output, ranker, metric, selected_refiner='nllb', cmd='build')
                         ds.aggregate(originals, refined_data_output, output, ranker, metric, selected_refiner='refiner', cmd='build')
