@@ -115,7 +115,7 @@ def add_train_args(parser):
     general = parser.add_argument_group('General')
     general.add_argument('--valid_metric', type=str, default='map',
                          help='The evaluation metric used for model selection')
-    general.add_argument('--sort_by_len', type='bool', default=True,
+    general.add_argument('--sort_by_len', type='bool', default=False, #it's buggy as it does not load the last batch even if drop_last=False!!!,
                          help='Sort batches by length for speed')
     general.add_argument('--only_test', type='bool', default=False,
                          help='Only do testing')
@@ -470,7 +470,7 @@ def main(args):
             num_workers=args.data_workers,
             collate_fn=vector.batchify,
             pin_memory=args.cuda,
-            drop_last=args.parallel
+            drop_last=False #args.parallel
         )
 
         dev_dataset = data.RecommenderDataset(dev_exs, model)
@@ -488,7 +488,7 @@ def main(args):
             num_workers=args.data_workers,
             collate_fn=vector.batchify,
             pin_memory=args.cuda,
-            drop_last=args.parallel
+            drop_last=False #args.parallel
         )
 
     # -------------------------------------------------------------------------
@@ -550,7 +550,7 @@ def main(args):
         num_workers=args.data_workers,
         collate_fn=vector.batchify,
         pin_memory=args.cuda,
-        drop_last=args.parallel
+        drop_last=False #args.parallel
     )
     args.pred_file = os.path.join(args.model_dir, args.model_name + '_test.json')
     return validate_official(args, test_loader, model)
